@@ -45,25 +45,25 @@ export function notifyRealtimeUpdate() {
 
 // Dati demo iniziali
 const DEMO_PLAYERS: Player[] = [
-  { id: 'p1', name: 'Marco', nickname: 'Il Carico', avatarSuit: 'denari', createdAt: '2026-10-01T10:00:00Z' },
-  { id: 'p2', name: 'Matteo', nickname: 'Asso Pigliatutto', avatarSuit: 'bastoni', createdAt: '2026-10-01T10:05:00Z' },
-  { id: 'p3', name: 'Sara', nickname: 'Strozza-Re', avatarSuit: 'coppe', createdAt: '2026-10-01T10:10:00Z' },
-  { id: 'p4', name: 'Elena', nickname: 'La Tagliatrice', avatarSuit: 'spade', createdAt: '2026-10-01T10:15:00Z' },
+  { id: 'p1', name: 'Marghe', nickname: 'Regina di Coppe', avatarSuit: 'coppe', createdAt: '2026-10-01T10:00:00Z' },
+  { id: 'p2', name: 'Irins', nickname: 'Asso di Denari', avatarSuit: 'denari', createdAt: '2026-10-01T10:05:00Z' },
+  { id: 'p3', name: 'Simon', nickname: 'Il Carico', avatarSuit: 'bastoni', createdAt: '2026-10-01T10:10:00Z' },
+  { id: 'p4', name: 'Edd', nickname: 'Spada Affilata', avatarSuit: 'spade', createdAt: '2026-10-01T10:15:00Z' },
 ];
 
 const DEMO_TEAMS: Team[] = [
   {
     id: 't1',
-    name: 'I Bastonatori',
-    playerIds: ['p1', 'p2'],
+    name: 'Edd & Simon',
+    playerIds: ['p4', 'p3'],
     color: '#10b981',
-    suit: 'bastoni',
+    suit: 'spade',
     createdAt: '2026-10-01T10:20:00Z',
   },
   {
     id: 't2',
-    name: 'Regine di Coppe',
-    playerIds: ['p3', 'p4'],
+    name: 'Marghe & Irins',
+    playerIds: ['p1', 'p2'],
     color: '#f59e0b',
     suit: 'coppe',
     createdAt: '2026-10-01T10:25:00Z',
@@ -117,7 +117,7 @@ function generateDemoMatches(): Match[] {
       winnerTeamId: 't2',
       scoreTeam1: 45,
       scoreTeam2: 75,
-      notes: 'Grande partita di Sara',
+      notes: 'Grande partita di Marghe',
     },
     {
       id: 'm4',
@@ -141,7 +141,7 @@ function generateDemoMatches(): Match[] {
       winnerTeamId: 't1',
       scoreTeam1: 71,
       scoreTeam2: 49,
-      notes: 'Rivincita dei Bastonatori',
+      notes: 'Rivincita di Edd & Simon',
     },
     {
       id: 'm6',
@@ -170,12 +170,12 @@ function generateDemoSessions(): TournamentSession[] {
       dateKey: yesterdayKey,
       startedAt: `${yesterdayKey}T20:45:00Z`,
       endedAt: `${yesterdayKey}T22:30:00Z`,
-      team1Name: 'I Bastonatori',
-      team1Players: ['Marco', 'Matteo'],
-      team2Name: 'Regine di Coppe',
-      team2Players: ['Sara', 'Elena'],
-      team1Wins: 1,
-      team2Wins: 2,
+      team1Name: 'Edd & Simon',
+      team1Players: ['Edd', 'Simon'],
+      team2Name: 'Marghe & Irins',
+      team2Players: ['Marghe', 'Irins'],
+      team1Wins: 2,
+      team2Wins: 3,
       status: 'completed',
       winnerTeam: 2,
     },
@@ -186,17 +186,20 @@ export const StorageService = {
   init() {
     if (typeof window === 'undefined') return;
     try {
-      if (!localStorage.getItem(STORAGE_KEYS.PLAYERS)) {
+      const existingPlayers = localStorage.getItem(STORAGE_KEYS.PLAYERS);
+      // Se non ci sono giocatori salvati o contengono i vecchi mock ("Marco", "Matteo", "Sara", "Elena"), aggiorna con Marghe, Irins, Simon, Edd
+      if (
+        !existingPlayers ||
+        existingPlayers.includes('Marco') ||
+        existingPlayers.includes('Matteo') ||
+        existingPlayers.includes('Sara')
+      ) {
         localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(DEMO_PLAYERS));
-      }
-      if (!localStorage.getItem(STORAGE_KEYS.TEAMS)) {
         localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(DEMO_TEAMS));
+        localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(generateDemoSessions()));
       }
       if (!localStorage.getItem(STORAGE_KEYS.MATCHES)) {
         localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(generateDemoMatches()));
-      }
-      if (!localStorage.getItem(STORAGE_KEYS.TOURNAMENT_SESSIONS)) {
-        localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(generateDemoSessions()));
       }
     } catch (e) {
       console.error('Storage init error:', e);

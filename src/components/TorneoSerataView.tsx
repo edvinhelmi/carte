@@ -38,6 +38,17 @@ export function TorneoSerataView({
   const [customPlayerInput2, setCustomPlayerInput2] = useState('');
   const [copied, setCopied] = useState(false);
 
+  // Suggerimenti predefiniti richiesti: Marghe, Irins, Simon, Edd
+  const availablePlayerNames = useMemo(() => {
+    const list = ['Marghe', 'Irins', 'Simon', 'Edd'];
+    for (const p of players) {
+      if (p.name && !list.includes(p.name)) {
+        list.push(p.name);
+      }
+    }
+    return list;
+  }, [players]);
+
   const handleShareLink = () => {
     if (typeof window === 'undefined') return;
     const room = RealtimeSyncService.getRoom();
@@ -390,7 +401,7 @@ export function TorneoSerataView({
                   <input
                     type="text"
                     required
-                    placeholder="Es. I Bastonatori"
+                    placeholder="Es. Marghe & Irins"
                     value={team1Name}
                     onChange={(e) => setTeam1Name(e.target.value)}
                     className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2 text-sm text-zinc-100 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -401,27 +412,25 @@ export function TorneoSerataView({
                   <label className="text-xs text-zinc-400 block mb-1.5">
                     Chi c&apos;è dentro la squadra:
                   </label>
-                  {players.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {players.map((p) => {
-                        const isSelected = team1SelectedPlayers.includes(p.name);
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => togglePlayer1(p.name)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                              isSelected
-                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold'
-                                : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
-                            }`}
-                          >
-                            + {p.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {availablePlayerNames.map((name) => {
+                      const isSelected = team1SelectedPlayers.includes(name);
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => togglePlayer1(name)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold'
+                              : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                          }`}
+                        >
+                          + {name}
+                        </button>
+                      );
+                    })}
+                  </div>
 
                   {/* Input manuale se vuoi aggiungere altri nomi */}
                   <div className="flex gap-2">
@@ -506,7 +515,7 @@ export function TorneoSerataView({
                   <input
                     type="text"
                     required
-                    placeholder="Es. Regine di Coppe"
+                    placeholder="Es. Edd & Simon"
                     value={team2Name}
                     onChange={(e) => setTeam2Name(e.target.value)}
                     className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2 text-sm text-zinc-100 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
@@ -517,27 +526,25 @@ export function TorneoSerataView({
                   <label className="text-xs text-zinc-400 block mb-1.5">
                     Chi c&apos;è dentro la squadra:
                   </label>
-                  {players.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {players.map((p) => {
-                        const isSelected = team2SelectedPlayers.includes(p.name);
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => togglePlayer2(p.name)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                              isSelected
-                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
-                                : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
-                            }`}
-                          >
-                            + {p.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {availablePlayerNames.map((name) => {
+                      const isSelected = team2SelectedPlayers.includes(name);
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => togglePlayer2(name)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
+                              : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                          }`}
+                        >
+                          + {name}
+                        </button>
+                      );
+                    })}
+                  </div>
 
                   {/* Input manuale squadra 2 */}
                   <div className="flex gap-2">
