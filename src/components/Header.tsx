@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trophy, Calendar as CalendarIcon, Users, Settings, Swords, Plus } from 'lucide-react';
+import { HouseSwitcher } from './HouseSwitcher';
 
 export type TabType = 'torneo' | 'calendar' | 'leaderboard' | 'teams' | 'settings';
 
@@ -21,19 +22,24 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
   return (
     <header className="sticky top-0 z-40 bg-[var(--canvas)]/90 backdrop-blur-xl border-b border-[var(--divider)] px-3.5 sm:px-6 lg:px-8 py-2.5 sm:py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
-        {/* Brand / Logo */}
-        <button
-          type="button"
-          onClick={() => setActiveTab('torneo')}
-          className="flex items-center gap-2.5 sm:gap-3 text-left group cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-full min-w-0 min-h-[44px]"
-        >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shadow-sm group-hover:border-[var(--accent)]/60 transition-[border-color,box-shadow] duration-200 shrink-0">
-            <Trophy className="w-5 h-5 text-[var(--accent)] icon-hover-tilt" />
-          </div>
-          <span className="font-heading font-black text-lg sm:text-xl text-[var(--text)] tracking-tight leading-none truncate pt-0.5">
-            Briscola Club
-          </span>
-        </button>
+        {/* Brand / Logo & House Switcher */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('torneo')}
+            className="flex items-center gap-2 sm:gap-2.5 text-left group cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-full min-w-0 min-h-[44px]"
+          >
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shadow-sm group-hover:border-[var(--accent)]/60 transition-[border-color,box-shadow] duration-200 shrink-0">
+              <Trophy className="w-5 h-5 text-[var(--accent)] icon-hover-tilt" />
+            </div>
+            <span className="font-heading font-black text-base sm:text-lg text-[var(--text)] tracking-tight leading-none truncate pt-0.5">
+              Briscola Club
+            </span>
+          </button>
+
+          {/* Selettore Casa Attiva */}
+          <HouseSwitcher />
+        </div>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1 bg-[var(--surface)] p-1 rounded-xl border border-[var(--divider)]">

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { useStorageData } from '@/lib/useStorageData';
 import { RealtimeSyncService } from '@/lib/realtimeSync';
+import { HouseService } from '@/lib/houseService';
 import { installReferenceReveals } from '@/lib/reveal';
 import { Header, TabType } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
@@ -23,8 +24,31 @@ export default function Home() {
     () => false
   );
   const [activeTab, setActiveTab] = useState<TabType>('torneo');
+  const [joinNotification, setJoinNotification] = useState<string | null>(null);
   const { players, teams, matches, tournamentSessions, activeSession, refresh } =
     useStorageData();
+
+  // Rileva parametro ?casa=... da QR Code o link invito
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const url = new URL(window.location.href);
+      const casaParam = url.searchParams.get('casa');
+      if (casaParam) {
+        HouseService.joinHouseByCodeOrId(casaParam).then((res) => {
+          if (res.success && res.house) {
+            setJoinNotification(`Sei entrato in ${res.house.name}!`);
+            setTimeout(() => setJoinNotification(null), 4000);
+            url.searchParams.delete('casa');
+            window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+            refresh();
+          }
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }, [refresh]);
 
   // Stato Modale Quick Match
   const [isQuickMatchOpen, setIsQuickMatchOpen] = useState(false);
@@ -79,6 +103,14 @@ export default function Home() {
         setActiveTab={setActiveTab}
         onOpenQuickMatch={handleOpenStandardQuickMatch}
       />
+
+      {/* Toast Notifica Casa */}
+      {joinNotification && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-[var(--surface-raised)] border border-emerald-500/40 text-emerald-400 font-bold text-xs shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-2">
+          <span>🏠</span>
+          <span>{joinNotification}</span>
+        </div>
+      )}
 
       {/* Contenuto Principale con Tab Switch */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-6 overflow-x-hidden">

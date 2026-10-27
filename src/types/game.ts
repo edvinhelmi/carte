@@ -4,6 +4,7 @@ export type CardSuit = 'coppe' | 'denari' | 'spade' | 'bastoni';
 
 export interface Player {
   id: string;
+  houseId?: string;
   name: string;
   nickname?: string;
   avatarSuit: CardSuit;
@@ -12,6 +13,7 @@ export interface Player {
 
 export interface Team {
   id: string;
+  houseId?: string;
   name: string;
   playerIds: string[]; // 1 player for 1v1, 2 players for 2v2
   color: string;
@@ -20,6 +22,7 @@ export interface Team {
 
 export interface Match {
   id: string;
+  houseId?: string;
   gameType: GameType;
   timestamp: string; // ISO string e.g. 2026-10-27T21:30:00Z
   dateKey: string;   // YYYY-MM-DD
@@ -64,6 +67,7 @@ export type TournamentMode = '2vs2' | '1vs1' | '1vs1vs1';
 // Sessione di Torneo / Serata di partite consecutive tra due o tre partecipanti
 export interface TournamentSession {
   id: string;
+  houseId?: string;
   dateKey: string; // YYYY-MM-DD
   startedAt: string;
   endedAt?: string;

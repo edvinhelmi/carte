@@ -9,9 +9,15 @@ import {
   Share2,
   Check,
   Radio,
+  Home,
+  QrCode,
+  Cloud,
 } from 'lucide-react';
 import { StorageService } from '@/lib/storage';
 import { RealtimeSyncService } from '@/lib/realtimeSync';
+import { HouseService } from '@/lib/houseService';
+import { isSupabaseConfigured } from '@/lib/supabaseClient';
+import { ShareHouseModal } from './ShareHouseModal';
 
 interface SettingsViewProps {
   onDataUpdated: () => void;
@@ -19,9 +25,12 @@ interface SettingsViewProps {
 
 export function SettingsView({ onDataUpdated }: SettingsViewProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeHouse] = useState(() => HouseService.getActiveHouse());
+  const [showShareModal, setShowShareModal] = useState(false);
   const [roomInput, setRoomInput] = useState(() => RealtimeSyncService.getRoom());
   const [roomSaved, setRoomSaved] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const hasCloud = isSupabaseConfigured();
 
   // Scarica Backup JSON
   const handleExport = () => {
@@ -116,6 +125,41 @@ export function SettingsView({ onDataUpdated }: SettingsViewProps) {
         <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1">
           Gestione dei dati di casa, stanza live in tempo reale e salvataggio offline.
         </p>
+      </div>
+
+      {/* SEZIONE 0: CASA ATTIVA E CONDIVISIONE */}
+      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
+            <Home className="w-4 h-4 text-[var(--accent)]" />
+            <span>Casa Attiva: {activeHouse.name}</span>
+          </h2>
+          <span className="font-mono text-xs font-bold text-[var(--accent)] px-2.5 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)]">
+            {activeHouse.inviteCode}
+          </span>
+        </div>
+
+        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+          I suggerimenti dei giocatori e lo storico partite sono isolati per questa casa. Puoi condividere l&apos;accesso immediato con amici o coinquilini tramite QR Code o Link diretto.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <button
+            type="button"
+            onClick={() => setShowShareModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] text-xs font-bold btn-tactile cursor-pointer shadow-sm"
+          >
+            <QrCode className="w-4 h-4" />
+            <span>Mostra QR Code &amp; Link Casa</span>
+          </button>
+
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs text-[var(--text-muted)]">
+            <Cloud className="w-3.5 h-3.5 text-sky-400" />
+            <span>
+              {hasCloud ? 'Supabase Cloud: Connesso' : 'Persistenza: Local-First (Offline)'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* SEZIONE 1: LIVE CLOUD SYNC & ROOM CODE */}
@@ -254,6 +298,12 @@ export function SettingsView({ onDataUpdated }: SettingsViewProps) {
           </button>
         </div>
       </div>
+
+      <ShareHouseModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        house={activeHouse}
+      />
     </div>
   );
 }

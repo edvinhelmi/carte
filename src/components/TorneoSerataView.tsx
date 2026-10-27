@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { TournamentSession, Team, Player, TournamentMode } from '@/types/game';
 import { StorageService } from '@/lib/storage';
-import { RealtimeSyncService } from '@/lib/realtimeSync';
+import { HouseService } from '@/lib/houseService';
 import { fireWinConfetti } from '@/lib/confetti';
 
 interface TorneoSerataViewProps {
@@ -85,21 +85,23 @@ export function TorneoSerataView({
 
   const [copied, setCopied] = useState(false);
 
-  // Suggerimenti predefiniti richiesti: Marghe, Irins, Simon, Edd
+  // Suggerimenti basati esclusivamente sui membri registrati nella Casa attiva
   const availablePlayerNames = useMemo(() => {
-    const list = ['Marghe', 'Irins', 'Simon', 'Edd'];
+    const list: string[] = [];
     for (const p of players) {
       if (p.name && !list.some((n) => n.toLowerCase() === p.name.toLowerCase())) {
         list.push(p.name);
       }
+    }
+    if (list.length === 0 && HouseService.getActiveHouseId() === 'casa_principale') {
+      return ['Marghe', 'Irins', 'Simon', 'Edd'];
     }
     return list;
   }, [players]);
 
   const handleShareLink = () => {
     if (typeof window === 'undefined') return;
-    const room = RealtimeSyncService.getRoom();
-    const url = `${window.location.origin}?room=${room}`;
+    const url = HouseService.getShareUrl(HouseService.getActiveHouseId());
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(() => {
         setCopied(true);

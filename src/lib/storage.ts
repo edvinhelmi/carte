@@ -1,13 +1,12 @@
 import type { Player, Team, Match, TournamentSession, TournamentMode } from '@/types/game';
 import { RealtimeSyncService } from './realtimeSync.ts';
+import { HouseService, getHouseResourceKey } from './houseService.ts';
+import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient.ts';
 
-const STORAGE_KEYS = {
-  PLAYERS: 'carte_briscola_players_v4',
-  TEAMS: 'carte_briscola_teams_v4',
-  MATCHES: 'carte_briscola_matches_v4',
-  TOURNAMENT_SESSIONS: 'carte_tournament_sessions_v4',
-  SETTINGS: 'carte_briscola_settings_v4',
-};
+function getActiveResourceKey(resource: 'players' | 'teams' | 'matches' | 'sessions'): string {
+  const activeHouseId = HouseService.getActiveHouseId();
+  return getHouseResourceKey(activeHouseId, resource);
+}
 
 // Formatta data come YYYY-MM-DD
 export function formatDateKey(date?: Date): string {
@@ -91,58 +90,36 @@ function generateDemoSessions(): TournamentSession[] {
   return [];
 }
 
-// Fallback in memoria quando localStorage non è disponibile (SSR, worker, test)
-const memoryStore: Record<string, string> = {};
-
-function getStoredItem(key: string): string | null {
-  if (typeof window !== 'undefined') {
-    try {
-      return localStorage.getItem(key);
-    } catch {
-      return memoryStore[key] ?? null;
-    }
-  }
-  return memoryStore[key] ?? null;
-}
-
-function setStoredItem(key: string, value: string): void {
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem(key, value);
-    } catch {
-      memoryStore[key] = value;
-    }
-  } else {
-    memoryStore[key] = value;
-  }
-}
-
-function removeStoredItem(key: string): void {
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      delete memoryStore[key];
-    }
-  } else {
-    delete memoryStore[key];
-  }
-}
+import { getStoredItem, setStoredItem, removeStoredItem } from './storagePrimitives.ts';
 
 export const StorageService = {
   init() {
     try {
-      if (!getStoredItem(STORAGE_KEYS.PLAYERS)) {
-        setStoredItem(STORAGE_KEYS.PLAYERS, JSON.stringify(DEMO_PLAYERS));
-      }
-      if (!getStoredItem(STORAGE_KEYS.TEAMS)) {
-        setStoredItem(STORAGE_KEYS.TEAMS, JSON.stringify(DEMO_TEAMS));
-      }
-      if (!getStoredItem(STORAGE_KEYS.MATCHES)) {
-        setStoredItem(STORAGE_KEYS.MATCHES, JSON.stringify(generateDemoMatches()));
-      }
-      if (!getStoredItem(STORAGE_KEYS.TOURNAMENT_SESSIONS)) {
-        setStoredItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(generateDemoSessions()));
+      HouseService.init();
+      const activeHouseId = HouseService.getActiveHouseId();
+      const playersKey = getActiveResourceKey('players');
+      const teamsKey = getActiveResourceKey('teams');
+      const matchesKey = getActiveResourceKey('matches');
+      const sessionsKey = getActiveResourceKey('sessions');
+
+      if (activeHouseId === 'casa_principale') {
+        if (!getStoredItem(playersKey)) {
+          setStoredItem(playersKey, JSON.stringify(DEMO_PLAYERS.map((p) => ({ ...p, houseId: activeHouseId }))));
+        }
+        if (!getStoredItem(teamsKey)) {
+          setStoredItem(teamsKey, JSON.stringify(DEMO_TEAMS.map((t) => ({ ...t, houseId: activeHouseId }))));
+        }
+        if (!getStoredItem(matchesKey)) {
+          setStoredItem(matchesKey, JSON.stringify(generateDemoMatches().map((m) => ({ ...m, houseId: activeHouseId }))));
+        }
+        if (!getStoredItem(sessionsKey)) {
+          setStoredItem(sessionsKey, JSON.stringify(generateDemoSessions()));
+        }
+      } else {
+        if (!getStoredItem(playersKey)) setStoredItem(playersKey, JSON.stringify([]));
+        if (!getStoredItem(teamsKey)) setStoredItem(teamsKey, JSON.stringify([]));
+        if (!getStoredItem(matchesKey)) setStoredItem(matchesKey, JSON.stringify([]));
+        if (!getStoredItem(sessionsKey)) setStoredItem(sessionsKey, JSON.stringify([]));
       }
     } catch (e) {
       console.error('Storage init error:', e);
@@ -153,24 +130,35 @@ export const StorageService = {
   broadcastStateChange() {
     if (typeof window === 'undefined') return;
     notifyRealtimeUpdate();
-    RealtimeSyncService.broadcastFullSync({
-      matches: this.getMatches(),
-      sessions: this.getTournamentSessions(),
-      teams: this.getTeams(),
-      players: this.getPlayers(),
-    });
+    try {
+      const activeHouseId = HouseService.getActiveHouseId();
+      RealtimeSyncService.setRoom(`carte_house_${activeHouseId}`);
+      RealtimeSyncService.broadcastFullSync({
+        matches: this.getMatches(),
+        sessions: this.getTournamentSessions(),
+        teams: this.getTeams(),
+        players: this.getPlayers(),
+      });
+    } catch {
+      // ignore
+    }
   },
 
   getPlayers(): Player[] {
     try {
-      const data = getStoredItem(STORAGE_KEYS.PLAYERS);
-      return data ? JSON.parse(data) : DEMO_PLAYERS;
+      this.init();
+      const key = getActiveResourceKey('players');
+      const data = getStoredItem(key);
+      if (data) return JSON.parse(data);
+      return HouseService.getActiveHouseId() === 'casa_principale' ? DEMO_PLAYERS : [];
     } catch {
-      return DEMO_PLAYERS;
+      return HouseService.getActiveHouseId() === 'casa_principale' ? DEMO_PLAYERS : [];
     }
   },
 
   savePlayer(player: Player): void {
+    const activeHouseId = HouseService.getActiveHouseId();
+    player.houseId = player.houseId || activeHouseId;
     const players = this.getPlayers();
     const index = players.findIndex((p) => p.id === player.id);
     if (index >= 0) {
@@ -178,26 +166,51 @@ export const StorageService = {
     } else {
       players.push(player);
     }
-    setStoredItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
+    setStoredItem(getActiveResourceKey('players'), JSON.stringify(players));
+
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      client?.from('players').upsert({
+        id: player.id,
+        house_id: activeHouseId,
+        name: player.name,
+        nickname: player.nickname || null,
+        avatar_suit: player.avatarSuit,
+        created_at: player.createdAt,
+      }).then();
+    }
+
     this.broadcastStateChange();
   },
 
   deletePlayer(playerId: string): void {
+    const activeHouseId = HouseService.getActiveHouseId();
     const players = this.getPlayers().filter((p) => p.id !== playerId);
-    setStoredItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
+    setStoredItem(getActiveResourceKey('players'), JSON.stringify(players));
+
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      client?.from('players').delete().eq('id', playerId).eq('house_id', activeHouseId).then();
+    }
+
     this.broadcastStateChange();
   },
 
   getTeams(): Team[] {
     try {
-      const data = getStoredItem(STORAGE_KEYS.TEAMS);
-      return data ? JSON.parse(data) : DEMO_TEAMS;
+      this.init();
+      const key = getActiveResourceKey('teams');
+      const data = getStoredItem(key);
+      if (data) return JSON.parse(data);
+      return HouseService.getActiveHouseId() === 'casa_principale' ? DEMO_TEAMS : [];
     } catch {
-      return DEMO_TEAMS;
+      return HouseService.getActiveHouseId() === 'casa_principale' ? DEMO_TEAMS : [];
     }
   },
 
   saveTeam(team: Team): void {
+    const activeHouseId = HouseService.getActiveHouseId();
+    team.houseId = team.houseId || activeHouseId;
     const teams = this.getTeams();
     const index = teams.findIndex((t) => t.id === team.id);
     if (index >= 0) {
@@ -205,19 +218,41 @@ export const StorageService = {
     } else {
       teams.push(team);
     }
-    setStoredItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams));
+    setStoredItem(getActiveResourceKey('teams'), JSON.stringify(teams));
+
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      client?.from('teams').upsert({
+        id: team.id,
+        house_id: activeHouseId,
+        name: team.name,
+        player_ids: team.playerIds,
+        color: team.color,
+        created_at: team.createdAt,
+      }).then();
+    }
+
     this.broadcastStateChange();
   },
 
   deleteTeam(teamId: string): void {
+    const activeHouseId = HouseService.getActiveHouseId();
     const teams = this.getTeams().filter((t) => t.id !== teamId);
-    setStoredItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams));
+    setStoredItem(getActiveResourceKey('teams'), JSON.stringify(teams));
+
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      client?.from('teams').delete().eq('id', teamId).eq('house_id', activeHouseId).then();
+    }
+
     this.broadcastStateChange();
   },
 
   getMatches(): Match[] {
     try {
-      const data = getStoredItem(STORAGE_KEYS.MATCHES);
+      this.init();
+      const key = getActiveResourceKey('matches');
+      const data = getStoredItem(key);
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
@@ -225,6 +260,8 @@ export const StorageService = {
   },
 
   saveMatch(match: Match): void {
+    const activeHouseId = HouseService.getActiveHouseId();
+    match.houseId = match.houseId || activeHouseId;
     const matches = this.getMatches();
     const index = matches.findIndex((m) => m.id === match.id);
     if (index >= 0) {
@@ -232,19 +269,46 @@ export const StorageService = {
     } else {
       matches.unshift(match);
     }
-    setStoredItem(STORAGE_KEYS.MATCHES, JSON.stringify(matches));
+    setStoredItem(getActiveResourceKey('matches'), JSON.stringify(matches));
+
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      client?.from('matches').upsert({
+        id: match.id,
+        house_id: activeHouseId,
+        game_type: match.gameType,
+        timestamp: match.timestamp,
+        date_key: match.dateKey,
+        team1_id: match.team1Id,
+        team2_id: match.team2Id,
+        winner_team_id: match.winnerTeamId,
+        score_team1: match.scoreTeam1 ?? null,
+        score_team2: match.scoreTeam2 ?? null,
+        notes: match.notes ?? null,
+      }).then();
+    }
+
     this.broadcastStateChange();
   },
 
   deleteMatch(matchId: string): void {
+    const activeHouseId = HouseService.getActiveHouseId();
     const matches = this.getMatches().filter((m) => m.id !== matchId);
-    setStoredItem(STORAGE_KEYS.MATCHES, JSON.stringify(matches));
+    setStoredItem(getActiveResourceKey('matches'), JSON.stringify(matches));
+
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      client?.from('matches').delete().eq('id', matchId).eq('house_id', activeHouseId).then();
+    }
+
     this.broadcastStateChange();
   },
 
   getTournamentSessions(): TournamentSession[] {
     try {
-      const data = getStoredItem(STORAGE_KEYS.TOURNAMENT_SESSIONS);
+      this.init();
+      const key = getActiveResourceKey('sessions');
+      const data = getStoredItem(key);
       return data ? JSON.parse(data) : generateDemoSessions();
     } catch {
       return generateDemoSessions();
@@ -271,6 +335,7 @@ export const StorageService = {
 
     const newSession: TournamentSession = {
       id: `tour_${Date.now()}`,
+      houseId: HouseService.getActiveHouseId(),
       dateKey: formatDateKey(),
       startedAt: new Date().toISOString(),
       mode,
@@ -292,7 +357,28 @@ export const StorageService = {
     }
 
     sessions.unshift(newSession);
-    setStoredItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
+    setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
+
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      client?.from('tournament_sessions').upsert({
+        id: newSession.id,
+        house_id: newSession.houseId,
+        date_key: newSession.dateKey,
+        mode: newSession.mode,
+        team1_name: newSession.team1Name,
+        team2_name: newSession.team2Name,
+        team3_name: newSession.team3Name ?? null,
+        team1_players: newSession.team1Players,
+        team2_players: newSession.team2Players,
+        team3_players: newSession.team3Players ?? null,
+        team1_wins: newSession.team1Wins,
+        team2_wins: newSession.team2Wins,
+        team3_wins: newSession.team3Wins ?? null,
+        is_active: true,
+      }).then();
+    }
+
     this.broadcastStateChange();
     return newSession;
   },
@@ -310,7 +396,17 @@ export const StorageService = {
       session.team3Wins = (session.team3Wins || 0) + 1;
     }
 
-    setStoredItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
+    setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
+
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      client?.from('tournament_sessions').update({
+        team1_wins: session.team1Wins,
+        team2_wins: session.team2Wins,
+        team3_wins: session.team3Wins ?? null,
+      }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
+    }
+
     this.broadcastStateChange();
     return session;
   },
@@ -328,7 +424,17 @@ export const StorageService = {
       session.team3Wins = (session.team3Wins || 0) - 1;
     }
 
-    setStoredItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
+    setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
+
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      client?.from('tournament_sessions').update({
+        team1_wins: session.team1Wins,
+        team2_wins: session.team2Wins,
+        team3_wins: session.team3Wins ?? null,
+      }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
+    }
+
     this.broadcastStateChange();
     return session;
   },
@@ -366,20 +472,37 @@ export const StorageService = {
       }
     }
 
-    setStoredItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
+    setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
+
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      client?.from('tournament_sessions').update({
+        is_active: false,
+        ended_at: session.endedAt,
+        winner_team: String(session.winnerTeam),
+      }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
+    }
+
     this.broadcastStateChange();
     return session;
   },
 
   deleteTournamentSession(sessionId: string): void {
     const sessions = this.getTournamentSessions().filter((s) => s.id !== sessionId);
-    setStoredItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
+    setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
+
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      client?.from('tournament_sessions').delete().eq('id', sessionId).eq('house_id', HouseService.getActiveHouseId()).then();
+    }
+
     this.broadcastStateChange();
   },
 
   exportAllData() {
     return {
-      version: '1.4',
+      version: '2.0',
+      house: HouseService.getActiveHouse(),
       exportedAt: new Date().toISOString(),
       players: this.getPlayers(),
       teams: this.getTeams(),
@@ -395,33 +518,41 @@ export const StorageService = {
     tournamentSessions?: TournamentSession[];
   }) {
     if (Array.isArray(data.players)) {
-      setStoredItem(STORAGE_KEYS.PLAYERS, JSON.stringify(data.players));
+      setStoredItem(getActiveResourceKey('players'), JSON.stringify(data.players));
     }
     if (Array.isArray(data.teams)) {
-      setStoredItem(STORAGE_KEYS.TEAMS, JSON.stringify(data.teams));
+      setStoredItem(getActiveResourceKey('teams'), JSON.stringify(data.teams));
     }
     if (Array.isArray(data.matches)) {
-      setStoredItem(STORAGE_KEYS.MATCHES, JSON.stringify(data.matches));
+      setStoredItem(getActiveResourceKey('matches'), JSON.stringify(data.matches));
     }
     if (Array.isArray(data.tournamentSessions)) {
-      setStoredItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(data.tournamentSessions));
+      setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(data.tournamentSessions));
     }
     this.broadcastStateChange();
   },
 
   resetToDemo() {
-    setStoredItem(STORAGE_KEYS.PLAYERS, JSON.stringify(DEMO_PLAYERS));
-    setStoredItem(STORAGE_KEYS.TEAMS, JSON.stringify(DEMO_TEAMS));
-    setStoredItem(STORAGE_KEYS.MATCHES, JSON.stringify(generateDemoMatches()));
-    setStoredItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(generateDemoSessions()));
+    const activeHouseId = HouseService.getActiveHouseId();
+    if (activeHouseId === 'casa_principale') {
+      setStoredItem(getActiveResourceKey('players'), JSON.stringify(DEMO_PLAYERS.map(p => ({ ...p, houseId: activeHouseId }))));
+      setStoredItem(getActiveResourceKey('teams'), JSON.stringify(DEMO_TEAMS.map(t => ({ ...t, houseId: activeHouseId }))));
+      setStoredItem(getActiveResourceKey('matches'), JSON.stringify(generateDemoMatches().map(m => ({ ...m, houseId: activeHouseId }))));
+      setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(generateDemoSessions()));
+    } else {
+      setStoredItem(getActiveResourceKey('players'), JSON.stringify([]));
+      setStoredItem(getActiveResourceKey('teams'), JSON.stringify([]));
+      setStoredItem(getActiveResourceKey('matches'), JSON.stringify([]));
+      setStoredItem(getActiveResourceKey('sessions'), JSON.stringify([]));
+    }
     this.broadcastStateChange();
   },
 
   clearAll() {
-    removeStoredItem(STORAGE_KEYS.PLAYERS);
-    removeStoredItem(STORAGE_KEYS.TEAMS);
-    removeStoredItem(STORAGE_KEYS.MATCHES);
-    removeStoredItem(STORAGE_KEYS.TOURNAMENT_SESSIONS);
+    removeStoredItem(getActiveResourceKey('players'));
+    removeStoredItem(getActiveResourceKey('teams'));
+    removeStoredItem(getActiveResourceKey('matches'));
+    removeStoredItem(getActiveResourceKey('sessions'));
     this.broadcastStateChange();
   },
 };
