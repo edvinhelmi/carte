@@ -59,3 +59,32 @@ export interface HeadToHeadStats {
   totalMatches: number;
   lastMatches: Match[];
 }
+
+export type TournamentFormat = 'round_robin' | 'knockout';
+
+export interface TournamentMatch {
+  id: string;
+  roundIndex: number;
+  roundName: string;
+  team1Id: string | null;
+  team2Id: string | null;
+  scoreTeam1?: number;
+  scoreTeam2?: number;
+  winnerTeamId?: string | null;
+  status: 'pending' | 'completed';
+  nextMatchId?: string; // per eliminazione diretta: id della partita successiva
+  nextMatchSlot?: 'team1' | 'team2'; // quale slot occupare nella partita successiva
+}
+
+export interface Tournament {
+  id: string;
+  name: string;
+  gameType: GameType;
+  format: TournamentFormat;
+  teamIds: string[];
+  status: 'in_progress' | 'completed';
+  createdAt: string;
+  matches: TournamentMatch[];
+  winnerTeamId?: string | null;
+}
+

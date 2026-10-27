@@ -1,9 +1,10 @@
-import { Player, Team, Match } from '@/types/game';
+import { Player, Team, Match, Tournament } from '@/types/game';
 
 const STORAGE_KEYS = {
   PLAYERS: 'carte_briscola_players_v1',
   TEAMS: 'carte_briscola_teams_v1',
   MATCHES: 'carte_briscola_matches_v1',
+  TOURNAMENTS: 'carte_briscola_tournaments_v1',
   SETTINGS: 'carte_briscola_settings_v1',
 };
 
@@ -16,12 +17,39 @@ export function formatDateKey(date?: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+// Canale Broadcast per sincronizzazione multi-scheda e tempo reale immediato
+let broadcastChannel: BroadcastChannel | null = null;
+if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+  try {
+    broadcastChannel = new BroadcastChannel('carte_realtime_sync');
+    broadcastChannel.onmessage = () => {
+      window.dispatchEvent(new Event('carte_storage_update'));
+    };
+  } catch (e) {
+    console.warn('BroadcastChannel non disponibile:', e);
+  }
+}
+
+export function notifyRealtimeUpdate() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event('carte_storage_update'));
+  if (broadcastChannel) {
+    try {
+      broadcastChannel.postMessage({ timestamp: Date.now() });
+    } catch (e) {
+      console.warn('BroadcastChannel send error:', e);
+    }
+  }
+}
+
 // Dati demo iniziali
 const DEMO_PLAYERS: Player[] = [
   { id: 'p1', name: 'Marco', nickname: 'Il Carico', avatarSuit: 'denari', createdAt: '2026-10-01T10:00:00Z' },
   { id: 'p2', name: 'Matteo', nickname: 'Asso Pigliatutto', avatarSuit: 'bastoni', createdAt: '2026-10-01T10:05:00Z' },
   { id: 'p3', name: 'Sara', nickname: 'Strozza-Re', avatarSuit: 'coppe', createdAt: '2026-10-01T10:10:00Z' },
   { id: 'p4', name: 'Elena', nickname: 'La Tagliatrice', avatarSuit: 'spade', createdAt: '2026-10-01T10:15:00Z' },
+  { id: 'p5', name: 'Luca', nickname: 'Il Saggio', avatarSuit: 'spade', createdAt: '2026-10-01T10:20:00Z' },
+  { id: 'p6', name: 'Chiara', nickname: 'Lampi e Tuoni', avatarSuit: 'denari', createdAt: '2026-10-01T10:25:00Z' },
 ];
 
 const DEMO_TEAMS: Team[] = [
@@ -29,7 +57,7 @@ const DEMO_TEAMS: Team[] = [
     id: 't1',
     name: 'I Bastonatori',
     playerIds: ['p1', 'p2'],
-    color: '#10b981', // emerald
+    color: '#10b981',
     suit: 'bastoni',
     createdAt: '2026-10-01T10:20:00Z',
   },
@@ -37,13 +65,29 @@ const DEMO_TEAMS: Team[] = [
     id: 't2',
     name: 'Regine di Coppe',
     playerIds: ['p3', 'p4'],
-    color: '#f59e0b', // amber
+    color: '#f59e0b',
     suit: 'coppe',
     createdAt: '2026-10-01T10:25:00Z',
   },
+  {
+    id: 't3',
+    name: 'Assi di Spade',
+    playerIds: ['p5', 'p1'],
+    color: '#0ea5e9',
+    suit: 'spade',
+    createdAt: '2026-10-01T10:30:00Z',
+  },
+  {
+    id: 't4',
+    name: 'Signori dei Denari',
+    playerIds: ['p6', 'p2'],
+    color: '#eab308',
+    suit: 'denari',
+    createdAt: '2026-10-01T10:35:00Z',
+  },
 ];
 
-// Genera partite demo per oggi e per i 2 giorni passati
+// Genera partite demo
 function generateDemoMatches(): Match[] {
   const now = new Date();
   const todayKey = formatDateKey(now);
@@ -57,7 +101,6 @@ function generateDemoMatches(): Match[] {
   const twoDaysAgoKey = formatDateKey(twoDaysAgo);
 
   return [
-    // 2 giorni fa
     {
       id: 'm1',
       gameType: 'briscola',
@@ -68,7 +111,7 @@ function generateDemoMatches(): Match[] {
       winnerTeamId: 't1',
       scoreTeam1: 68,
       scoreTeam2: 52,
-      notes: 'Bella mano finale con tre d assi',
+      notes: 'Bella mano finale con tre assi',
     },
     {
       id: 'm2',
@@ -82,7 +125,6 @@ function generateDemoMatches(): Match[] {
       scoreTeam2: 62,
       notes: 'Vittoria sul filo di lana',
     },
-    // Ieri
     {
       id: 'm3',
       gameType: 'briscola',
@@ -119,7 +161,6 @@ function generateDemoMatches(): Match[] {
       scoreTeam2: 49,
       notes: 'Rivincita dei Bastonatori',
     },
-    // Oggi
     {
       id: 'm6',
       gameType: 'briscola',
@@ -135,8 +176,62 @@ function generateDemoMatches(): Match[] {
   ];
 }
 
+// Genera torneo demo iniziale
+function generateDemoTournaments(): Tournament[] {
+  return [
+    {
+      id: 'tour_demo_1',
+      name: 'Torneo dei Quattro Semi 🏆',
+      gameType: 'briscola',
+      format: 'knockout',
+      teamIds: ['t1', 't2', 't3', 't4'],
+      status: 'in_progress',
+      createdAt: '2026-10-26T20:00:00Z',
+      matches: [
+        {
+          id: 'tm_demo_semi1',
+          roundIndex: 1,
+          roundName: 'Semifinale 1',
+          team1Id: 't1',
+          team2Id: 't2',
+          scoreTeam1: 66,
+          scoreTeam2: 54,
+          winnerTeamId: 't1',
+          status: 'completed',
+          nextMatchId: 'tm_demo_final',
+          nextMatchSlot: 'team1',
+        },
+        {
+          id: 'tm_demo_semi2',
+          roundIndex: 1,
+          roundName: 'Semifinale 2',
+          team1Id: 't3',
+          team2Id: 't4',
+          scoreTeam1: undefined,
+          scoreTeam2: undefined,
+          winnerTeamId: null,
+          status: 'pending',
+          nextMatchId: 'tm_demo_final',
+          nextMatchSlot: 'team2',
+        },
+        {
+          id: 'tm_demo_final',
+          roundIndex: 2,
+          roundName: 'Grand Finale 🏆',
+          team1Id: 't1', // qualificato da semi1
+          team2Id: null, // in attesa di semi2
+          scoreTeam1: undefined,
+          scoreTeam2: undefined,
+          winnerTeamId: null,
+          status: 'pending',
+        },
+      ],
+      winnerTeamId: null,
+    },
+  ];
+}
+
 export const StorageService = {
-  // Inizializza con i dati demo se il browser è vuoto
   init() {
     if (typeof window === 'undefined') return;
     try {
@@ -148,6 +243,9 @@ export const StorageService = {
       }
       if (!localStorage.getItem(STORAGE_KEYS.MATCHES)) {
         localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(generateDemoMatches()));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.TOURNAMENTS)) {
+        localStorage.setItem(STORAGE_KEYS.TOURNAMENTS, JSON.stringify(generateDemoTournaments()));
       }
     } catch (e) {
       console.error('Storage init error:', e);
@@ -174,14 +272,14 @@ export const StorageService = {
       players.push(player);
     }
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
-    window.dispatchEvent(new Event('carte_storage_update'));
+    notifyRealtimeUpdate();
   },
 
   deletePlayer(playerId: string): void {
     if (typeof window === 'undefined') return;
     const players = this.getPlayers().filter((p) => p.id !== playerId);
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
-    window.dispatchEvent(new Event('carte_storage_update'));
+    notifyRealtimeUpdate();
   },
 
   getTeams(): Team[] {
@@ -204,14 +302,14 @@ export const StorageService = {
       teams.push(team);
     }
     localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams));
-    window.dispatchEvent(new Event('carte_storage_update'));
+    notifyRealtimeUpdate();
   },
 
   deleteTeam(teamId: string): void {
     if (typeof window === 'undefined') return;
     const teams = this.getTeams().filter((t) => t.id !== teamId);
     localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams));
-    window.dispatchEvent(new Event('carte_storage_update'));
+    notifyRealtimeUpdate();
   },
 
   getMatches(): Match[] {
@@ -231,33 +329,64 @@ export const StorageService = {
     if (index >= 0) {
       matches[index] = match;
     } else {
-      // Inserisci in cima (più recenti prima)
       matches.unshift(match);
     }
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(matches));
-    window.dispatchEvent(new Event('carte_storage_update'));
+    notifyRealtimeUpdate();
   },
 
   deleteMatch(matchId: string): void {
     if (typeof window === 'undefined') return;
     const matches = this.getMatches().filter((m) => m.id !== matchId);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(matches));
-    window.dispatchEvent(new Event('carte_storage_update'));
+    notifyRealtimeUpdate();
   },
 
-  // Export completo in formato JSON per backup
+  // Tornei
+  getTournaments(): Tournament[] {
+    if (typeof window === 'undefined') return [];
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.TOURNAMENTS);
+      return data ? JSON.parse(data) : generateDemoTournaments();
+    } catch {
+      return generateDemoTournaments();
+    }
+  },
+
+  saveTournament(tournament: Tournament): void {
+    if (typeof window === 'undefined') return;
+    const tournaments = this.getTournaments();
+    const index = tournaments.findIndex((t) => t.id === tournament.id);
+    if (index >= 0) {
+      tournaments[index] = tournament;
+    } else {
+      tournaments.unshift(tournament);
+    }
+    localStorage.setItem(STORAGE_KEYS.TOURNAMENTS, JSON.stringify(tournaments));
+    notifyRealtimeUpdate();
+  },
+
+  deleteTournament(tournamentId: string): void {
+    if (typeof window === 'undefined') return;
+    const tournaments = this.getTournaments().filter((t) => t.id !== tournamentId);
+    localStorage.setItem(STORAGE_KEYS.TOURNAMENTS, JSON.stringify(tournaments));
+    notifyRealtimeUpdate();
+  },
+
+  // Export completo
   exportAllData() {
     return {
-      version: '1.0',
+      version: '1.1',
       exportedAt: new Date().toISOString(),
       players: this.getPlayers(),
       teams: this.getTeams(),
       matches: this.getMatches(),
+      tournaments: this.getTournaments(),
     };
   },
 
   // Importazione da file JSON
-  importAllData(data: { players?: Player[]; teams?: Team[]; matches?: Match[] }) {
+  importAllData(data: { players?: Player[]; teams?: Team[]; matches?: Match[]; tournaments?: Tournament[] }) {
     if (typeof window === 'undefined') return;
     if (Array.isArray(data.players)) {
       localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(data.players));
@@ -268,7 +397,10 @@ export const StorageService = {
     if (Array.isArray(data.matches)) {
       localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(data.matches));
     }
-    window.dispatchEvent(new Event('carte_storage_update'));
+    if (Array.isArray(data.tournaments)) {
+      localStorage.setItem(STORAGE_KEYS.TOURNAMENTS, JSON.stringify(data.tournaments));
+    }
+    notifyRealtimeUpdate();
   },
 
   // Reset a dati demo
@@ -277,7 +409,8 @@ export const StorageService = {
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(DEMO_PLAYERS));
     localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(DEMO_TEAMS));
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(generateDemoMatches()));
-    window.dispatchEvent(new Event('carte_storage_update'));
+    localStorage.setItem(STORAGE_KEYS.TOURNAMENTS, JSON.stringify(generateDemoTournaments()));
+    notifyRealtimeUpdate();
   },
 
   // Svuota tutto
@@ -286,6 +419,7 @@ export const StorageService = {
     localStorage.removeItem(STORAGE_KEYS.PLAYERS);
     localStorage.removeItem(STORAGE_KEYS.TEAMS);
     localStorage.removeItem(STORAGE_KEYS.MATCHES);
-    window.dispatchEvent(new Event('carte_storage_update'));
+    localStorage.removeItem(STORAGE_KEYS.TOURNAMENTS);
+    notifyRealtimeUpdate();
   },
 };

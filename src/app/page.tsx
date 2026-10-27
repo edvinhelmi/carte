@@ -6,6 +6,7 @@ import { Header, TabType } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { MatchesHomeView } from '@/components/MatchesHomeView';
 import { CalendarView } from '@/components/CalendarView';
+import { TournamentsView } from '@/components/TournamentsView';
 import { LeaderboardView } from '@/components/LeaderboardView';
 import { TeamsAndPlayersView } from '@/components/TeamsAndPlayersView';
 import { SettingsView } from '@/components/SettingsView';
@@ -20,7 +21,7 @@ export default function Home() {
     () => false
   );
   const [activeTab, setActiveTab] = useState<TabType>('matches');
-  const { players, teams, matches, refresh } = useStorageData();
+  const { players, teams, matches, tournaments, refresh } = useStorageData();
 
   // Stato Modale Quick Match
   const [isQuickMatchOpen, setIsQuickMatchOpen] = useState(false);
@@ -76,6 +77,15 @@ export default function Home() {
             teams={teams}
             onOpenQuickMatchWithDate={handleOpenQuickMatchWithDate}
             onMatchesUpdated={refresh}
+          />
+        )}
+
+        {activeTab === 'tournaments' && (
+          <TournamentsView
+            tournaments={tournaments}
+            teams={teams}
+            players={players}
+            onDataUpdated={refresh}
           />
         )}
 

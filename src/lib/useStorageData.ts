@@ -2,18 +2,20 @@
 
 import { useSyncExternalStore } from 'react';
 import { StorageService } from './storage';
-import { Player, Team, Match } from '@/types/game';
+import { Player, Team, Match, Tournament } from '@/types/game';
 
 interface StorageData {
   players: Player[];
   teams: Team[];
   matches: Match[];
+  tournaments: Tournament[];
 }
 
 let cachedData: StorageData = {
   players: [],
   teams: [],
   matches: [],
+  tournaments: [],
 };
 
 function getSnapshot(): StorageData {
@@ -22,15 +24,17 @@ function getSnapshot(): StorageData {
   const players = StorageService.getPlayers();
   const teams = StorageService.getTeams();
   const matches = StorageService.getMatches();
+  const tournaments = StorageService.getTournaments();
 
-  // Confronto semplice per mantenere lo stesso riferimento se i dati non sono cambiati
+  // Confronto per mantenere lo stesso riferimento se non è cambiato nulla
   if (
     cachedData.players.length !== players.length ||
     cachedData.teams.length !== teams.length ||
     cachedData.matches.length !== matches.length ||
-    JSON.stringify(cachedData) !== JSON.stringify({ players, teams, matches })
+    cachedData.tournaments.length !== tournaments.length ||
+    JSON.stringify(cachedData) !== JSON.stringify({ players, teams, matches, tournaments })
   ) {
-    cachedData = { players, teams, matches };
+    cachedData = { players, teams, matches, tournaments };
   }
   return cachedData;
 }
@@ -40,6 +44,7 @@ function getServerSnapshot(): StorageData {
     players: [],
     teams: [],
     matches: [],
+    tournaments: [],
   };
 }
 

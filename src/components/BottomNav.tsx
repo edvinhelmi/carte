@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Calendar, Trophy, Users, Plus } from 'lucide-react';
+import { Sparkles, Calendar, Trophy, Swords, Plus } from 'lucide-react';
 import { TabType } from './Header';
 
 interface BottomNavProps {
@@ -10,12 +10,12 @@ interface BottomNavProps {
 
 export function BottomNav({ activeTab, setActiveTab, onOpenQuickMatch }: BottomNavProps) {
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800/80 px-2 pb-[max(env(safe-area-inset-bottom),0.6rem)] pt-1.5">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800/80 px-1 pb-[max(env(safe-area-inset-bottom),0.6rem)] pt-1.5">
       <div className="flex items-center justify-around relative">
         {/* Tab 1: Partite */}
         <button
           onClick={() => setActiveTab('matches')}
-          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-lg transition-colors ${
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors ${
             activeTab === 'matches' ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
@@ -26,7 +26,7 @@ export function BottomNav({ activeTab, setActiveTab, onOpenQuickMatch }: BottomN
         {/* Tab 2: Calendario */}
         <button
           onClick={() => setActiveTab('calendar')}
-          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-lg transition-colors ${
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors ${
             activeTab === 'calendar' ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
@@ -46,26 +46,26 @@ export function BottomNav({ activeTab, setActiveTab, onOpenQuickMatch }: BottomN
           <span className="text-[10px] text-amber-400/90 font-medium mt-0.5">Vittoria</span>
         </div>
 
-        {/* Tab 3: Classifica */}
+        {/* Tab 3: Tornei Live */}
+        <button
+          onClick={() => setActiveTab('tournaments')}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors ${
+            activeTab === 'tournaments' ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Swords className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] tracking-tight">Tornei</span>
+        </button>
+
+        {/* Tab 4: Classifica */}
         <button
           onClick={() => setActiveTab('leaderboard')}
-          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-lg transition-colors ${
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors ${
             activeTab === 'leaderboard' ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
           <Trophy className="w-5 h-5 mb-0.5" />
           <span className="text-[10px] tracking-tight">Classifica</span>
-        </button>
-
-        {/* Tab 4: Squadre & Giocatori */}
-        <button
-          onClick={() => setActiveTab('teams')}
-          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-lg transition-colors ${
-            activeTab === 'teams' ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
-          }`}
-        >
-          <Users className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">Squadre</span>
         </button>
       </div>
     </div>
