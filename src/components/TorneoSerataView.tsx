@@ -173,7 +173,7 @@ export function TorneoSerataView({
       <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface)] border border-[var(--divider)] px-4 sm:px-5 py-3 rounded-2xl shadow-sm">
         <div className="flex items-center gap-2.5">
           <span className="flex h-2.5 w-2.5 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="animate-beacon absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
           </span>
           <div className="text-xs text-[var(--text)]">
@@ -205,7 +205,10 @@ export function TorneoSerataView({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--surface)] border border-[var(--divider)] p-5 sm:p-6 rounded-2xl shadow-sm">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-beacon absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                </span>
                 <span className="text-xs font-bold text-emerald-400 tracking-wide">
                   Torneo Live in corso stasera
                 </span>
@@ -233,7 +236,7 @@ export function TorneoSerataView({
             <div
               className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-all ${
                 activeSession.team1Wins > activeSession.team2Wins
-                  ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-md shadow-amber-500/10 ring-1 ring-[var(--accent)]/30'
+                  ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-md shadow-amber-500/10 ring-1 ring-[var(--accent)]/30 glow-active-card'
                   : 'bg-[var(--surface)] border border-[var(--divider)]'
               }`}
             >
@@ -251,9 +254,12 @@ export function TorneoSerataView({
                 )}
               </div>
 
-              {/* Numero Vittorie Gigante */}
+              {/* Numero Vittorie Gigante con animazione pop */}
               <div className="my-6">
-                <span className="text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block">
+                <span
+                  key={activeSession.team1Wins}
+                  className="text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block animate-score-bump"
+                >
                   {activeSession.team1Wins}
                 </span>
                 <span className="text-xs text-[var(--text-muted)] font-medium mt-1 block">
@@ -266,9 +272,9 @@ export function TorneoSerataView({
                 <button
                   type="button"
                   onClick={() => handleAddWin(1)}
-                  className="w-full py-4 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-extrabold text-base sm:text-lg shadow-md shadow-amber-500/20 btn-tactile cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-extrabold text-base sm:text-lg shadow-md shadow-amber-500/20 btn-tactile cursor-pointer flex items-center justify-center gap-2 group"
                 >
-                  <Plus className="w-5 h-5 stroke-[3]" />
+                  <Plus className="w-5 h-5 stroke-[3] transition-transform duration-200 group-hover:rotate-90" />
                   <span>+1 Vittoria {activeSession.team1Name}</span>
                 </button>
 
@@ -289,7 +295,7 @@ export function TorneoSerataView({
             <div
               className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-all ${
                 activeSession.team2Wins > activeSession.team1Wins
-                  ? 'bg-[var(--surface)] border border-sky-400 shadow-md shadow-sky-500/10 ring-1 ring-sky-400/30'
+                  ? 'bg-[var(--surface)] border border-sky-400 shadow-md shadow-sky-500/10 ring-1 ring-sky-400/30 glow-active-card-sky'
                   : 'bg-[var(--surface)] border border-[var(--divider)]'
               }`}
             >
@@ -307,9 +313,12 @@ export function TorneoSerataView({
                 )}
               </div>
 
-              {/* Numero Vittorie Gigante */}
+              {/* Numero Vittorie Gigante con animazione pop */}
               <div className="my-6">
-                <span className="text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block">
+                <span
+                  key={activeSession.team2Wins}
+                  className="text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block animate-score-bump-sky"
+                >
                   {activeSession.team2Wins}
                 </span>
                 <span className="text-xs text-[var(--text-muted)] font-medium mt-1 block">
@@ -322,9 +331,9 @@ export function TorneoSerataView({
                 <button
                   type="button"
                   onClick={() => handleAddWin(2)}
-                  className="w-full py-4 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group"
                 >
-                  <Plus className="w-5 h-5 stroke-[3] text-[var(--accent)]" />
+                  <Plus className="w-5 h-5 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90" />
                   <span>+1 Vittoria {activeSession.team2Name}</span>
                 </button>
 
@@ -656,7 +665,7 @@ export function TorneoSerataView({
               return (
                 <div
                   key={session.id}
-                  className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 transition-colors flex items-center justify-between"
+                  className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 transition-all interactive-card flex items-center justify-between"
                 >
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">

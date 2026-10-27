@@ -131,7 +131,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
             return (
               <div
                 key={team.id}
-                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-5 transition-colors flex flex-col justify-between"
+                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-5 transition-all interactive-card flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -206,11 +206,11 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
           {players.map((player) => (
             <div
               key={player.id}
-              className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-3.5 flex items-center justify-between transition-colors"
+              className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-3.5 flex items-center justify-between transition-all interactive-card group"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shrink-0">
-                  <SuitIcon suit={player.avatarSuit} className="w-4 h-4 text-[var(--accent)]" />
+                <div className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shrink-0 group-hover:border-[var(--accent)]/50 transition-colors">
+                  <SuitIcon suit={player.avatarSuit} className="w-4 h-4 text-[var(--accent)] icon-hover-tilt" />
                 </div>
                 <div className="min-w-0">
                   <span className="font-semibold text-sm text-[var(--text)] block truncate">

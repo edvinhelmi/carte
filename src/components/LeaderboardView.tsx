@@ -41,19 +41,19 @@ export function LeaderboardView({
     switch (index) {
       case 0:
         return (
-          <div className="w-7 h-7 rounded-xl bg-[var(--accent)] text-[var(--on-accent)] font-mono font-black text-xs flex items-center justify-center shadow-sm">
+          <div className="w-7 h-7 rounded-xl bg-[var(--accent)] text-[var(--on-accent)] font-mono font-black text-xs flex items-center justify-center shadow-md shadow-amber-500/25 ring-1 ring-amber-300/60 scale-105">
             1°
           </div>
         );
       case 1:
         return (
-          <div className="w-7 h-7 rounded-xl bg-[var(--surface-alt)] text-[var(--text)] border border-[var(--control-border)] font-mono font-bold text-xs flex items-center justify-center">
+          <div className="w-7 h-7 rounded-xl bg-[var(--surface-alt)] text-slate-100 border border-slate-400/30 font-mono font-bold text-xs flex items-center justify-center shadow-sm">
             2°
           </div>
         );
       case 2:
         return (
-          <div className="w-7 h-7 rounded-xl bg-[var(--surface-raised)] text-[var(--accent-text)] border border-[var(--divider)] font-mono font-bold text-xs flex items-center justify-center">
+          <div className="w-7 h-7 rounded-xl bg-[var(--surface-raised)] text-amber-500 border border-amber-700/30 font-mono font-bold text-xs flex items-center justify-center">
             3°
           </div>
         );
@@ -135,9 +135,9 @@ export function LeaderboardView({
                 return (
                   <div
                     key={stat.team.id}
-                    className={`rounded-2xl p-5 border transition-all ${
+                    className={`rounded-2xl p-5 border transition-all interactive-card ${
                       isLeader
-                        ? 'bg-[var(--surface)] border-[var(--accent-border)] shadow-sm'
+                        ? 'bg-[var(--surface)] border-[var(--accent-border)] shadow-md shadow-amber-500/10 glow-active-card'
                         : 'bg-[var(--surface)] border-[var(--divider)] hover:border-[var(--control-border)]'
                     }`}
                   >
@@ -222,7 +222,7 @@ export function LeaderboardView({
             {playerStats.map((pStat, idx) => (
               <div
                 key={pStat.player.id}
-                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 transition-colors"
+                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 transition-all interactive-card"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
