@@ -122,15 +122,11 @@ export function SettingsView({ onDataUpdated }: SettingsViewProps) {
       <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
-            <Radio className="w-4 h-4 text-emerald-400" />
-            <span>Stanza Live Cloud Multi-Dispositivo</span>
+            <Radio className="w-4 h-4 text-[var(--accent)]" />
+            <span>Stanza Live Multi-Dispositivo</span>
           </h2>
-          <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-beacon absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-            </span>
-            <span>Attiva</span>
+          <span className="text-xs text-[var(--text-muted)] font-medium px-2.5 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)]">
+            Attiva
           </span>
         </div>
 

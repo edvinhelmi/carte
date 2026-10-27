@@ -1,7 +1,5 @@
 import React from 'react';
 import { Trophy, Calendar as CalendarIcon, Users, Settings, Swords, Plus } from 'lucide-react';
-import { SuitIcon } from './SuitIcon';
-import { RealtimeSyncService } from '@/lib/realtimeSync';
 
 export type TabType = 'torneo' | 'calendar' | 'leaderboard' | 'teams' | 'settings';
 
@@ -12,8 +10,6 @@ interface HeaderProps {
 }
 
 export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProps) {
-  const room = typeof window !== 'undefined' ? RealtimeSyncService.getRoom() : '';
-
   const navItems = [
     { id: 'torneo' as TabType, label: 'Torneo Serata', icon: Swords },
     { id: 'calendar' as TabType, label: 'Calendario', icon: CalendarIcon },
@@ -29,37 +25,14 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
         <button
           type="button"
           onClick={() => setActiveTab('torneo')}
-          className="flex items-center gap-2.5 sm:gap-3 text-left group cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-xl min-w-0"
+          className="flex items-center gap-2.5 sm:gap-3 text-left group cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-full min-w-0"
         >
-          <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shadow-sm group-hover:border-[var(--accent)]/60 group-hover:shadow-[0_0_12px_rgba(245,158,11,0.2)] transition-[border-color,box-shadow] duration-200 shrink-0">
-            <SuitIcon suit="coppe" className="w-5 h-5 text-[var(--accent)] icon-hover-tilt" />
-            <span
-              className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5"
-              title={room ? `Live Cloud: stanza ${room}` : 'Sincronizzazione Live Cloud Attiva'}
-            >
-              <span className="animate-beacon absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 ring-2 ring-[var(--canvas)]" />
-            </span>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shadow-sm group-hover:border-[var(--accent)]/60 transition-[border-color,box-shadow] duration-200 shrink-0">
+            <Trophy className="w-5 h-5 text-[var(--accent)] icon-hover-tilt" />
           </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="font-heading font-extrabold text-base sm:text-lg text-[var(--text)] tracking-tight truncate">
-                Briscola Club
-              </span>
-              <span className="text-[10px] sm:text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] shrink-0">
-                Casa
-              </span>
-            </div>
-            <p className="text-[11px] sm:text-[12px] text-[var(--text-muted)] flex items-center gap-1.5 font-medium truncate">
-              <span className="hidden sm:inline">Torneo &amp; Tracker</span>
-              <span className="hidden sm:inline text-[var(--text-subtle)]">•</span>
-              <span className="relative flex h-1.5 w-1.5 shrink-0 inline-block sm:hidden">
-                <span className="animate-beacon absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
-              </span>
-              <span className="text-emerald-400 font-mono text-[11px]">Live Cloud</span>
-            </p>
-          </div>
+          <span className="font-heading font-extrabold text-base sm:text-lg text-[var(--text)] tracking-tight truncate">
+            Briscola Club
+          </span>
         </button>
 
         {/* Desktop Navigation */}

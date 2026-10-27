@@ -196,19 +196,13 @@ export function TorneoSerataView({
 
   return (
     <div className="space-y-6">
-      {/* BARRA LIVE CLOUD SYNC & CONDIVISIONE */}
+      {/* BARRA SINCRONIZZAZIONE LIVE & CONDIVISIONE */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface)] border border-[var(--divider)] px-4 sm:px-5 py-3 rounded-2xl shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-2.5 w-2.5 relative">
-            <span className="animate-beacon absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+        <div className="text-xs text-[var(--text)]">
+          <span className="font-semibold text-[var(--text)]">Sincronizzazione live:</span>{' '}
+          <span className="text-[var(--text-muted)]">
+            Condividi il link con chi è al tavolo per vedere e aggiornare i punteggi da qualsiasi telefono.
           </span>
-          <div className="text-xs text-[var(--text)]">
-            <span className="font-semibold text-emerald-400">Sincronizzazione Live Cloud:</span>{' '}
-            <span className="text-[var(--text-muted)]">
-              Condividi il link con chi è al tavolo per vedere e aggiornare i punteggi da qualsiasi telefono.
-            </span>
-          </div>
         </div>
 
         <button
@@ -231,13 +225,9 @@ export function TorneoSerataView({
           {/* Header Torneo Attivo */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--surface)] border border-[var(--divider)] p-5 sm:p-6 rounded-2xl shadow-sm">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-beacon absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-                </span>
-                <span className="text-xs font-bold text-emerald-400 tracking-wide">
-                  Torneo Live in corso stasera
+              <div className="mb-1">
+                <span className="text-xs font-semibold text-[var(--accent)] tracking-wide">
+                  Torneo live in corso stasera
                 </span>
               </div>
               <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
