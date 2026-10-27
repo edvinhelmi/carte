@@ -2,11 +2,11 @@ import { Player, Team, Match, TournamentSession } from '@/types/game';
 import { RealtimeSyncService } from './realtimeSync';
 
 const STORAGE_KEYS = {
-  PLAYERS: 'carte_briscola_players_v1',
-  TEAMS: 'carte_briscola_teams_v1',
-  MATCHES: 'carte_briscola_matches_v1',
-  TOURNAMENT_SESSIONS: 'carte_tournament_sessions_v2',
-  SETTINGS: 'carte_briscola_settings_v1',
+  PLAYERS: 'carte_briscola_players_v4',
+  TEAMS: 'carte_briscola_teams_v4',
+  MATCHES: 'carte_briscola_matches_v4',
+  TOURNAMENT_SESSIONS: 'carte_tournament_sessions_v4',
+  SETTINGS: 'carte_briscola_settings_v4',
 };
 
 // Formatta data come YYYY-MM-DD
@@ -18,7 +18,7 @@ export function formatDateKey(date?: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-// Canale Broadcast per sincronizzazione multi-scheda e tempo reale immediato
+// Canale Broadcast per sincronizzazione multi-scheda locale
 let broadcastChannel: BroadcastChannel | null = null;
 if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
   try {
@@ -43,7 +43,7 @@ export function notifyRealtimeUpdate() {
   }
 }
 
-// Dati demo iniziali
+// Dati iniziali puliti: solo Marghe, Irins, Simon, Edd
 const DEMO_PLAYERS: Player[] = [
   { id: 'p1', name: 'Marghe', nickname: 'Regina di Coppe', avatarSuit: 'coppe', createdAt: '2026-10-01T10:00:00Z' },
   { id: 'p2', name: 'Irins', nickname: 'Asso di Denari', avatarSuit: 'denari', createdAt: '2026-10-01T10:05:00Z' },
@@ -54,156 +54,73 @@ const DEMO_PLAYERS: Player[] = [
 const DEMO_TEAMS: Team[] = [
   {
     id: 't1',
-    name: 'Edd & Simon',
-    playerIds: ['p4', 'p3'],
-    color: '#10b981',
-    suit: 'spade',
+    name: 'Marghe & Irins',
+    playerIds: ['p1', 'p2'],
+    color: '#f59e0b',
     createdAt: '2026-10-01T10:20:00Z',
   },
   {
     id: 't2',
-    name: 'Marghe & Irins',
-    playerIds: ['p1', 'p2'],
-    color: '#f59e0b',
-    suit: 'coppe',
+    name: 'Edd & Simon',
+    playerIds: ['p4', 'p3'],
+    color: '#10b981',
     createdAt: '2026-10-01T10:25:00Z',
   },
 ];
 
+// Rimanere solo la partita di oggi
 function generateDemoMatches(): Match[] {
-  const now = new Date();
-  const todayKey = formatDateKey(now);
-
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayKey = formatDateKey(yesterday);
-
-  const twoDaysAgo = new Date(now);
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  const twoDaysAgoKey = formatDateKey(twoDaysAgo);
-
+  const todayKey = formatDateKey();
   return [
     {
-      id: 'm1',
+      id: 'm_today_1',
       gameType: 'briscola',
-      timestamp: `${twoDaysAgoKey}T21:00:00Z`,
-      dateKey: twoDaysAgoKey,
-      team1Id: 't1',
-      team2Id: 't2',
-      winnerTeamId: 't1',
-      scoreTeam1: 68,
-      scoreTeam2: 52,
-      notes: 'Bella mano finale con tre assi',
-    },
-    {
-      id: 'm2',
-      gameType: 'briscola',
-      timestamp: `${twoDaysAgoKey}T21:25:00Z`,
-      dateKey: twoDaysAgoKey,
-      team1Id: 't1',
-      team2Id: 't2',
-      winnerTeamId: 't2',
-      scoreTeam1: 58,
-      scoreTeam2: 62,
-      notes: 'Vittoria sul filo di lana',
-    },
-    {
-      id: 'm3',
-      gameType: 'briscola',
-      timestamp: `${yesterdayKey}T21:10:00Z`,
-      dateKey: yesterdayKey,
-      team1Id: 't1',
-      team2Id: 't2',
-      winnerTeamId: 't2',
-      scoreTeam1: 45,
-      scoreTeam2: 75,
-      notes: 'Grande partita di Marghe',
-    },
-    {
-      id: 'm4',
-      gameType: 'briscola',
-      timestamp: `${yesterdayKey}T21:40:00Z`,
-      dateKey: yesterdayKey,
-      team1Id: 't1',
-      team2Id: 't2',
-      winnerTeamId: 't2',
-      scoreTeam1: 54,
-      scoreTeam2: 66,
-      notes: 'Capotto sfiorato',
-    },
-    {
-      id: 'm5',
-      gameType: 'briscola',
-      timestamp: `${yesterdayKey}T22:05:00Z`,
-      dateKey: yesterdayKey,
-      team1Id: 't1',
-      team2Id: 't2',
-      winnerTeamId: 't1',
-      scoreTeam1: 71,
-      scoreTeam2: 49,
-      notes: 'Rivincita di Edd & Simon',
-    },
-    {
-      id: 'm6',
-      gameType: 'briscola',
-      timestamp: `${todayKey}T18:30:00Z`,
+      timestamp: new Date().toISOString(),
       dateKey: todayKey,
       team1Id: 't1',
       team2Id: 't2',
       winnerTeamId: 't1',
       scoreTeam1: 64,
       scoreTeam2: 56,
-      notes: 'Prima mano del pomeriggio',
+      notes: 'Partita di oggi',
     },
   ];
 }
 
 function generateDemoSessions(): TournamentSession[] {
-  const now = new Date();
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayKey = formatDateKey(yesterday);
-
-  return [
-    {
-      id: 'tour_demo_yesterday',
-      dateKey: yesterdayKey,
-      startedAt: `${yesterdayKey}T20:45:00Z`,
-      endedAt: `${yesterdayKey}T22:30:00Z`,
-      team1Name: 'Edd & Simon',
-      team1Players: ['Edd', 'Simon'],
-      team2Name: 'Marghe & Irins',
-      team2Players: ['Marghe', 'Irins'],
-      team1Wins: 2,
-      team2Wins: 3,
-      status: 'completed',
-      winnerTeam: 2,
-    },
-  ];
+  return [];
 }
 
 export const StorageService = {
   init() {
     if (typeof window === 'undefined') return;
     try {
-      const existingPlayers = localStorage.getItem(STORAGE_KEYS.PLAYERS);
-      // Se non ci sono giocatori salvati o contengono i vecchi mock ("Marco", "Matteo", "Sara", "Elena"), aggiorna con Marghe, Irins, Simon, Edd
-      if (
-        !existingPlayers ||
-        existingPlayers.includes('Marco') ||
-        existingPlayers.includes('Matteo') ||
-        existingPlayers.includes('Sara')
-      ) {
+      if (!localStorage.getItem(STORAGE_KEYS.PLAYERS)) {
         localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(DEMO_PLAYERS));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.TEAMS)) {
         localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(DEMO_TEAMS));
-        localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(generateDemoSessions()));
       }
       if (!localStorage.getItem(STORAGE_KEYS.MATCHES)) {
         localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(generateDemoMatches()));
       }
+      if (!localStorage.getItem(STORAGE_KEYS.TOURNAMENT_SESSIONS)) {
+        localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(generateDemoSessions()));
+      }
     } catch (e) {
       console.error('Storage init error:', e);
     }
+  },
+
+  // Emette l'aggiornamento locale e contemporaneamente trasmette a tutti i telefoni connessi
+  broadcastStateChange() {
+    notifyRealtimeUpdate();
+    RealtimeSyncService.broadcastFullSync({
+      matches: this.getMatches(),
+      sessions: this.getTournamentSessions(),
+      teams: this.getTeams(),
+      players: this.getPlayers(),
+    });
   },
 
   getPlayers(): Player[] {
@@ -226,14 +143,14 @@ export const StorageService = {
       players.push(player);
     }
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
-    notifyRealtimeUpdate();
+    this.broadcastStateChange();
   },
 
   deletePlayer(playerId: string): void {
     if (typeof window === 'undefined') return;
     const players = this.getPlayers().filter((p) => p.id !== playerId);
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
-    notifyRealtimeUpdate();
+    this.broadcastStateChange();
   },
 
   getTeams(): Team[] {
@@ -256,14 +173,14 @@ export const StorageService = {
       teams.push(team);
     }
     localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams));
-    notifyRealtimeUpdate();
+    this.broadcastStateChange();
   },
 
   deleteTeam(teamId: string): void {
     if (typeof window === 'undefined') return;
     const teams = this.getTeams().filter((t) => t.id !== teamId);
     localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teams));
-    notifyRealtimeUpdate();
+    this.broadcastStateChange();
   },
 
   getMatches(): Match[] {
@@ -286,17 +203,16 @@ export const StorageService = {
       matches.unshift(match);
     }
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(matches));
-    notifyRealtimeUpdate();
+    this.broadcastStateChange();
   },
 
   deleteMatch(matchId: string): void {
     if (typeof window === 'undefined') return;
     const matches = this.getMatches().filter((m) => m.id !== matchId);
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(matches));
-    notifyRealtimeUpdate();
+    this.broadcastStateChange();
   },
 
-  // GESTIONE TORNEI / SERATE
   getTournamentSessions(): TournamentSession[] {
     if (typeof window === 'undefined') return [];
     try {
@@ -335,8 +251,7 @@ export const StorageService = {
     sessions.unshift(newSession);
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
-      notifyRealtimeUpdate();
-      RealtimeSyncService.publishUpdate('TOURNAMENT_START', newSession);
+      this.broadcastStateChange();
     }
     return newSession;
   },
@@ -354,8 +269,7 @@ export const StorageService = {
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
-      notifyRealtimeUpdate();
-      RealtimeSyncService.publishUpdate('TOURNAMENT_UPDATE', session);
+      this.broadcastStateChange();
     }
   },
 
@@ -372,8 +286,7 @@ export const StorageService = {
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
-      notifyRealtimeUpdate();
-      RealtimeSyncService.publishUpdate('TOURNAMENT_UPDATE', session);
+      this.broadcastStateChange();
     }
   },
 
@@ -395,8 +308,7 @@ export const StorageService = {
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
-      notifyRealtimeUpdate();
-      RealtimeSyncService.publishUpdate('TOURNAMENT_END', session);
+      this.broadcastStateChange();
     }
     return session;
   },
@@ -405,13 +317,12 @@ export const StorageService = {
     if (typeof window === 'undefined') return;
     const sessions = this.getTournamentSessions().filter((s) => s.id !== sessionId);
     localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
-    notifyRealtimeUpdate();
+    this.broadcastStateChange();
   },
 
-  // Export completo
   exportAllData() {
     return {
-      version: '1.2',
+      version: '1.4',
       exportedAt: new Date().toISOString(),
       players: this.getPlayers(),
       teams: this.getTeams(),
@@ -420,7 +331,6 @@ export const StorageService = {
     };
   },
 
-  // Importazione da file JSON
   importAllData(data: {
     players?: Player[];
     teams?: Team[];
@@ -440,26 +350,24 @@ export const StorageService = {
     if (Array.isArray(data.tournamentSessions)) {
       localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(data.tournamentSessions));
     }
-    notifyRealtimeUpdate();
+    this.broadcastStateChange();
   },
 
-  // Reset a dati demo
   resetToDemo() {
     if (typeof window === 'undefined') return;
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(DEMO_PLAYERS));
     localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(DEMO_TEAMS));
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(generateDemoMatches()));
     localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(generateDemoSessions()));
-    notifyRealtimeUpdate();
+    this.broadcastStateChange();
   },
 
-  // Svuota tutto
   clearAll() {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(STORAGE_KEYS.PLAYERS);
     localStorage.removeItem(STORAGE_KEYS.TEAMS);
     localStorage.removeItem(STORAGE_KEYS.MATCHES);
     localStorage.removeItem(STORAGE_KEYS.TOURNAMENT_SESSIONS);
-    notifyRealtimeUpdate();
+    this.broadcastStateChange();
   },
 };

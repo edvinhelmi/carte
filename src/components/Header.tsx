@@ -1,18 +1,17 @@
 import React from 'react';
-import { Trophy, Calendar as CalendarIcon, Users, Settings, Plus, Sparkles, Swords } from 'lucide-react';
+import { Trophy, Calendar as CalendarIcon, Users, Settings, Swords, Play } from 'lucide-react';
 import { SuitIcon } from './SuitIcon';
 
-export type TabType = 'matches' | 'torneo' | 'calendar' | 'leaderboard' | 'teams' | 'settings';
+export type TabType = 'torneo' | 'calendar' | 'leaderboard' | 'teams' | 'settings';
 
 interface HeaderProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
-  onOpenQuickMatch: () => void;
+  onOpenQuickMatch?: () => void;
 }
 
-export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProps) {
+export function Header({ activeTab, setActiveTab }: HeaderProps) {
   const navItems = [
-    { id: 'matches' as TabType, label: 'Partite', icon: Sparkles },
     { id: 'torneo' as TabType, label: 'Torneo Serata', icon: Swords },
     { id: 'calendar' as TabType, label: 'Calendario', icon: CalendarIcon },
     { id: 'leaderboard' as TabType, label: 'Classifica', icon: Trophy },
@@ -25,7 +24,7 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Brand / Logo */}
         <div
-          onClick={() => setActiveTab('matches')}
+          onClick={() => setActiveTab('torneo')}
           className="flex items-center gap-2.5 cursor-pointer select-none group"
         >
           <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 via-emerald-500/10 to-zinc-900 border border-amber-500/30 flex items-center justify-center shadow-lg shadow-amber-500/5 group-hover:border-amber-400 transition-all">
@@ -41,7 +40,7 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
                 Club
               </span>
             </div>
-            <p className="text-[11px] text-zinc-400 font-medium">Tracciatore Vittorie Casa</p>
+            <p className="text-[11px] text-zinc-400 font-medium">Torneo &amp; Segnapunti Casa</p>
           </div>
         </div>
 
@@ -67,15 +66,14 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
           })}
         </nav>
 
-        {/* Action Button: Nuova Partita */}
+        {/* Action Button: Torneo Serata */}
         <div className="flex items-center gap-2.5">
           <button
-            onClick={onOpenQuickMatch}
+            onClick={() => setActiveTab('torneo')}
             className="flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 active:scale-95 text-zinc-950 font-semibold text-sm shadow-md shadow-amber-500/20 transition-all cursor-pointer"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span className="hidden sm:inline">Nuova Partita</span>
-            <span className="sm:hidden">Partita</span>
+            <Play className="w-4 h-4 fill-zinc-950" />
+            <span>Torneo Live</span>
           </button>
         </div>
       </div>

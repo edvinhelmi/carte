@@ -22,7 +22,6 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
   const [teamName, setTeamName] = useState('');
   const [selectedPlayer1, setSelectedPlayer1] = useState('');
   const [selectedPlayer2, setSelectedPlayer2] = useState('');
-  const [teamSuit, setTeamSuit] = useState<CardSuit>('bastoni');
 
   const playerMap = new Map(players.map((p) => [p.id, p]));
 
@@ -54,7 +53,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
     }
   };
 
-  // Salvataggio nuova squadra
+  // Salvataggio nuova squadra predefinita
   const handleSaveTeam = (e: React.FormEvent) => {
     e.preventDefault();
     if (!teamName.trim()) return;
@@ -73,7 +72,6 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
       name: teamName.trim(),
       playerIds,
       color: '#10b981',
-      suit: teamSuit,
       createdAt: new Date().toISOString(),
     };
 
@@ -133,11 +131,9 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
-                      {team.suit && (
-                        <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-amber-400">
-                          <SuitIcon suit={team.suit} className="w-4 h-4" />
-                        </div>
-                      )}
+                      <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-emerald-400 font-bold text-xs">
+                        {team.name.slice(0, 2).toUpperCase()}
+                      </div>
                       <h3 className="font-bold text-base text-zinc-100">{team.name}</h3>
                     </div>
 
@@ -355,27 +351,6 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                       </option>
                     ))}
                   </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-zinc-400 block mb-1">Seme distintivo squadra:</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(['coppe', 'denari', 'spade', 'bastoni'] as CardSuit[]).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setTeamSuit(s)}
-                      className={`p-2 rounded-xl flex flex-col items-center justify-center border transition-all cursor-pointer ${
-                        teamSuit === s
-                          ? 'bg-amber-500/20 border-amber-400 text-amber-400'
-                          : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200'
-                      }`}
-                    >
-                      <SuitIcon suit={s} className="w-5 h-5 mb-1" />
-                      <span className="text-[10px] capitalize">{s}</span>
-                    </button>
-                  ))}
                 </div>
               </div>
 

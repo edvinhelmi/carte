@@ -15,7 +15,6 @@ export interface Team {
   name: string;
   playerIds: string[]; // 1 player for 1v1, 2 players for 2v2
   color: string;
-  suit?: CardSuit;
   createdAt: string;
 }
 

@@ -5,7 +5,6 @@ import { useStorageData } from '@/lib/useStorageData';
 import { RealtimeSyncService } from '@/lib/realtimeSync';
 import { Header, TabType } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
-import { MatchesHomeView } from '@/components/MatchesHomeView';
 import { CalendarView } from '@/components/CalendarView';
 import { TorneoSerataView } from '@/components/TorneoSerataView';
 import { LeaderboardView } from '@/components/LeaderboardView';
@@ -21,7 +20,7 @@ export default function Home() {
     () => true,
     () => false
   );
-  const [activeTab, setActiveTab] = useState<TabType>('matches');
+  const [activeTab, setActiveTab] = useState<TabType>('torneo');
   const { players, teams, matches, tournamentSessions, activeSession, refresh } =
     useStorageData();
 
@@ -70,17 +69,6 @@ export default function Home() {
 
       {/* Contenuto Principale con Tab Switch */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        {activeTab === 'matches' && (
-          <MatchesHomeView
-            matches={matches}
-            teams={teams}
-            players={players}
-            onOpenQuickMatch={handleOpenStandardQuickMatch}
-            setActiveTab={setActiveTab}
-            onMatchesUpdated={refresh}
-          />
-        )}
-
         {activeTab === 'torneo' && (
           <TorneoSerataView
             sessions={tournamentSessions}
@@ -102,7 +90,12 @@ export default function Home() {
         )}
 
         {activeTab === 'leaderboard' && (
-          <LeaderboardView teams={teams} players={players} matches={matches} />
+          <LeaderboardView
+            teams={teams}
+            players={players}
+            matches={matches}
+            tournamentSessions={tournamentSessions}
+          />
         )}
 
         {activeTab === 'teams' && (

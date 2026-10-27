@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Trophy, Flame, Users, User, Swords } from 'lucide-react';
-import { Team, Player, Match } from '@/types/game';
+import { Team, Player, Match, TournamentSession } from '@/types/game';
 import { calculateTeamStats, calculatePlayerStats, calculateHeadToHead } from '@/lib/stats';
 import { SuitIcon } from './SuitIcon';
 
@@ -8,22 +8,34 @@ interface LeaderboardViewProps {
   teams: Team[];
   players: Player[];
   matches: Match[];
+  tournamentSessions?: TournamentSession[];
 }
 
-export function LeaderboardView({ teams, players, matches }: LeaderboardViewProps) {
+export function LeaderboardView({
+  teams,
+  players,
+  matches,
+  tournamentSessions = [],
+}: LeaderboardViewProps) {
   const [activeTab, setActiveTab] = useState<'teams' | 'players' | 'h2h'>('teams');
 
   // H2H state
   const [h2hTeam1, setH2hTeam1] = useState<string>(teams[0]?.id || '');
   const [h2hTeam2, setH2hTeam2] = useState<string>(teams[1]?.id || '');
 
-  const teamStats = useMemo(() => calculateTeamStats(teams, matches, players), [teams, matches, players]);
-  const playerStats = useMemo(() => calculatePlayerStats(players, teams, matches), [players, teams, matches]);
+  const teamStats = useMemo(
+    () => calculateTeamStats(teams, matches, players, tournamentSessions),
+    [teams, matches, players, tournamentSessions]
+  );
+  const playerStats = useMemo(
+    () => calculatePlayerStats(players, teams, matches, tournamentSessions),
+    [players, teams, matches, tournamentSessions]
+  );
 
   const h2hStats = useMemo(() => {
     if (!h2hTeam1 || !h2hTeam2 || h2hTeam1 === h2hTeam2) return null;
-    return calculateHeadToHead(h2hTeam1, h2hTeam2, teams, matches);
-  }, [h2hTeam1, h2hTeam2, teams, matches]);
+    return calculateHeadToHead(h2hTeam1, h2hTeam2, teams, matches, tournamentSessions);
+  }, [h2hTeam1, h2hTeam2, teams, matches, tournamentSessions]);
 
   const getRankBadge = (index: number) => {
     switch (index) {
@@ -134,9 +146,6 @@ export function LeaderboardView({ teams, players, matches }: LeaderboardViewProp
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="font-bold text-base text-zinc-100">{stat.team.name}</h3>
-                            {stat.team.suit && (
-                              <SuitIcon suit={stat.team.suit} className="w-4 h-4 text-amber-400" />
-                            )}
                             {stat.streak >= 2 && (
                               <span className="flex items-center gap-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
                                 <Flame className="w-3 h-3 fill-red-400" />

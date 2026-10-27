@@ -95,8 +95,8 @@ export function CalendarView({
   };
 
   const dailySummary = useMemo(() => {
-    return getDailySummary(selectedDateKey, matches, teams);
-  }, [selectedDateKey, matches, teams]);
+    return getDailySummary(selectedDateKey, matches, teams, tournamentSessions);
+  }, [selectedDateKey, matches, teams, tournamentSessions]);
 
   const selectedDaySessions = useMemo(() => {
     return sessionsByDate[selectedDateKey] || [];
@@ -117,6 +117,13 @@ export function CalendarView({
   const handleDeleteMatch = (matchId: string) => {
     if (confirm('Vuoi davvero eliminare questa partita dallo storico?')) {
       StorageService.deleteMatch(matchId);
+      onMatchesUpdated();
+    }
+  };
+
+  const handleDeleteTournamentSession = (sessionId: string) => {
+    if (confirm('Vuoi davvero eliminare questo torneo dallo storico?')) {
+      StorageService.deleteTournamentSession(sessionId);
       onMatchesUpdated();
     }
   };
@@ -299,9 +306,18 @@ export function CalendarView({
                             <span className="text-xs font-bold text-amber-400 uppercase tracking-wide">
                               🏆 Torneo Concluso
                             </span>
-                            <span className="text-xs text-zinc-400">
-                              {session.team1Wins + session.team2Wins} partite disputate
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-zinc-400">
+                                {session.team1Wins + session.team2Wins} partite disputate
+                              </span>
+                              <button
+                                onClick={() => handleDeleteTournamentSession(session.id)}
+                                aria-label="Elimina torneo"
+                                className="p-1 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
 
                           <div className="flex items-center justify-between gap-2 pt-1">
