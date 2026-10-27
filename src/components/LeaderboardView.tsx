@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Trophy, Flame, Users, User, Swords } from 'lucide-react';
+import { Trophy, Flame, Users, User, Swords, ChevronDown } from 'lucide-react';
 import { Team, Player, Match, TournamentSession } from '@/types/game';
 import { calculateTeamStats, calculatePlayerStats, calculateHeadToHead } from '@/lib/stats';
 import { SuitIcon } from './SuitIcon';
@@ -282,29 +282,37 @@ export function LeaderboardView({
 
             {/* Selettori dei 2 team */}
             <div className="flex items-center gap-2">
-              <select
-                value={h2hTeam1}
-                onChange={(e) => setH2hTeam1(e.target.value)}
-                className="bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs rounded-xl px-3 py-2 text-[var(--text)] focus:outline-none"
-              >
-                {teams.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={h2hTeam1}
+                  onChange={(e) => setH2hTeam1(e.target.value)}
+                  className="appearance-none bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs rounded-xl pl-3 pr-7 py-2 text-[var(--text)] focus:outline-none cursor-pointer"
+                >
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
+              </div>
+
               <span className="text-xs font-bold text-[var(--accent)]">VS</span>
-              <select
-                value={h2hTeam2}
-                onChange={(e) => setH2hTeam2(e.target.value)}
-                className="bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs rounded-xl px-3 py-2 text-[var(--text)] focus:outline-none"
-              >
-                {teams.map((t) => (
-                  <option key={t.id} value={t.id} disabled={t.id === h2hTeam1}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
+
+              <div className="relative">
+                <select
+                  value={h2hTeam2}
+                  onChange={(e) => setH2hTeam2(e.target.value)}
+                  className="appearance-none bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs rounded-xl pl-3 pr-7 py-2 text-[var(--text)] focus:outline-none cursor-pointer"
+                >
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id} disabled={t.id === h2hTeam1}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
+              </div>
             </div>
           </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Trophy, Calendar } from 'lucide-react';
+import { X, Trophy, Calendar, ChevronDown } from 'lucide-react';
 import { Team, Match, GameType } from '@/types/game';
 import { StorageService, formatDateKey } from '@/lib/storage';
 import { fireWinConfetti } from '@/lib/confetti';
@@ -169,17 +169,20 @@ export function QuickMatchModal({
                 <label className="text-xs font-semibold text-[var(--text-muted)] block">
                   Squadra 1
                 </label>
-                <select
-                  value={team1Id}
-                  onChange={(e) => setCustomTeam1Id(e.target.value)}
-                  className="w-full bg-[var(--surface-raised)] border border-[var(--control-border)] rounded-xl px-3 py-2 text-xs sm:text-sm text-[var(--text)] font-semibold focus:ring-2 focus:ring-[var(--focus-ring)] focus:outline-none"
-                >
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id} disabled={t.id === team2Id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={team1Id}
+                    onChange={(e) => setCustomTeam1Id(e.target.value)}
+                    className="w-full appearance-none bg-[var(--surface-raised)] border border-[var(--control-border)] rounded-xl pl-3 pr-8 py-2 text-xs sm:text-sm text-[var(--text)] font-semibold focus:ring-2 focus:ring-[var(--focus-ring)] focus:outline-none cursor-pointer truncate"
+                  >
+                    {teams.map((t) => (
+                      <option key={t.id} value={t.id} disabled={t.id === team2Id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
+                </div>
               </div>
 
               {/* Selezione Squadra 2 */}
@@ -187,17 +190,20 @@ export function QuickMatchModal({
                 <label className="text-xs font-semibold text-[var(--text-muted)] block">
                   Squadra 2
                 </label>
-                <select
-                  value={team2Id}
-                  onChange={(e) => setCustomTeam2Id(e.target.value)}
-                  className="w-full bg-[var(--surface-raised)] border border-[var(--control-border)] rounded-xl px-3 py-2 text-xs sm:text-sm text-[var(--text)] font-semibold focus:ring-2 focus:ring-[var(--focus-ring)] focus:outline-none"
-                >
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id} disabled={t.id === team1Id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={team2Id}
+                    onChange={(e) => setCustomTeam2Id(e.target.value)}
+                    className="w-full appearance-none bg-[var(--surface-raised)] border border-[var(--control-border)] rounded-xl pl-3 pr-8 py-2 text-xs sm:text-sm text-[var(--text)] font-semibold focus:ring-2 focus:ring-[var(--focus-ring)] focus:outline-none cursor-pointer truncate"
+                  >
+                    {teams.map((t) => (
+                      <option key={t.id} value={t.id} disabled={t.id === team1Id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
+                </div>
               </div>
             </div>
 

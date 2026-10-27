@@ -8,6 +8,7 @@ import {
   Share2,
   Check,
   RotateCcw,
+  ChevronDown,
 } from 'lucide-react';
 import { TournamentSession, Team, Player } from '@/types/game';
 import { StorageService } from '@/lib/storage';
@@ -424,25 +425,28 @@ export function TorneoSerataView({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* SQUADRA 1 */}
               <div className="bg-[var(--surface-raised)] p-5 rounded-xl border border-[var(--control-border)] space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[var(--accent)]">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-[var(--accent)] shrink-0">
                     Squadra 1
                   </span>
                   {teams.length > 0 && (
-                    <select
-                      onChange={(e) => handleSelectTeam1Preset(e.target.value)}
-                      defaultValue=""
-                      className="bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs text-[var(--text)] rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)]"
-                    >
-                      <option value="" disabled>
-                        Scegli da squadre salvate...
-                      </option>
-                      {teams.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
+                    <div className="relative inline-flex items-center min-w-0 max-w-[200px] sm:max-w-xs">
+                      <select
+                        onChange={(e) => handleSelectTeam1Preset(e.target.value)}
+                        defaultValue=""
+                        className="appearance-none bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--control-border)] text-xs text-[var(--text)] rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)] cursor-pointer truncate w-full transition-[border-color,background-color] duration-150"
+                      >
+                        <option value="" disabled>
+                          Scegli da squadre salvate...
                         </option>
-                      ))}
-                    </select>
+                        {teams.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
+                    </div>
                   )}
                 </div>
 
@@ -539,25 +543,28 @@ export function TorneoSerataView({
 
               {/* SQUADRA 2 */}
               <div className="bg-[var(--surface-raised)] p-5 rounded-xl border border-[var(--control-border)] space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-sky-400">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-sky-400 shrink-0">
                     Squadra 2
                   </span>
                   {teams.length > 0 && (
-                    <select
-                      onChange={(e) => handleSelectTeam2Preset(e.target.value)}
-                      defaultValue=""
-                      className="bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs text-[var(--text)] rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)]"
-                    >
-                      <option value="" disabled>
-                        Scegli da squadre salvate...
-                      </option>
-                      {teams.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
+                    <div className="relative inline-flex items-center min-w-0 max-w-[200px] sm:max-w-xs">
+                      <select
+                        onChange={(e) => handleSelectTeam2Preset(e.target.value)}
+                        defaultValue=""
+                        className="appearance-none bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--control-border)] text-xs text-[var(--text)] rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)] cursor-pointer truncate w-full transition-[border-color,background-color] duration-150"
+                      >
+                        <option value="" disabled>
+                          Scegli da squadre salvate...
                         </option>
-                      ))}
-                    </select>
+                        {teams.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
+                    </div>
                   )}
                 </div>
 

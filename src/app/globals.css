@@ -132,6 +132,13 @@ h1, h2, h3, .font-heading {
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
 }
 
+/* Custom Select Standard Reset */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
 /* TasteCode Motion & Micro-Interactions */
 @keyframes view-enter {
   0% {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, User, Plus, Trash2, Shield, X } from 'lucide-react';
+import { Users, User, Plus, Trash2, Shield, X, ChevronDown } from 'lucide-react';
 import { Player, Team, CardSuit } from '@/types/game';
 import { StorageService } from '@/lib/storage';
 import { SuitIcon } from './SuitIcon';
@@ -352,37 +352,43 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Giocatore 1:</label>
-                  <select
-                    required
-                    value={selectedPlayer1}
-                    onChange={(e) => setSelectedPlayer1(e.target.value)}
-                    className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3 py-2 text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
-                  >
-                    <option value="">Seleziona...</option>
-                    {players.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      required
+                      value={selectedPlayer1}
+                      onChange={(e) => setSelectedPlayer1(e.target.value)}
+                      className="w-full appearance-none bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl pl-3 pr-8 py-2 text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] cursor-pointer truncate"
+                    >
+                      <option value="">Seleziona...</option>
+                      {players.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
+                  </div>
                 </div>
 
                 <div>
                   <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">
                     Giocatore 2 (opzionale):
                   </label>
-                  <select
-                    value={selectedPlayer2}
-                    onChange={(e) => setSelectedPlayer2(e.target.value)}
-                    className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3 py-2 text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
-                  >
-                    <option value="">Nessuno (1v1)</option>
-                    {players.map((p) => (
-                      <option key={p.id} value={p.id} disabled={p.id === selectedPlayer1}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={selectedPlayer2}
+                      onChange={(e) => setSelectedPlayer2(e.target.value)}
+                      className="w-full appearance-none bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl pl-3 pr-8 py-2 text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] cursor-pointer truncate"
+                    >
+                      <option value="">Nessuno (1v1)</option>
+                      {players.map((p) => (
+                        <option key={p.id} value={p.id} disabled={p.id === selectedPlayer1}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
+                  </div>
                 </div>
               </div>
 
