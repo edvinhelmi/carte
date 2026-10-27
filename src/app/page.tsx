@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { useStorageData } from '@/lib/useStorageData';
 import { RealtimeSyncService } from '@/lib/realtimeSync';
+import { installReferenceReveals } from '@/lib/reveal';
 import { Header, TabType } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { CalendarView } from '@/components/CalendarView';
@@ -11,6 +12,7 @@ import { LeaderboardView } from '@/components/LeaderboardView';
 import { TeamsAndPlayersView } from '@/components/TeamsAndPlayersView';
 import { SettingsView } from '@/components/SettingsView';
 import { QuickMatchModal } from '@/components/QuickMatchModal';
+import { SuitIcon } from '@/components/SuitIcon';
 
 const emptySubscribe = () => () => {};
 
@@ -36,6 +38,13 @@ export default function Home() {
     };
   }, []);
 
+  // TasteCode Motion: initialize reveal lifecycle for active tab
+  useEffect(() => {
+    if (!mounted) return;
+    const cleanup = installReferenceReveals();
+    return cleanup;
+  }, [mounted, activeTab]);
+
   // Apertura modale per registrare partita con data specifica
   const handleOpenQuickMatchWithDate = (dateKey: string) => {
     setQuickMatchDateKey(dateKey);
@@ -49,17 +58,21 @@ export default function Home() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-zinc-400">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm font-medium">Caricamento Briscola Club...</span>
+      <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center text-[var(--text-muted)]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center animate-pulse">
+            <SuitIcon suit="coppe" className="w-5 h-5 text-[var(--accent)]" />
+          </div>
+          <span className="text-xs font-semibold text-[var(--text)] tracking-tight">
+            Caricamento Briscola Club...
+          </span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans pb-24 md:pb-12">
+    <div className="min-h-screen bg-[var(--canvas)] text-[var(--text)] flex flex-col font-sans pb-24 md:pb-12 selection:bg-amber-500/20 selection:text-amber-200">
       {/* Header di Navigazione */}
       <Header
         activeTab={activeTab}
@@ -69,40 +82,42 @@ export default function Home() {
 
       {/* Contenuto Principale con Tab Switch */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        {activeTab === 'torneo' && (
-          <TorneoSerataView
-            sessions={tournamentSessions}
-            activeSession={activeSession}
-            teams={teams}
-            players={players}
-            onDataUpdated={refresh}
-          />
-        )}
+        <div key={activeTab} className="view-transition">
+          {activeTab === 'torneo' && (
+            <TorneoSerataView
+              sessions={tournamentSessions}
+              activeSession={activeSession}
+              teams={teams}
+              players={players}
+              onDataUpdated={refresh}
+            />
+          )}
 
-        {activeTab === 'calendar' && (
-          <CalendarView
-            matches={matches}
-            teams={teams}
-            tournamentSessions={tournamentSessions}
-            onOpenQuickMatchWithDate={handleOpenQuickMatchWithDate}
-            onMatchesUpdated={refresh}
-          />
-        )}
+          {activeTab === 'calendar' && (
+            <CalendarView
+              matches={matches}
+              teams={teams}
+              tournamentSessions={tournamentSessions}
+              onOpenQuickMatchWithDate={handleOpenQuickMatchWithDate}
+              onMatchesUpdated={refresh}
+            />
+          )}
 
-        {activeTab === 'leaderboard' && (
-          <LeaderboardView
-            teams={teams}
-            players={players}
-            matches={matches}
-            tournamentSessions={tournamentSessions}
-          />
-        )}
+          {activeTab === 'leaderboard' && (
+            <LeaderboardView
+              teams={teams}
+              players={players}
+              matches={matches}
+              tournamentSessions={tournamentSessions}
+            />
+          )}
 
-        {activeTab === 'teams' && (
-          <TeamsAndPlayersView players={players} teams={teams} onDataUpdated={refresh} />
-        )}
+          {activeTab === 'teams' && (
+            <TeamsAndPlayersView players={players} teams={teams} onDataUpdated={refresh} />
+          )}
 
-        {activeTab === 'settings' && <SettingsView onDataUpdated={refresh} />}
+          {activeTab === 'settings' && <SettingsView onDataUpdated={refresh} />}
+        </div>
       </main>
 
       {/* Modale Registrazione Partita / Vittoria Rapida */}

@@ -41,25 +41,25 @@ export function LeaderboardView({
     switch (index) {
       case 0:
         return (
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-300 to-yellow-500 text-zinc-950 font-black text-xs flex items-center justify-center shadow-md shadow-yellow-500/20">
+          <div className="w-7 h-7 rounded-xl bg-[var(--accent)] text-[var(--on-accent)] font-mono font-black text-xs flex items-center justify-center shadow-sm">
             1°
           </div>
         );
       case 1:
         return (
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-zinc-300 to-slate-400 text-zinc-950 font-black text-xs flex items-center justify-center shadow-md shadow-zinc-400/20">
+          <div className="w-7 h-7 rounded-xl bg-[var(--surface-alt)] text-[var(--text)] border border-[var(--control-border)] font-mono font-bold text-xs flex items-center justify-center">
             2°
           </div>
         );
       case 2:
         return (
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-700 to-amber-900 text-amber-200 font-black text-xs flex items-center justify-center shadow-md shadow-amber-800/20">
+          <div className="w-7 h-7 rounded-xl bg-[var(--surface-raised)] text-[var(--accent-text)] border border-[var(--divider)] font-mono font-bold text-xs flex items-center justify-center">
             3°
           </div>
         );
       default:
         return (
-          <div className="w-7 h-7 rounded-full bg-zinc-800 text-zinc-400 font-bold text-xs flex items-center justify-center">
+          <div className="w-7 h-7 rounded-xl bg-[var(--surface-raised)] text-[var(--text-subtle)] font-mono text-xs flex items-center justify-center">
             {index + 1}°
           </div>
         );
@@ -67,49 +67,52 @@ export function LeaderboardView({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-reveal="rise">
       {/* Intestazione */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-zinc-100 tracking-tight flex items-center gap-2">
-            <Trophy className="w-6 h-6 text-amber-400" />
+          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight flex items-center gap-2.5">
+            <Trophy className="w-6 h-6 text-[var(--accent)]" />
             <span>Classifiche &amp; Statistiche</span>
           </h1>
-          <p className="text-sm text-zinc-400">
-            Monitora chi domina il tavolo da gioco, le percentuali di vittoria e le sfide dirette.
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1">
+            Rendimento delle squadre, vittorie dei singoli e scontri diretti al tavolo.
           </p>
         </div>
 
         {/* Tab switch */}
-        <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800">
+        <div className="flex items-center gap-1 bg-[var(--surface)] p-1 rounded-xl border border-[var(--divider)]">
           <button
+            type="button"
             onClick={() => setActiveTab('teams')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`touch-target flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer ${
               activeTab === 'teams'
-                ? 'bg-amber-500 text-zinc-950 shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
             <span>Squadre</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('players')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`touch-target flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer ${
               activeTab === 'players'
-                ? 'bg-amber-500 text-zinc-950 shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]'
             }`}
           >
             <User className="w-3.5 h-3.5" />
             <span>Giocatori</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('h2h')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`touch-target flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer ${
               activeTab === 'h2h'
-                ? 'bg-amber-500 text-zinc-950 shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200'
+                ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]'
             }`}
           >
             <Swords className="w-3.5 h-3.5" />
@@ -120,10 +123,10 @@ export function LeaderboardView({
 
       {/* TAB 1: CLASSIFICA SQUADRE */}
       {activeTab === 'teams' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {teamStats.length === 0 ? (
-            <div className="text-center py-12 bg-zinc-900/60 rounded-2xl border border-zinc-800 text-zinc-400">
-              Nessuna squadra trovata.
+            <div className="text-center py-12 bg-[var(--surface)] rounded-2xl border border-[var(--divider)] text-[var(--text-muted)] text-xs">
+              Nessuna squadra registrata al momento.
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3">
@@ -132,10 +135,10 @@ export function LeaderboardView({
                 return (
                   <div
                     key={stat.team.id}
-                    className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 border transition-all ${
+                    className={`rounded-2xl p-5 border transition-all ${
                       isLeader
-                        ? 'bg-gradient-to-r from-amber-500/10 via-zinc-900 to-zinc-900 border-amber-500/40 shadow-lg shadow-amber-500/5'
-                        : 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-700'
+                        ? 'bg-[var(--surface)] border-[var(--accent-border)] shadow-sm'
+                        : 'bg-[var(--surface)] border-[var(--divider)] hover:border-[var(--control-border)]'
                     }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -145,50 +148,52 @@ export function LeaderboardView({
 
                         <div>
                           <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-base text-zinc-100">{stat.team.name}</h3>
+                            <h3 className="font-heading font-bold text-base text-[var(--text)]">
+                              {stat.team.name}
+                            </h3>
                             {stat.streak >= 2 && (
-                              <span className="flex items-center gap-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
-                                <Flame className="w-3 h-3 fill-red-400" />
-                                {stat.streak} in fila
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30 font-mono tabular-nums">
+                                <Flame className="w-3 h-3 fill-rose-400" />
+                                <span>{stat.streak} di fila</span>
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-zinc-400 mt-0.5">
+                          <p className="text-xs text-[var(--text-muted)] mt-0.5">
                             {stat.players.map((p) => p.name).join(' & ') || 'Nessun giocatore assegnato'}
                           </p>
                         </div>
                       </div>
 
-                      {/* Statistiche Metriche */}
-                      <div className="flex items-center justify-between sm:justify-end gap-5 border-t sm:border-t-0 pt-3 sm:pt-0 border-zinc-800/80">
+                      {/* Statistiche Metriche Tabulari */}
+                      <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 pt-3 sm:pt-0 border-[var(--divider)]">
                         {/* Win Rate */}
                         <div className="text-center sm:text-right">
-                          <span className="text-xs text-zinc-400 uppercase tracking-wider block">
+                          <span className="text-[11px] text-[var(--text-subtle)] font-medium block">
                             Win Rate
                           </span>
-                          <span className="text-lg font-black text-amber-400">
+                          <span className="text-base font-extrabold text-[var(--accent-text)] font-mono tabular-nums">
                             {stat.winRate}%
                           </span>
                         </div>
 
                         {/* Vittorie / Sconfitte */}
                         <div className="text-center sm:text-right">
-                          <span className="text-xs text-zinc-400 uppercase tracking-wider block">
+                          <span className="text-[11px] text-[var(--text-subtle)] font-medium block">
                             V / S
                           </span>
-                          <span className="text-base font-bold text-zinc-200">
+                          <span className="text-sm font-bold font-mono tabular-nums">
                             <span className="text-emerald-400">{stat.wins}</span>
-                            <span className="text-zinc-600 mx-1">/</span>
-                            <span className="text-red-400">{stat.losses}</span>
+                            <span className="text-[var(--text-subtle)] mx-1">/</span>
+                            <span className="text-rose-400">{stat.losses}</span>
                           </span>
                         </div>
 
                         {/* Partite Totali */}
-                        <div className="text-center sm:text-right min-w-[70px]">
-                          <span className="text-xs text-zinc-400 uppercase tracking-wider block">
+                        <div className="text-center sm:text-right min-w-[60px]">
+                          <span className="text-[11px] text-[var(--text-subtle)] font-medium block">
                             Totali
                           </span>
-                          <span className="text-base font-bold text-zinc-300">
+                          <span className="text-sm font-bold text-[var(--text)] font-mono tabular-nums">
                             {stat.matchesPlayed}
                           </span>
                         </div>
@@ -196,9 +201,9 @@ export function LeaderboardView({
                     </div>
 
                     {/* Barra grafica di Win Rate */}
-                    <div className="mt-3.5 w-full bg-zinc-800/80 rounded-full h-1.5 overflow-hidden">
+                    <div className="mt-3.5 w-full bg-[var(--surface-alt)] rounded-full h-1.5 overflow-hidden">
                       <div
-                        className="bg-gradient-to-r from-amber-500 to-emerald-400 h-1.5 rounded-full transition-all duration-500"
+                        className="bg-[var(--accent)] h-1.5 rounded-full transition-all duration-500"
                         style={{ width: `${stat.winRate}%` }}
                       />
                     </div>
@@ -213,42 +218,46 @@ export function LeaderboardView({
       {/* TAB 2: CLASSIFICA GIOCATORI SINGOLI */}
       {activeTab === 'players' && (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {playerStats.map((pStat, idx) => (
               <div
                 key={pStat.player.id}
-                className="bg-zinc-900/80 rounded-2xl border border-zinc-800 p-4 hover:border-zinc-700 transition-colors relative"
+                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 transition-colors"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     {getRankBadge(idx)}
-                    <SuitIcon suit={pStat.player.avatarSuit} className="w-4 h-4 text-amber-400" />
+                    <SuitIcon suit={pStat.player.avatarSuit} className="w-4 h-4 text-[var(--accent)]" />
                   </div>
                   {pStat.streak >= 2 && (
-                    <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
-                      <Flame className="w-2.5 h-2.5 fill-red-400" />
-                      {pStat.streak}
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30 font-mono tabular-nums">
+                      <Flame className="w-2.5 h-2.5 fill-rose-400" />
+                      <span>{pStat.streak}</span>
                     </span>
                   )}
                 </div>
 
-                <h3 className="font-bold text-base text-zinc-100">{pStat.player.name}</h3>
-                {pStat.player.nickname && (
-                  <p className="text-xs text-zinc-400 italic mb-3">&quot;{pStat.player.nickname}&quot;</p>
+                <h3 className="font-heading font-bold text-base text-[var(--text)]">{pStat.player.name}</h3>
+                {pStat.player.nickname ? (
+                  <p className="text-xs text-[var(--text-muted)] italic mb-3">
+                    &quot;{pStat.player.nickname}&quot;
+                  </p>
+                ) : (
+                  <div className="h-4 mb-3" />
                 )}
 
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800/80 text-center">
+                <div className="grid grid-cols-3 gap-2 pt-2.5 border-t border-[var(--divider)] text-center font-mono tabular-nums">
                   <div>
-                    <span className="text-[10px] uppercase text-zinc-500 block">Vittorie</span>
+                    <span className="text-[10px] text-[var(--text-subtle)] font-sans block">Vinte</span>
                     <span className="text-sm font-bold text-emerald-400">{pStat.wins}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase text-zinc-500 block">Sconfitte</span>
-                    <span className="text-sm font-bold text-red-400">{pStat.losses}</span>
+                    <span className="text-[10px] text-[var(--text-subtle)] font-sans block">Perse</span>
+                    <span className="text-sm font-bold text-rose-400">{pStat.losses}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase text-zinc-500 block">Win Rate</span>
-                    <span className="text-sm font-bold text-amber-400">{pStat.winRate}%</span>
+                    <span className="text-[10px] text-[var(--text-subtle)] font-sans block">Win %</span>
+                    <span className="text-sm font-bold text-[var(--accent-text)]">{pStat.winRate}%</span>
                   </div>
                 </div>
               </div>
@@ -259,15 +268,15 @@ export function LeaderboardView({
 
       {/* TAB 3: TESTA A TESTA (H2H) */}
       {activeTab === 'h2h' && (
-        <div className="bg-zinc-900/80 rounded-2xl border border-zinc-800 p-5 sm:p-6 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--divider)]">
             <div>
-              <h2 className="text-base font-bold text-zinc-100 flex items-center gap-2">
-                <Swords className="w-5 h-5 text-amber-400" />
-                <span>Confronto Diretto tra Squadre</span>
+              <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
+                <Swords className="w-4 h-4 text-[var(--accent)]" />
+                <span>Confronto Diretto Storico</span>
               </h2>
-              <p className="text-xs text-zinc-400">
-                Seleziona due formazioni per vedere chi è storicamente in vantaggio.
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                Seleziona due formazioni per vedere il bilancio delle partite e dei tornei.
               </p>
             </div>
 
@@ -276,7 +285,7 @@ export function LeaderboardView({
               <select
                 value={h2hTeam1}
                 onChange={(e) => setH2hTeam1(e.target.value)}
-                className="bg-zinc-800 border border-zinc-700 text-xs rounded-xl px-3 py-2 text-zinc-200 focus:outline-none"
+                className="bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs rounded-xl px-3 py-2 text-[var(--text)] focus:outline-none"
               >
                 {teams.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -284,11 +293,11 @@ export function LeaderboardView({
                   </option>
                 ))}
               </select>
-              <span className="text-xs font-bold text-amber-400">VS</span>
+              <span className="text-xs font-bold text-[var(--accent)]">VS</span>
               <select
                 value={h2hTeam2}
                 onChange={(e) => setH2hTeam2(e.target.value)}
-                className="bg-zinc-800 border border-zinc-700 text-xs rounded-xl px-3 py-2 text-zinc-200 focus:outline-none"
+                className="bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs rounded-xl px-3 py-2 text-[var(--text)] focus:outline-none"
               >
                 {teams.map((t) => (
                   <option key={t.id} value={t.id} disabled={t.id === h2hTeam1}>
@@ -302,35 +311,35 @@ export function LeaderboardView({
           {h2hStats ? (
             <div className="space-y-6">
               {/* Tabellone punteggio H2H */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center text-center bg-zinc-950/60 p-5 rounded-2xl border border-zinc-800/80">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center text-center bg-[var(--surface-raised)] p-5 rounded-xl border border-[var(--control-border)]">
                 <div>
-                  <h3 className="font-bold text-lg text-zinc-100">{h2hStats.team1.name}</h3>
-                  <div className="text-4xl font-black text-amber-400 mt-1">
+                  <h3 className="font-heading font-bold text-base text-[var(--text)]">{h2hStats.team1.name}</h3>
+                  <div className="text-4xl font-black text-[var(--text)] font-mono tabular-nums mt-1">
                     {h2hStats.team1Wins}
                   </div>
-                  <span className="text-xs text-zinc-400">vittorie dirette</span>
+                  <span className="text-xs text-[var(--text-muted)] font-medium">vittorie</span>
                 </div>
 
-                <div className="text-xs text-zinc-500 uppercase tracking-widest font-semibold">
-                  <span>Totale: {h2hStats.totalMatches} sfide</span>
-                  <div className="w-full bg-zinc-800 h-2 rounded-full mt-2 overflow-hidden flex">
+                <div className="text-xs text-[var(--text-muted)] font-medium">
+                  <span className="font-mono tabular-nums">Totale: {h2hStats.totalMatches} partite</span>
+                  <div className="w-full bg-[var(--surface-alt)] h-2 rounded-full mt-2 overflow-hidden flex">
                     <div
-                      className="bg-amber-400 h-full"
+                      className="bg-[var(--accent)] h-full transition-all duration-300"
                       style={{
                         width: `${
                           h2hStats.totalMatches > 0
                             ? (h2hStats.team1Wins / h2hStats.totalMatches) * 100
-                            : 50
+                            : 0
                         }%`,
                       }}
                     />
                     <div
-                      className="bg-emerald-400 h-full"
+                      className="bg-sky-400 h-full transition-all duration-300"
                       style={{
                         width: `${
                           h2hStats.totalMatches > 0
                             ? (h2hStats.team2Wins / h2hStats.totalMatches) * 100
-                            : 50
+                            : 0
                         }%`,
                       }}
                     />
@@ -338,17 +347,17 @@ export function LeaderboardView({
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-lg text-zinc-100">{h2hStats.team2.name}</h3>
-                  <div className="text-4xl font-black text-emerald-400 mt-1">
+                  <h3 className="font-heading font-bold text-base text-[var(--text)]">{h2hStats.team2.name}</h3>
+                  <div className="text-4xl font-black text-sky-400 font-mono tabular-nums mt-1">
                     {h2hStats.team2Wins}
                   </div>
-                  <span className="text-xs text-zinc-400">vittorie dirette</span>
+                  <span className="text-xs text-[var(--text-muted)] font-medium">vittorie</span>
                 </div>
               </div>
 
               {/* Ultime sfide dirette */}
               <div>
-                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+                <h4 className="text-xs font-bold text-[var(--text-muted)] mb-3">
                   Ultime Sfide Dirette ({h2hStats.lastMatches.length})
                 </h4>
                 <div className="space-y-2">
@@ -357,15 +366,15 @@ export function LeaderboardView({
                     return (
                       <div
                         key={m.id}
-                        className="flex items-center justify-between p-3 rounded-xl bg-zinc-950/40 border border-zinc-800 text-xs"
+                        className="flex items-center justify-between p-3 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] text-xs"
                       >
-                        <span className="text-zinc-500">{m.dateKey}</span>
-                        <span className="font-semibold text-zinc-200">
+                        <span className="text-[var(--text-subtle)] font-mono tabular-nums">{m.dateKey}</span>
+                        <span className="font-medium text-[var(--text)]">
                           Vincitore:{' '}
-                          <span className="text-amber-400 font-bold">{winner.name}</span>
+                          <span className="text-[var(--accent-text)] font-bold">{winner.name}</span>
                         </span>
                         {m.scoreTeam1 !== undefined && m.scoreTeam2 !== undefined && (
-                          <span className="font-mono text-zinc-400">
+                          <span className="font-mono tabular-nums text-[var(--text-muted)]">
                             {m.scoreTeam1} - {m.scoreTeam2}
                           </span>
                         )}
@@ -376,8 +385,8 @@ export function LeaderboardView({
               </div>
             </div>
           ) : (
-            <div className="text-center py-8 text-zinc-400 text-sm">
-              Seleziona due squadre distinte per visualizzare lo scontro diretto.
+            <div className="text-center py-8 text-[var(--text-muted)] text-xs">
+              Seleziona due squadre distinte per visualizzare lo storico dello scontro diretto.
             </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, User, Plus, Trash2, Shield } from 'lucide-react';
+import { Users, User, Plus, Trash2, Shield, X } from 'lucide-react';
 import { Player, Team, CardSuit } from '@/types/game';
 import { StorageService } from '@/lib/storage';
 import { SuitIcon } from './SuitIcon';
@@ -92,14 +92,14 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-reveal="rise">
       {/* Intestazione */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-zinc-100 tracking-tight flex items-center gap-2">
-          <Users className="w-6 h-6 text-amber-400" />
+        <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight flex items-center gap-2.5">
+          <Users className="w-6 h-6 text-[var(--accent)]" />
           <span>Squadre &amp; Giocatori di Casa</span>
         </h1>
-        <p className="text-sm text-zinc-400">
+        <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1">
           Configura gli amici e i familiari che giocano e componi le coppie per la Briscola.
         </p>
       </div>
@@ -108,46 +108,52 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-lg font-bold text-zinc-100">Squadre Registrate ({teams.length})</h2>
+            <Shield className="w-5 h-5 text-[var(--accent)]" />
+            <h2 className="font-heading text-lg font-bold text-[var(--text)]">
+              Squadre Registrate ({teams.length})
+            </h2>
           </div>
           <button
+            type="button"
             onClick={() => setShowTeamModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs transition-all cursor-pointer shadow-sm shadow-amber-500/10"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Crea Nuova Squadra</span>
+            <Plus className="w-3.5 h-3.5 text-[var(--accent)]" />
+            <span>Nuova Squadra</span>
           </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {teams.map((team) => {
-            const teamPlayers = team.playerIds.map((id) => playerMap.get(id)).filter(Boolean) as Player[];
+            const teamPlayers = team.playerIds
+              .map((id) => playerMap.get(id))
+              .filter(Boolean) as Player[];
             return (
               <div
                 key={team.id}
-                className="bg-zinc-900/80 rounded-2xl border border-zinc-800 p-4 sm:p-5 hover:border-zinc-700 transition-colors flex flex-col justify-between"
+                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-5 transition-colors flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-emerald-400 font-bold text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center text-[var(--accent)] font-bold text-xs font-mono">
                         {team.name.slice(0, 2).toUpperCase()}
                       </div>
-                      <h3 className="font-bold text-base text-zinc-100">{team.name}</h3>
+                      <h3 className="font-heading font-bold text-base text-[var(--text)]">{team.name}</h3>
                     </div>
 
                     <button
+                      type="button"
                       onClick={() => handleDeleteTeam(team.id)}
                       aria-label="Elimina squadra"
-                      className="p-1 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors cursor-pointer"
+                      className="touch-target p-1.5 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
 
-                  <div className="mt-3 space-y-1.5">
-                    <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider block">
+                  <div className="mt-3.5 space-y-1.5">
+                    <span className="text-[11px] font-semibold text-[var(--text-subtle)] block">
                       Formazione:
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -155,20 +161,20 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                         teamPlayers.map((p) => (
                           <span
                             key={p.id}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-zinc-800 text-zinc-200 border border-zinc-700/60"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--divider)]"
                           >
-                            <SuitIcon suit={p.avatarSuit} className="w-3 h-3 text-amber-400" />
+                            <SuitIcon suit={p.avatarSuit} className="w-3.5 h-3.5 text-[var(--accent)]" />
                             <span>{p.name}</span>
                           </span>
                         ))
                       ) : (
-                        <span className="text-xs text-zinc-500">Nessun giocatore</span>
+                        <span className="text-xs text-[var(--text-muted)]">Nessun giocatore</span>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-zinc-800/80 text-[11px] text-zinc-500">
+                <div className="mt-4 pt-3 border-t border-[var(--divider)] text-[11px] text-[var(--text-subtle)]">
                   {teamPlayers.length === 2 ? 'Squadra da 2 (Coppia standard)' : 'Giocatore singolo (1v1)'}
                 </div>
               </div>
@@ -178,18 +184,21 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
       </div>
 
       {/* SEZIONE 2: GIOCATORI (PLAYERS) */}
-      <div className="space-y-4 pt-4 border-t border-zinc-800">
+      <div className="space-y-4 pt-4 border-t border-[var(--divider)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <User className="w-5 h-5 text-amber-400" />
-            <h2 className="text-lg font-bold text-zinc-100">Singoli Giocatori ({players.length})</h2>
+            <User className="w-5 h-5 text-[var(--accent)]" />
+            <h2 className="font-heading text-lg font-bold text-[var(--text)]">
+              Singoli Giocatori ({players.length})
+            </h2>
           </div>
           <button
+            type="button"
             onClick={() => setShowPlayerModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-semibold text-xs border border-zinc-700 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Aggiungi Giocatore</span>
+            <Plus className="w-3.5 h-3.5 text-[var(--accent)]" />
+            <span>Nuovo Giocatore</span>
           </button>
         </div>
 
@@ -197,18 +206,18 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
           {players.map((player) => (
             <div
               key={player.id}
-              className="bg-zinc-900/60 rounded-xl border border-zinc-800/80 p-3 flex items-center justify-between hover:border-zinc-700 transition-colors"
+              className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-3.5 flex items-center justify-between transition-colors"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700/80 flex items-center justify-center shrink-0">
-                  <SuitIcon suit={player.avatarSuit} className="w-4 h-4 text-amber-400" />
+                <div className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shrink-0">
+                  <SuitIcon suit={player.avatarSuit} className="w-4 h-4 text-[var(--accent)]" />
                 </div>
                 <div className="min-w-0">
-                  <span className="font-semibold text-sm text-zinc-200 block truncate">
+                  <span className="font-semibold text-sm text-[var(--text)] block truncate">
                     {player.name}
                   </span>
                   {player.nickname && (
-                    <span className="text-[11px] text-zinc-400 block truncate">
+                    <span className="text-[11px] text-[var(--text-muted)] block truncate italic">
                       &quot;{player.nickname}&quot;
                     </span>
                   )}
@@ -216,9 +225,10 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
               </div>
 
               <button
+                type="button"
                 onClick={() => handleDeletePlayer(player.id)}
                 aria-label="Elimina giocatore"
-                className="p-1 rounded-md text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors shrink-0 cursor-pointer ml-1"
+                className="touch-target p-1.5 rounded-md text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-raised)] transition-colors shrink-0 cursor-pointer ml-1"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -229,50 +239,63 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
 
       {/* MODAL AGGIUNGI GIOCATORE */}
       {showPlayerModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 rounded-2xl border border-zinc-700 p-5 max-w-sm w-full space-y-4">
-            <h3 className="font-bold text-base text-zinc-100">Nuovo Giocatore</h3>
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--control-border)] p-6 max-w-sm w-full space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-heading font-bold text-lg text-[var(--text)]">Nuovo Giocatore</h3>
+              <button
+                type="button"
+                onClick={() => setShowPlayerModal(false)}
+                className="touch-target p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-            <form onSubmit={handleSavePlayer} className="space-y-3.5">
+            <form onSubmit={handleSavePlayer} className="space-y-4">
               <div>
-                <label className="text-xs text-zinc-400 block mb-1">Nome:</label>
+                <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Nome:</label>
                 <input
                   type="text"
                   required
                   placeholder="Es. Luca"
                   value={playerName}
                   onChange={(e) => setPlayerName(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-zinc-400 block mb-1">Soprannome (opzionale):</label>
+                <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">
+                  Soprannome (opzionale):
+                </label>
                 <input
                   type="text"
                   placeholder="Es. Il Re delle Coppe"
                   value={playerNickname}
                   onChange={(e) => setPlayerNickname(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-zinc-400 block mb-1">Seme preferito:</label>
+                <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">
+                  Seme preferito:
+                </label>
                 <div className="grid grid-cols-4 gap-2">
                   {(['coppe', 'denari', 'spade', 'bastoni'] as CardSuit[]).map((s) => (
                     <button
                       key={s}
                       type="button"
                       onClick={() => setPlayerSuit(s)}
-                      className={`p-2 rounded-xl flex flex-col items-center justify-center border transition-all cursor-pointer ${
+                      className={`p-2.5 rounded-xl flex flex-col items-center justify-center border transition-all btn-tactile cursor-pointer ${
                         playerSuit === s
-                          ? 'bg-amber-500/20 border-amber-400 text-amber-400'
-                          : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200'
+                          ? 'bg-[var(--accent-muted)] border-[var(--accent)] text-[var(--accent-text)]'
+                          : 'bg-[var(--surface-alt)] border-[var(--divider)] text-[var(--text-muted)] hover:text-[var(--text)]'
                       }`}
                     >
                       <SuitIcon suit={s} className="w-5 h-5 mb-1" />
-                      <span className="text-[10px] capitalize">{s}</span>
+                      <span className="text-[10px] capitalize font-medium">{s}</span>
                     </button>
                   ))}
                 </div>
@@ -282,13 +305,13 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                 <button
                   type="button"
                   onClick={() => setShowPlayerModal(false)}
-                  className="px-3 py-1.5 rounded-xl text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] cursor-pointer"
                 >
                   Annulla
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-bold text-xs btn-tactile cursor-pointer shadow-sm"
                 >
                   Salva Giocatore
                 </button>
@@ -300,31 +323,40 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
 
       {/* MODAL CREA SQUADRA */}
       {showTeamModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 rounded-2xl border border-zinc-700 p-5 max-w-md w-full space-y-4">
-            <h3 className="font-bold text-base text-zinc-100">Crea Nuova Squadra</h3>
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--control-border)] p-6 max-w-md w-full space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-heading font-bold text-lg text-[var(--text)]">Crea Nuova Squadra</h3>
+              <button
+                type="button"
+                onClick={() => setShowTeamModal(false)}
+                className="touch-target p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-            <form onSubmit={handleSaveTeam} className="space-y-3.5">
+            <form onSubmit={handleSaveTeam} className="space-y-4">
               <div>
-                <label className="text-xs text-zinc-400 block mb-1">Nome Squadra:</label>
+                <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Nome Squadra:</label>
                 <input
                   type="text"
                   required
                   placeholder="Es. Gli Invincibili"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-zinc-400 block mb-1">Giocatore 1:</label>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Giocatore 1:</label>
                   <select
                     required
                     value={selectedPlayer1}
                     onChange={(e) => setSelectedPlayer1(e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3 py-2 text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                   >
                     <option value="">Seleziona...</option>
                     {players.map((p) => (
@@ -336,15 +368,15 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                 </div>
 
                 <div>
-                  <label className="text-xs text-zinc-400 block mb-1">
-                    Giocatore 2 (opzionale per 1v1):
+                  <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">
+                    Giocatore 2 (opzionale):
                   </label>
                   <select
                     value={selectedPlayer2}
                     onChange={(e) => setSelectedPlayer2(e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3 py-2 text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                   >
-                    <option value="">Nessuno (giocatore singolo)</option>
+                    <option value="">Nessuno (1v1)</option>
                     {players.map((p) => (
                       <option key={p.id} value={p.id} disabled={p.id === selectedPlayer1}>
                         {p.name}
@@ -358,13 +390,13 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                 <button
                   type="button"
                   onClick={() => setShowTeamModal(false)}
-                  className="px-3 py-1.5 rounded-xl text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] cursor-pointer"
                 >
                   Annulla
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-bold text-xs btn-tactile cursor-pointer shadow-sm"
                 >
                   Salva Squadra
                 </button>

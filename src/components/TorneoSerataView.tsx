@@ -3,11 +3,11 @@ import {
   Trophy,
   Swords,
   Plus,
-  Minus,
   Trash2,
   Clock,
   Share2,
   Check,
+  RotateCcw,
 } from 'lucide-react';
 import { TournamentSession, Team, Player } from '@/types/game';
 import { StorageService } from '@/lib/storage';
@@ -163,74 +163,89 @@ export function TorneoSerataView({
     [sessions]
   );
 
+  const totalMatchesTonight = activeSession
+    ? activeSession.team1Wins + activeSession.team2Wins
+    : 0;
+
   return (
     <div className="space-y-6">
       {/* BARRA LIVE CLOUD SYNC & CONDIVISIONE */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-emerald-950/40 border border-emerald-500/30 px-4 py-2.5 rounded-2xl text-xs shadow-md">
-        <div className="flex items-center gap-2">
-          <span className="flex h-2 w-2 relative">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface)] border border-[var(--divider)] px-4 sm:px-5 py-3 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-2.5 w-2.5 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
           </span>
-          <span className="text-emerald-300 font-medium">
-            <strong>Sincronizzazione Live Cloud:</strong> Chiunque apre il link dal telefono vede e modifica i punteggi in tempo reale.
-          </span>
+          <div className="text-xs text-[var(--text)]">
+            <span className="font-semibold text-emerald-400">Sincronizzazione Live Cloud:</span>{' '}
+            <span className="text-[var(--text-muted)]">
+              Condividi il link con chi è al tavolo per vedere e aggiornare i punteggi da qualsiasi telefono.
+            </span>
+          </div>
         </div>
 
         <button
           type="button"
           onClick={handleShareLink}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold border border-emerald-500/40 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] text-[var(--text)] text-xs font-semibold border border-[var(--control-border)] hover:border-[var(--control-border-hover)] btn-tactile cursor-pointer"
         >
-          {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-          <span>{copied ? 'Link Copiato!' : 'Condividi con chi gioca'}</span>
+          {copied ? (
+            <Check className="w-3.5 h-3.5 text-emerald-400" />
+          ) : (
+            <Share2 className="w-3.5 h-3.5 text-[var(--accent)]" />
+          )}
+          <span>{copied ? 'Link Copiato!' : 'Condividi Link Tavolo'}</span>
         </button>
       </div>
 
       {/* SEZIONE 1: TABELLONE IN TEMPO REALE SE C'È UN TORNEO ATTIVO */}
       {activeSession ? (
-        <div className="space-y-6">
+        <div className="space-y-6" data-reveal="rise">
           {/* Header Torneo Attivo */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-900/90 border border-amber-500/30 p-4 sm:p-5 rounded-2xl shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--surface)] border border-[var(--divider)] p-5 sm:p-6 rounded-2xl shadow-sm">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="flex h-2.5 w-2.5 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-                </span>
-                <span className="text-xs uppercase tracking-wider font-bold text-emerald-400">
-                  Torneo in corso stasera • Aggiornamento in Tempo Reale
+              <div className="flex items-center gap-2 mb-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-bold text-emerald-400 tracking-wide">
+                  Torneo Live in corso stasera
                 </span>
               </div>
-              <h1 className="text-xl sm:text-2xl font-black text-zinc-100 tracking-tight mt-1">
+              <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
                 {activeSession.team1Name}{' '}
-                <span className="text-amber-400 font-normal">vs</span>{' '}
+                <span className="text-[var(--accent)] font-normal">contro</span>{' '}
                 {activeSession.team2Name}
               </h1>
             </div>
 
             <button
+              type="button"
               onClick={handleEndTournament}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 active:scale-95 text-white font-bold text-xs shadow-lg shadow-red-900/30 transition-all cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--surface-raised)] hover:bg-rose-950/40 text-rose-300 hover:text-rose-200 border border-rose-500/30 hover:border-rose-500/50 font-bold text-xs btn-tactile cursor-pointer shadow-sm"
             >
-              <Trophy className="w-4 h-4 stroke-[2.5]" />
-              <span>Fine Torneo (Concludi Serata)</span>
+              <Trophy className="w-4 h-4 text-[var(--accent)]" />
+              <span>Concludi Serata Torneo</span>
             </button>
           </div>
 
           {/* GRANDE SEGNAPUNTI LIVE AFFIANCATO */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* PANNELLO SQUADRA 1 */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-emerald-950/30 via-zinc-900 to-zinc-900 border-2 border-emerald-500/40 p-6 sm:p-8 flex flex-col justify-between text-center shadow-2xl">
+            <div
+              className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-all ${
+                activeSession.team1Wins > activeSession.team2Wins
+                  ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-md shadow-amber-500/10 ring-1 ring-[var(--accent)]/30'
+                  : 'bg-[var(--surface)] border border-[var(--divider)]'
+              }`}
+            >
               <div>
-                <span className="text-xs uppercase tracking-widest font-bold text-emerald-400 block mb-1">
+                <span className="text-xs font-medium text-[var(--text-muted)] block mb-1">
                   Squadra 1
                 </span>
-                <h2 className="text-2xl sm:text-3xl font-black text-zinc-100 tracking-tight">
+                <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
                   {activeSession.team1Name}
                 </h2>
                 {activeSession.team1Players.length > 0 && (
-                  <p className="text-xs text-zinc-400 mt-1">
+                  <p className="text-xs text-[var(--text-muted)] mt-1 font-medium">
                     {activeSession.team1Players.join(' & ')}
                   </p>
                 )}
@@ -238,11 +253,11 @@ export function TorneoSerataView({
 
               {/* Numero Vittorie Gigante */}
               <div className="my-6">
-                <span className="text-7xl sm:text-8xl font-black text-emerald-400 font-mono tracking-tight select-none">
+                <span className="text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block">
                   {activeSession.team1Wins}
                 </span>
-                <span className="text-xs text-zinc-400 uppercase tracking-wider block mt-1 font-semibold">
-                  {activeSession.team1Wins === 1 ? 'Vittoria' : 'Vittorie'}
+                <span className="text-xs text-[var(--text-muted)] font-medium mt-1 block">
+                  {activeSession.team1Wins === 1 ? 'partita vinta' : 'partite vinte'}
                 </span>
               </div>
 
@@ -251,9 +266,9 @@ export function TorneoSerataView({
                 <button
                   type="button"
                   onClick={() => handleAddWin(1)}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 active:scale-95 text-zinc-950 font-black text-lg shadow-xl shadow-emerald-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-extrabold text-base sm:text-lg shadow-md shadow-amber-500/20 btn-tactile cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <Plus className="w-6 h-6 stroke-[3]" />
+                  <Plus className="w-5 h-5 stroke-[3]" />
                   <span>+1 Vittoria {activeSession.team1Name}</span>
                 </button>
 
@@ -261,9 +276,9 @@ export function TorneoSerataView({
                   <button
                     type="button"
                     onClick={() => handleRemoveWin(1)}
-                    className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 py-1 px-3 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
+                    className="touch-target inline-flex items-center gap-1.5 text-xs text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-1.5 px-3 rounded-lg hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
                   >
-                    <Minus className="w-3.5 h-3.5" />
+                    <RotateCcw className="w-3.5 h-3.5" />
                     <span>Correggi (-1)</span>
                   </button>
                 )}
@@ -271,16 +286,22 @@ export function TorneoSerataView({
             </div>
 
             {/* PANNELLO SQUADRA 2 */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-amber-950/30 via-zinc-900 to-zinc-900 border-2 border-amber-500/40 p-6 sm:p-8 flex flex-col justify-between text-center shadow-2xl">
+            <div
+              className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-all ${
+                activeSession.team2Wins > activeSession.team1Wins
+                  ? 'bg-[var(--surface)] border border-sky-400 shadow-md shadow-sky-500/10 ring-1 ring-sky-400/30'
+                  : 'bg-[var(--surface)] border border-[var(--divider)]'
+              }`}
+            >
               <div>
-                <span className="text-xs uppercase tracking-widest font-bold text-amber-400 block mb-1">
+                <span className="text-xs font-medium text-[var(--text-muted)] block mb-1">
                   Squadra 2
                 </span>
-                <h2 className="text-2xl sm:text-3xl font-black text-zinc-100 tracking-tight">
+                <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
                   {activeSession.team2Name}
                 </h2>
                 {activeSession.team2Players.length > 0 && (
-                  <p className="text-xs text-zinc-400 mt-1">
+                  <p className="text-xs text-[var(--text-muted)] mt-1 font-medium">
                     {activeSession.team2Players.join(' & ')}
                   </p>
                 )}
@@ -288,11 +309,11 @@ export function TorneoSerataView({
 
               {/* Numero Vittorie Gigante */}
               <div className="my-6">
-                <span className="text-7xl sm:text-8xl font-black text-amber-400 font-mono tracking-tight select-none">
+                <span className="text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block">
                   {activeSession.team2Wins}
                 </span>
-                <span className="text-xs text-zinc-400 uppercase tracking-wider block mt-1 font-semibold">
-                  {activeSession.team2Wins === 1 ? 'Vittoria' : 'Vittorie'}
+                <span className="text-xs text-[var(--text-muted)] font-medium mt-1 block">
+                  {activeSession.team2Wins === 1 ? 'partita vinta' : 'partite vinte'}
                 </span>
               </div>
 
@@ -301,9 +322,9 @@ export function TorneoSerataView({
                 <button
                   type="button"
                   onClick={() => handleAddWin(2)}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 active:scale-95 text-zinc-950 font-black text-lg shadow-xl shadow-amber-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <Plus className="w-6 h-6 stroke-[3]" />
+                  <Plus className="w-5 h-5 stroke-[3] text-[var(--accent)]" />
                   <span>+1 Vittoria {activeSession.team2Name}</span>
                 </button>
 
@@ -311,9 +332,9 @@ export function TorneoSerataView({
                   <button
                     type="button"
                     onClick={() => handleRemoveWin(2)}
-                    className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 py-1 px-3 rounded-lg hover:bg-zinc-800 transition-colors cursor-pointer"
+                    className="touch-target inline-flex items-center gap-1.5 text-xs text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-1.5 px-3 rounded-lg hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
                   >
-                    <Minus className="w-3.5 h-3.5" />
+                    <RotateCcw className="w-3.5 h-3.5" />
                     <span>Correggi (-1)</span>
                   </button>
                 )}
@@ -322,32 +343,31 @@ export function TorneoSerataView({
           </div>
 
           {/* Barra riassunto serie */}
-          <div className="bg-zinc-900/80 rounded-2xl border border-zinc-800 p-4 text-center">
-            <span className="text-xs text-zinc-400 uppercase tracking-wider font-semibold block mb-2">
-              Totale partite giocate stasera: {activeSession.team1Wins + activeSession.team2Wins}
-            </span>
-            <div className="w-full bg-zinc-800 h-3 rounded-full overflow-hidden flex">
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 text-center space-y-3">
+            <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-medium">
+              <span>{activeSession.team1Name}: <strong className="text-[var(--text)] font-mono tabular-nums">{activeSession.team1Wins}</strong></span>
+              <span>Totale partite stasera: <strong className="text-[var(--text)] font-mono tabular-nums">{totalMatchesTonight}</strong></span>
+              <span>{activeSession.team2Name}: <strong className="text-[var(--text)] font-mono tabular-nums">{activeSession.team2Wins}</strong></span>
+            </div>
+
+            <div className="w-full bg-[var(--surface-alt)] h-2.5 rounded-full overflow-hidden flex">
               <div
-                className="bg-emerald-400 h-full transition-all duration-300"
+                className="bg-[var(--accent)] h-full transition-all duration-300"
                 style={{
                   width: `${
-                    activeSession.team1Wins + activeSession.team2Wins > 0
-                      ? (activeSession.team1Wins /
-                          (activeSession.team1Wins + activeSession.team2Wins)) *
-                        100
-                      : 50
+                    totalMatchesTonight > 0
+                      ? (activeSession.team1Wins / totalMatchesTonight) * 100
+                      : 0
                   }%`,
                 }}
               />
               <div
-                className="bg-amber-400 h-full transition-all duration-300"
+                className="bg-sky-400 h-full transition-all duration-300"
                 style={{
                   width: `${
-                    activeSession.team1Wins + activeSession.team2Wins > 0
-                      ? (activeSession.team2Wins /
-                          (activeSession.team1Wins + activeSession.team2Wins)) *
-                        100
-                      : 50
+                    totalMatchesTonight > 0
+                      ? (activeSession.team2Wins / totalMatchesTonight) * 100
+                      : 0
                   }%`,
                 }}
               />
@@ -355,34 +375,34 @@ export function TorneoSerataView({
           </div>
         </div>
       ) : (
-        /* SEZIONE 2: NESSUN TORNEO ATTIVO -> FORM SEMPLICE PER AVVIARE */
-        <div className="bg-zinc-900/80 rounded-3xl border border-zinc-800 p-6 sm:p-8 shadow-2xl space-y-6">
+        /* SEZIONE 2: NESSUN TORNEO ATTIVO -> FORM ELEGANTE PER AVVIARE */
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-6 sm:p-8 shadow-sm space-y-6" data-reveal="rise">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs font-semibold border border-amber-500/20 mb-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] text-xs font-semibold border border-[var(--accent-border)] mb-3">
               <Swords className="w-3.5 h-3.5" />
-              <span>Torneo Serata Briscola</span>
+              <span>Nuova Serata di Torneo</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-100 tracking-tight">
-              Avvia una Sfida per Stasera
+            <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
+              Avvia la Sfida di Stasera
             </h1>
-            <p className="text-sm text-zinc-400 mt-1 max-w-xl">
-              Scegli le due squadre e chi gioca. Non serve inserire nessun nome per il torneo: segna le vittorie mano dopo mano e a fine serata premi &quot;Fine Torneo&quot; per registrarlo nel calendario!
+            <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1.5 max-w-xl leading-relaxed">
+              Scegli le due squadre e chi gioca al tavolo. Segna le vittorie mano dopo mano con un tocco e a fine serata premi &quot;Concludi Serata Torneo&quot; per archiviare il risultato nel calendario.
             </p>
           </div>
 
           <form onSubmit={handleStartTournament} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* SQUADRA 1 */}
-              <div className="bg-zinc-950/60 p-5 rounded-2xl border border-zinc-800/80 space-y-4">
+              <div className="bg-[var(--surface-raised)] p-5 rounded-xl border border-[var(--control-border)] space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-[var(--accent)]">
                     Squadra 1
                   </span>
                   {teams.length > 0 && (
                     <select
                       onChange={(e) => handleSelectTeam1Preset(e.target.value)}
                       defaultValue=""
-                      className="bg-zinc-900 border border-zinc-700 text-[11px] text-zinc-300 rounded-lg px-2 py-1 focus:outline-none"
+                      className="bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs text-[var(--text)] rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)]"
                     >
                       <option value="" disabled>
                         Scegli da squadre salvate...
@@ -397,20 +417,20 @@ export function TorneoSerataView({
                 </div>
 
                 <div>
-                  <label className="text-xs text-zinc-400 block mb-1">Nome Squadra:</label>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1.5">Nome Squadra:</label>
                   <input
                     type="text"
                     required
                     placeholder="Es. Marghe & Irins"
                     value={team1Name}
                     onChange={(e) => setTeam1Name(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2 text-sm text-zinc-100 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text)] font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-zinc-400 block mb-1.5">
-                    Chi c&apos;è dentro la squadra:
+                  <label className="text-xs text-[var(--text-muted)] block mb-2">
+                    Giocatori in squadra:
                   </label>
                   <div className="flex flex-wrap gap-1.5 mb-2">
                     {availablePlayerNames.map((name) => {
@@ -420,13 +440,14 @@ export function TorneoSerataView({
                           key={name}
                           type="button"
                           onClick={() => togglePlayer1(name)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors btn-tactile cursor-pointer select-none ${
                             isSelected
-                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold'
-                              : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                              ? 'bg-[var(--accent-muted)] text-[var(--accent-text)] border-[var(--accent-border)] font-bold'
+                              : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] hover:border-[var(--control-border)]'
                           }`}
                         >
-                          + {name}
+                          {isSelected ? '✓ ' : '+ '}
+                          {name}
                         </button>
                       );
                     })}
@@ -436,7 +457,7 @@ export function TorneoSerataView({
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="Aggiungi nome..."
+                      placeholder="Altro nome..."
                       value={customPlayerInput1}
                       onChange={(e) => setCustomPlayerInput1(e.target.value)}
                       onKeyDown={(e) => {
@@ -448,7 +469,7 @@ export function TorneoSerataView({
                           }
                         }
                       }}
-                      className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs text-zinc-200 focus:outline-none"
+                      className="flex-1 bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-lg px-3 py-1.5 text-xs text-[var(--text)] focus:outline-none"
                     />
                     <button
                       type="button"
@@ -458,24 +479,24 @@ export function TorneoSerataView({
                           setCustomPlayerInput1('');
                         }
                       }}
-                      className="px-2.5 py-1 bg-zinc-800 text-zinc-300 rounded-lg text-xs hover:bg-zinc-700"
+                      className="px-3 py-1.5 bg-[var(--surface-alt)] border border-[var(--control-border)] text-[var(--text)] rounded-lg text-xs hover:bg-[var(--surface-hover)] btn-tactile cursor-pointer"
                     >
                       Aggiungi
                     </button>
                   </div>
 
                   {team1SelectedPlayers.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
                       {team1SelectedPlayers.map((name) => (
                         <span
                           key={name}
-                          className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                          className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)]"
                         >
                           <span>{name}</span>
                           <button
                             type="button"
                             onClick={() => togglePlayer1(name)}
-                            className="hover:text-red-400"
+                            className="hover:text-rose-400 cursor-pointer"
                           >
                             ×
                           </button>
@@ -487,16 +508,16 @@ export function TorneoSerataView({
               </div>
 
               {/* SQUADRA 2 */}
-              <div className="bg-zinc-950/60 p-5 rounded-2xl border border-zinc-800/80 space-y-4">
+              <div className="bg-[var(--surface-raised)] p-5 rounded-xl border border-[var(--control-border)] space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-sky-400">
                     Squadra 2
                   </span>
                   {teams.length > 0 && (
                     <select
                       onChange={(e) => handleSelectTeam2Preset(e.target.value)}
                       defaultValue=""
-                      className="bg-zinc-900 border border-zinc-700 text-[11px] text-zinc-300 rounded-lg px-2 py-1 focus:outline-none"
+                      className="bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs text-[var(--text)] rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-[var(--focus-ring)]"
                     >
                       <option value="" disabled>
                         Scegli da squadre salvate...
@@ -511,20 +532,20 @@ export function TorneoSerataView({
                 </div>
 
                 <div>
-                  <label className="text-xs text-zinc-400 block mb-1">Nome Squadra:</label>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1.5">Nome Squadra:</label>
                   <input
                     type="text"
                     required
                     placeholder="Es. Edd & Simon"
                     value={team2Name}
                     onChange={(e) => setTeam2Name(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2 text-sm text-zinc-100 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text)] font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-zinc-400 block mb-1.5">
-                    Chi c&apos;è dentro la squadra:
+                  <label className="text-xs text-[var(--text-muted)] block mb-2">
+                    Giocatori in squadra:
                   </label>
                   <div className="flex flex-wrap gap-1.5 mb-2">
                     {availablePlayerNames.map((name) => {
@@ -534,13 +555,14 @@ export function TorneoSerataView({
                           key={name}
                           type="button"
                           onClick={() => togglePlayer2(name)}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors btn-tactile cursor-pointer select-none ${
                             isSelected
-                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
-                              : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                              ? 'bg-sky-500/20 text-sky-300 border-sky-500/35 font-bold'
+                              : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] hover:border-[var(--control-border)]'
                           }`}
                         >
-                          + {name}
+                          {isSelected ? '✓ ' : '+ '}
+                          {name}
                         </button>
                       );
                     })}
@@ -550,7 +572,7 @@ export function TorneoSerataView({
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="Aggiungi nome..."
+                      placeholder="Altro nome..."
                       value={customPlayerInput2}
                       onChange={(e) => setCustomPlayerInput2(e.target.value)}
                       onKeyDown={(e) => {
@@ -562,7 +584,7 @@ export function TorneoSerataView({
                           }
                         }
                       }}
-                      className="flex-1 bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs text-zinc-200 focus:outline-none"
+                      className="flex-1 bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-lg px-3 py-1.5 text-xs text-[var(--text)] focus:outline-none"
                     />
                     <button
                       type="button"
@@ -572,24 +594,24 @@ export function TorneoSerataView({
                           setCustomPlayerInput2('');
                         }
                       }}
-                      className="px-2.5 py-1 bg-zinc-800 text-zinc-300 rounded-lg text-xs hover:bg-zinc-700"
+                      className="px-3 py-1.5 bg-[var(--surface-alt)] border border-[var(--control-border)] text-[var(--text)] rounded-lg text-xs hover:bg-[var(--surface-hover)] btn-tactile cursor-pointer"
                     >
                       Aggiungi
                     </button>
                   </div>
 
                   {team2SelectedPlayers.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
                       {team2SelectedPlayers.map((name) => (
                         <span
                           key={name}
-                          className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                          className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30"
                         >
                           <span>{name}</span>
                           <button
                             type="button"
                             onClick={() => togglePlayer2(name)}
-                            className="hover:text-red-400"
+                            className="hover:text-rose-400 cursor-pointer"
                           >
                             ×
                           </button>
@@ -604,9 +626,9 @@ export function TorneoSerataView({
             <div className="text-center pt-2">
               <button
                 type="submit"
-                className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 active:scale-95 text-zinc-950 font-black text-sm shadow-xl shadow-amber-500/25 transition-all cursor-pointer inline-flex items-center gap-2"
+                className="px-8 py-3.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-extrabold text-sm shadow-md shadow-amber-500/20 btn-tactile cursor-pointer inline-flex items-center gap-2"
               >
-                <Swords className="w-5 h-5 stroke-[2.5]" />
+                <Swords className="w-4 h-4 stroke-[2.5]" />
                 <span>Inizia Torneo Serata</span>
               </button>
             </div>
@@ -615,15 +637,15 @@ export function TorneoSerataView({
       )}
 
       {/* SEZIONE 3: STORICO TORNEI / SERATE CONCLUSI */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-amber-400" />
-          <span>Serate &amp; Tornei Conclusi ({pastSessions.length})</span>
+      <div className="space-y-4 pt-2">
+        <h2 className="font-heading text-lg font-bold text-[var(--text)] flex items-center gap-2">
+          <Clock className="w-4 h-4 text-[var(--accent)]" />
+          <span>Serate Concluse ({pastSessions.length})</span>
         </h2>
 
         {pastSessions.length === 0 ? (
-          <div className="text-center py-8 bg-zinc-900/40 rounded-2xl border border-zinc-800 text-zinc-400 text-xs">
-            Nessun torneo concluso finora. Avviane uno per stasera!
+          <div className="text-center py-8 bg-[var(--surface)] rounded-2xl border border-[var(--divider)] text-[var(--text-muted)] text-xs">
+            Nessun torneo concluso registrato. Avvia una sfida per iniziare lo storico di casa!
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -634,13 +656,13 @@ export function TorneoSerataView({
               return (
                 <div
                   key={session.id}
-                  className="bg-zinc-900/80 rounded-2xl border border-zinc-800 p-4 hover:border-zinc-700 transition-colors flex items-center justify-between"
+                  className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 transition-colors flex items-center justify-between"
                 >
                   <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2 text-xs text-zinc-400">
-                      <span>{session.dateKey}</span>
+                    <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                      <span className="font-mono tabular-nums">{session.dateKey}</span>
                       <span>•</span>
-                      <span className="font-semibold text-amber-400">
+                      <span className="font-semibold text-[var(--accent-text)]">
                         {isT1Winner
                           ? `Campioni: ${session.team1Name} 🏆`
                           : isT2Winner
@@ -651,16 +673,16 @@ export function TorneoSerataView({
 
                     <div className="flex items-center gap-3 text-sm">
                       <span
-                        className={`font-bold ${
-                          isT1Winner ? 'text-emerald-400' : 'text-zinc-300'
+                        className={`font-bold font-mono tabular-nums ${
+                          isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
                         }`}
                       >
                         {session.team1Name} ({session.team1Wins})
                       </span>
-                      <span className="text-xs text-zinc-500 font-bold">vs</span>
+                      <span className="text-xs text-[var(--text-subtle)] font-bold">vs</span>
                       <span
-                        className={`font-bold ${
-                          isT2Winner ? 'text-amber-400' : 'text-zinc-300'
+                        className={`font-bold font-mono tabular-nums ${
+                          isT2Winner ? 'text-sky-400' : 'text-[var(--text-muted)]'
                         }`}
                       >
                         {session.team2Name} ({session.team2Wins})
@@ -669,9 +691,10 @@ export function TorneoSerataView({
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => handleDeleteSession(session.id)}
                     aria-label="Elimina torneo"
-                    className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors cursor-pointer"
+                    className="touch-target p-2 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

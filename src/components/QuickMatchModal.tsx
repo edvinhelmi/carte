@@ -61,17 +61,9 @@ export function QuickMatchModal({
     }
   }, [isOpen]);
 
-  // Gestione click esterno per dismiss (compatibile con modern-web-guidance)
+  // Gestione click esterno per dismiss
   const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    const rect = dialog.getBoundingClientRect();
-    const isOutside =
-      e.clientX < rect.left ||
-      e.clientX > rect.right ||
-      e.clientY < rect.top ||
-      e.clientY > rect.bottom;
-    if (isOutside) {
+    if (e.target === dialogRef.current) {
       onClose();
     }
   };
@@ -115,25 +107,26 @@ export function QuickMatchModal({
       onClick={handleBackdropClick}
       onCancel={onClose}
       aria-labelledby="quick-match-title"
-      className="m-auto p-0 rounded-2xl bg-zinc-900 text-zinc-100 border border-zinc-700/80 shadow-2xl backdrop:bg-black/75 backdrop:backdrop-blur-sm max-w-lg w-[95vw] overflow-hidden"
+      className="m-auto p-0 rounded-2xl bg-[var(--surface)] text-[var(--text)] border border-[var(--control-border)] shadow-2xl backdrop:bg-black/80 backdrop:backdrop-blur-md max-w-lg w-[95vw] overflow-hidden"
       style={{ overscrollBehavior: 'contain' }}
     >
       {/* Header Modal */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 bg-zinc-950/60">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)] bg-[var(--surface-raised)]">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+          <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)]">
             <Trophy className="w-4 h-4" />
           </div>
           <div>
-            <h2 id="quick-match-title" className="font-bold text-base text-zinc-100">
+            <h2 id="quick-match-title" className="font-heading font-bold text-base text-[var(--text)]">
               Registra Risultato Briscola
             </h2>
-            <p className="text-xs text-zinc-400">Assegna la vittoria con un solo tocco</p>
+            <p className="text-xs text-[var(--text-muted)]">Assegna la vittoria con un solo tocco</p>
           </div>
         </div>
         <button
+          type="button"
           onClick={onClose}
-          className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
+          className="touch-target p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -142,28 +135,28 @@ export function QuickMatchModal({
       <div className="p-5 space-y-5 max-h-[80vh] overflow-y-auto">
         {teams.length < 2 ? (
           <div className="text-center py-6 space-y-3">
-            <p className="text-sm text-zinc-300">
+            <p className="text-sm font-semibold text-[var(--text)]">
               Servono almeno due squadre per registrare una partita!
             </p>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-[var(--text-muted)]">
               Crea le squadre nella sezione &quot;Squadre &amp; Giocatori&quot; oppure ricarica i dati demo dalle Impostazioni.
             </p>
           </div>
         ) : (
           <>
             {/* Selettore Data & Gioco */}
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-400 pb-1">
-              <div className="flex items-center gap-1.5 bg-zinc-800/80 px-2.5 py-1 rounded-lg border border-zinc-700/60">
-                <Calendar className="w-3.5 h-3.5 text-amber-400" />
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)] pb-1">
+              <div className="flex items-center gap-1.5 bg-[var(--surface-raised)] px-3 py-1.5 rounded-xl border border-[var(--control-border)]">
+                <Calendar className="w-3.5 h-3.5 text-[var(--accent)]" />
                 <input
                   type="date"
                   value={dateKey}
                   onChange={(e) => setCustomDateKey(e.target.value)}
-                  className="bg-transparent text-zinc-200 focus:outline-none cursor-pointer"
+                  className="bg-transparent text-[var(--text)] font-mono focus:outline-none cursor-pointer"
                 />
               </div>
 
-              <div className="flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-lg font-medium">
+              <div className="flex items-center gap-1.5 bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] px-3 py-1.5 rounded-xl font-medium">
                 <SuitIcon suit="denari" className="w-3.5 h-3.5" />
                 <span>Briscola (2v2 o 1v1)</span>
               </div>
@@ -173,13 +166,13 @@ export function QuickMatchModal({
             <div className="grid grid-cols-2 gap-3 items-center">
               {/* Selezione Squadra 1 */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-[var(--text-muted)] block">
                   Squadra 1
                 </label>
                 <select
                   value={team1Id}
                   onChange={(e) => setCustomTeam1Id(e.target.value)}
-                  className="w-full bg-zinc-800/90 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  className="w-full bg-[var(--surface-raised)] border border-[var(--control-border)] rounded-xl px-3 py-2 text-xs sm:text-sm text-[var(--text)] font-semibold focus:ring-2 focus:ring-[var(--focus-ring)] focus:outline-none"
                 >
                   {teams.map((t) => (
                     <option key={t.id} value={t.id} disabled={t.id === team2Id}>
@@ -191,13 +184,13 @@ export function QuickMatchModal({
 
               {/* Selezione Squadra 2 */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
+                <label className="text-xs font-semibold text-[var(--text-muted)] block">
                   Squadra 2
                 </label>
                 <select
                   value={team2Id}
                   onChange={(e) => setCustomTeam2Id(e.target.value)}
-                  className="w-full bg-zinc-800/90 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-zinc-100 font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  className="w-full bg-[var(--surface-raised)] border border-[var(--control-border)] rounded-xl px-3 py-2 text-xs sm:text-sm text-[var(--text)] font-semibold focus:ring-2 focus:ring-[var(--focus-ring)] focus:outline-none"
                 >
                   {teams.map((t) => (
                     <option key={t.id} value={t.id} disabled={t.id === team1Id}>
@@ -210,8 +203,8 @@ export function QuickMatchModal({
 
             {/* BOTTONI TOUCH-FRIENDLY DI ASSEGNAZIONE VITTORIA */}
             <div className="pt-2">
-              <label className="text-xs font-semibold text-zinc-300 block mb-2 text-center">
-                👉 Tocca la squadra che ha VINTO la partita:
+              <label className="text-xs font-semibold text-[var(--text)] block mb-2.5 text-center">
+                Tocca la squadra che ha vinto:
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -220,15 +213,15 @@ export function QuickMatchModal({
                   type="button"
                   onClick={() => handleRegisterWin(team1?.id || '')}
                   disabled={!team1 || team1.id === team2?.id}
-                  className="group relative flex flex-col items-center justify-center p-4 rounded-xl border-2 border-emerald-500/40 bg-gradient-to-b from-emerald-950/40 via-zinc-900 to-zinc-900 hover:border-emerald-400 hover:from-emerald-900/50 active:scale-95 transition-all text-center cursor-pointer shadow-lg shadow-emerald-950/20"
+                  className="group relative flex flex-col items-center justify-center p-4 rounded-xl border border-[var(--accent-border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] hover:border-[var(--accent)] active:scale-95 btn-tactile text-center cursor-pointer shadow-sm"
                 >
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                    <Trophy className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-full bg-[var(--accent-muted)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                    <Trophy className="w-5 h-5 text-[var(--accent)]" />
                   </div>
-                  <span className="text-xs text-emerald-400 font-semibold tracking-wider uppercase mb-0.5">
+                  <span className="text-xs text-[var(--accent-text)] font-semibold mb-0.5">
                     Ha vinto
                   </span>
-                  <span className="text-base font-bold text-zinc-100 group-hover:text-emerald-300 transition-colors line-clamp-1">
+                  <span className="font-heading text-base font-extrabold text-[var(--text)] line-clamp-1">
                     {team1?.name || 'Squadra 1'}
                   </span>
                 </button>
@@ -238,15 +231,15 @@ export function QuickMatchModal({
                   type="button"
                   onClick={() => handleRegisterWin(team2?.id || '')}
                   disabled={!team2 || team1?.id === team2.id}
-                  className="group relative flex flex-col items-center justify-center p-4 rounded-xl border-2 border-amber-500/40 bg-gradient-to-b from-amber-950/40 via-zinc-900 to-zinc-900 hover:border-amber-400 hover:from-amber-900/50 active:scale-95 transition-all text-center cursor-pointer shadow-lg shadow-amber-950/20"
+                  className="group relative flex flex-col items-center justify-center p-4 rounded-xl border border-[var(--control-border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] hover:border-sky-400/50 active:scale-95 btn-tactile text-center cursor-pointer shadow-sm"
                 >
-                  <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <div className="w-10 h-10 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/25 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
                     <Trophy className="w-5 h-5" />
                   </div>
-                  <span className="text-xs text-amber-400 font-semibold tracking-wider uppercase mb-0.5">
+                  <span className="text-xs text-sky-300 font-semibold mb-0.5">
                     Ha vinto
                   </span>
-                  <span className="text-base font-bold text-zinc-100 group-hover:text-amber-300 transition-colors line-clamp-1">
+                  <span className="font-heading text-base font-extrabold text-[var(--text)] line-clamp-1">
                     {team2?.name || 'Squadra 2'}
                   </span>
                 </button>
@@ -254,57 +247,57 @@ export function QuickMatchModal({
             </div>
 
             {/* Dettagli Opzionali (Punteggio, Note) */}
-            <div className="pt-2 border-t border-zinc-800/80 space-y-3">
+            <div className="pt-2 border-t border-[var(--divider)] space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-zinc-400">Dettagli opzionali (punteggi &amp; note)</span>
+                <span className="text-xs text-[var(--text-muted)]">Dettagli opzionali (punti e note)</span>
                 <button
                   type="button"
                   onClick={() => setIsQuickWinMode(!isQuickWinMode)}
-                  className="text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2 cursor-pointer"
+                  className="touch-target text-xs text-[var(--accent-text)] hover:underline cursor-pointer font-medium"
                 >
                   {isQuickWinMode ? '+ Aggiungi punti/note' : 'Nascondi dettagli'}
                 </button>
               </div>
 
               {!isQuickWinMode && (
-                <div className="space-y-3 bg-zinc-950/40 p-3.5 rounded-xl border border-zinc-800">
+                <div className="space-y-3 bg-[var(--surface-raised)] p-4 rounded-xl border border-[var(--divider)]">
                   {/* Punteggio Briscola (opzionale) */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] text-zinc-400 block mb-1">
-                        Punti {team1?.name} (es. 64)
+                      <label className="text-[11px] text-[var(--text-muted)] block mb-1">
+                        Punti {team1?.name}
                       </label>
                       <input
                         type="number"
-                        placeholder="Es. 65"
+                        placeholder="Es. 64"
                         value={score1}
                         onChange={(e) => setScore1(e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                        className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3 py-1.5 text-xs text-[var(--text)] font-mono tabular-nums focus:ring-1 focus:ring-[var(--focus-ring)] focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] text-zinc-400 block mb-1">
-                        Punti {team2?.name} (es. 56)
+                      <label className="text-[11px] text-[var(--text-muted)] block mb-1">
+                        Punti {team2?.name}
                       </label>
                       <input
                         type="number"
-                        placeholder="Es. 55"
+                        placeholder="Es. 56"
                         value={score2}
                         onChange={(e) => setScore2(e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                        className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3 py-1.5 text-xs text-[var(--text)] font-mono tabular-nums focus:ring-1 focus:ring-[var(--focus-ring)] focus:outline-none"
                       />
                     </div>
                   </div>
 
                   {/* Note e tag veloci */}
                   <div>
-                    <label className="text-[11px] text-zinc-400 block mb-1">Note sulla mano:</label>
+                    <label className="text-[11px] text-[var(--text-muted)] block mb-1">Note sulla partita:</label>
                     <input
                       type="text"
                       placeholder="Es. Capotto all'ultima mano..."
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:ring-1 focus:ring-amber-500 focus:outline-none mb-2"
+                      className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3 py-1.5 text-xs text-[var(--text)] focus:ring-1 focus:ring-[var(--focus-ring)] focus:outline-none mb-2"
                     />
 
                     {/* Tag rapidi cliccabili */}
@@ -314,7 +307,7 @@ export function QuickMatchModal({
                           key={tag}
                           type="button"
                           onClick={() => setNotes((prev) => (prev ? `${prev} - ${tag}` : tag))}
-                          className="px-2 py-0.5 rounded-full text-[11px] bg-zinc-800 text-zinc-300 hover:bg-zinc-700 border border-zinc-700/60 cursor-pointer transition-colors"
+                          className="touch-target px-2.5 py-1 rounded-full text-[11px] bg-[var(--surface-alt)] text-[var(--text-muted)] hover:text-[var(--text)] border border-[var(--divider)] cursor-pointer transition-colors"
                         >
                           + {tag}
                         </button>

@@ -44,6 +44,13 @@ export const RealtimeSyncService = {
     const cleanRoom = room.trim().replace(/[^a-zA-Z0-9_-]/g, '_') || DEFAULT_ROOM;
     localStorage.setItem('carte_live_room_id', cleanRoom);
     activeRoom = cleanRoom;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('room', cleanRoom);
+      window.history.replaceState({}, '', url.toString());
+    } catch {
+      // ignore
+    }
     this.connect();
   },
 

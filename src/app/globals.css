@@ -1,22 +1,154 @@
 @import "tailwindcss";
 
 :root {
-  --background: #09090b;
-  --foreground: #fafafa;
+  /* TasteCode WCAG 2.2 Compliant Dark Palette */
+  --canvas: #090a0d;
+  --surface: #12141a;
+  --surface-raised: #181b22;
+  --surface-alt: #1f232c;
+  --surface-hover: #262b36;
+
+  --text: #f4f5f8;
+  --text-muted: #9fa4b2;
+  --text-subtle: #676d7d;
+
+  --divider: rgba(255, 255, 255, 0.08);
+  --divider-subtle: rgba(255, 255, 255, 0.04);
+  --divider-strong: rgba(255, 255, 255, 0.14);
+
+  --control-border: rgba(255, 255, 255, 0.12);
+  --control-border-hover: rgba(255, 255, 255, 0.22);
+  --control-border-active: rgba(245, 158, 11, 0.5);
+
+  --accent: #f59e0b;
+  --accent-hover: #fbbf24;
+  --accent-active: #d97706;
+  --accent-muted: rgba(245, 158, 11, 0.12);
+  --accent-border: rgba(245, 158, 11, 0.28);
+  --on-accent: #090a0d;
+  --accent-text: #fde68a;
+
+  --focus-ring: rgba(245, 158, 11, 0.45);
+
+  /* Card Suit Signatures */
+  --suit-coppe: #f59e0b;
+  --suit-denari: #eab308;
+  --suit-spade: #38bdf8;
+  --suit-bastoni: #10b981;
+
+  /* TasteCode Unified Radius Scale */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
+
+  /* Baseline Fallbacks */
+  --background: var(--canvas);
+  --foreground: var(--text);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-alt: var(--surface-alt);
+  --color-surface-hover: var(--surface-hover);
+
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+
+  --color-divider: var(--divider);
+  --color-divider-subtle: var(--divider-subtle);
+  --color-divider-strong: var(--divider-strong);
+
+  --color-control-border: var(--control-border);
+  --color-control-border-hover: var(--control-border-hover);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-active: var(--accent-active);
+  --color-accent-muted: var(--accent-muted);
+  --color-accent-border: var(--accent-border);
+  --color-on-accent: var(--on-accent);
+  --color-accent-text: var(--accent-text);
+
+  --color-focus-ring: var(--focus-ring);
+
+  --color-suit-coppe: var(--suit-coppe);
+  --color-suit-denari: var(--suit-denari);
+  --color-suit-spade: var(--suit-spade);
+  --color-suit-bastoni: var(--suit-bastoni);
+
+  --font-sans: var(--font-bricolage), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: var(--font-bricolage), sans-serif;
+  --font-mono: var(--font-mono), monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--canvas);
+  color: var(--text);
+  font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
+  min-height: 100vh;
+  letter-spacing: -0.01em;
+}
+
+h1, h2, h3, .font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: -0.025em;
+}
+
+/* Tabular Numerals for Scores, Timers & Metrics */
+.tabular-nums,
+[data-tabular-nums] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* TasteCode Interactive Hit-Area Guarantee (min 44x44px for touch targets) */
+.touch-target {
+  position: relative;
+}
+.touch-target::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 44px;
+  min-height: 44px;
+  width: 100%;
+  height: 100%;
+}
+
+/* TasteCode Motion & Micro-Interactions */
+@keyframes view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn-tactile {
+    transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+                background-color 140ms ease,
+                border-color 140ms ease,
+                box-shadow 140ms ease;
+  }
+  .btn-tactile:active {
+    transform: scale(0.97);
+  }
+
+  .view-transition {
+    animation: view-enter 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 }
 
 /* Modal Dialog Guidance & Overscroll Behavior */
@@ -27,6 +159,8 @@ dialog:modal {
 dialog::backdrop {
   overflow: hidden;
   overscroll-behavior: contain;
+  background: rgba(4, 5, 8, 0.75);
+  backdrop-filter: blur(8px);
 }
 
 /* Custom subtle scrollbar */
@@ -40,10 +174,10 @@ dialog::backdrop {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-pill);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: rgba(255, 255, 255, 0.22);
 }
