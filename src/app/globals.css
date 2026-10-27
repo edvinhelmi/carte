@@ -202,15 +202,6 @@ h1, h2, h3, .font-heading {
   }
 }
 
-@keyframes pulse-subtle {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.45;
-  }
-}
-
 @media (prefers-reduced-motion: no-preference) {
   .btn-tactile {
     transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
@@ -234,10 +225,6 @@ h1, h2, h3, .font-heading {
 
   .animate-score-bump-sky {
     animation: score-bump-sky 300ms cubic-bezier(0.2, 0.8, 0.2, 1.2);
-  }
-
-  .animate-pulse-subtle {
-    animation: pulse-subtle 2s ease-in-out infinite;
   }
 
   .interactive-card {

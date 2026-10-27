@@ -12,7 +12,7 @@ import { LeaderboardView } from '@/components/LeaderboardView';
 import { TeamsAndPlayersView } from '@/components/TeamsAndPlayersView';
 import { SettingsView } from '@/components/SettingsView';
 import { QuickMatchModal } from '@/components/QuickMatchModal';
-import { SuitIcon } from '@/components/SuitIcon';
+import { Trophy } from 'lucide-react';
 
 const emptySubscribe = () => () => {};
 
@@ -60,8 +60,8 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-[var(--canvas)] flex items-center justify-center text-[var(--text-muted)]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center animate-pulse">
-            <SuitIcon suit="coppe" className="w-5 h-5 text-[var(--accent)]" />
+          <div className="w-10 h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shadow-sm">
+            <Trophy className="w-5 h-5 text-[var(--accent)]" />
           </div>
           <span className="text-xs font-semibold text-[var(--text)] tracking-tight">
             Caricamento Briscola Club...

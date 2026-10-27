@@ -25,7 +25,7 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
         <button
           type="button"
           onClick={() => setActiveTab('torneo')}
-          className="flex items-center gap-2.5 sm:gap-3 text-left group cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-full min-w-0"
+          className="flex items-center gap-2.5 sm:gap-3 text-left group cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-full min-w-0 min-h-[44px]"
         >
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shadow-sm group-hover:border-[var(--accent)]/60 transition-[border-color,box-shadow] duration-200 shrink-0">
             <Trophy className="w-5 h-5 text-[var(--accent)] icon-hover-tilt" />

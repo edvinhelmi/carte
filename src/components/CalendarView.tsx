@@ -257,7 +257,7 @@ export function CalendarView({
               <span>Attività registrata</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="w-2 h-2 rounded-full border border-[var(--accent-border)] bg-[var(--surface-raised)]" />
               <span>Oggi</span>
             </div>
           </div>

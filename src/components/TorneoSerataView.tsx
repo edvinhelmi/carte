@@ -211,7 +211,7 @@ export function TorneoSerataView({
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] text-[var(--text)] text-xs font-semibold border border-[var(--control-border)] hover:border-[var(--control-border-hover)] btn-tactile cursor-pointer"
         >
           {copied ? (
-            <Check className="w-3.5 h-3.5 text-emerald-400" />
+            <Check className="w-3.5 h-3.5 text-[var(--accent)]" />
           ) : (
             <Share2 className="w-3.5 h-3.5 text-[var(--accent)]" />
           )}
