@@ -398,9 +398,9 @@ export function TorneoSerataView({
                 <button
                   type="button"
                   onClick={() => handleAddWin(1)}
-                  className="w-full py-4 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-extrabold text-base sm:text-lg shadow-md shadow-amber-500/20 btn-tactile cursor-pointer flex items-center justify-center gap-2 group"
+                  className="w-full py-4 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-amber-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group"
                 >
-                  <Plus className="w-5 h-5 stroke-[3] transition-transform duration-200 group-hover:rotate-90" />
+                  <Plus className="w-5 h-5 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90" />
                   <span>+1 Vittoria {activeSession.team1Name}</span>
                 </button>
 
