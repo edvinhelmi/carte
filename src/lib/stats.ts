@@ -12,6 +12,26 @@ export function calculateTeamStats(
   // Includi anche team creati durante i tornei che potrebbero non essere salvati nei preset
   const allTeams = [...teams];
   for (const session of tournamentSessions) {
+    if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
+      for (const p of session.players5) {
+        if (!p.name) continue;
+        const existingTeam = allTeams.find((t) => t.name.toLowerCase() === p.name.toLowerCase());
+        const pId = playerNameMap.get(p.name.toLowerCase())?.id;
+        if (!existingTeam) {
+          allTeams.push({
+            id: 'synth_' + p.name.toLowerCase().replace(/\s+/g, '_'),
+            name: p.name,
+            playerIds: pId ? [pId] : [],
+            color: '#10b981',
+            createdAt: session.startedAt,
+          });
+        } else if (existingTeam.playerIds.length === 0 && pId) {
+          existingTeam.playerIds = [pId];
+        }
+      }
+      continue;
+    }
+
     const sessionTeams: [string, string[]][] = [
       [session.team1Name || '', session.team1Players || []],
       [session.team2Name || '', session.team2Players || []],
@@ -48,6 +68,18 @@ export function calculateTeamStats(
 
     // Aggiungi vittorie e partite dalle sessioni di torneo
     for (const session of tournamentSessions) {
+      if (session.mode === 'a5' && session.players5) {
+        const pEntry = session.players5.find((p) => p.name.toLowerCase() === team.name.toLowerCase());
+        if (pEntry) {
+          const maxWins = Math.max(0, ...session.players5.map((p) => p.wins || 0));
+          const sumWins = session.players5.reduce((sum, p) => sum + (p.wins || 0), 0);
+          const sessionHands = Math.max(pEntry.wins || 0, maxWins, Math.round(sumWins / 2.5));
+          wins += pEntry.wins || 0;
+          matchesPlayed += sessionHands;
+        }
+        continue;
+      }
+
       const totalSessionWins = (session.team1Wins || 0) + (session.team2Wins || 0) + (session.team3Wins || 0);
       const isT1 = session.team1Name?.toLowerCase() === team.name.toLowerCase();
       const isT2 = session.team2Name?.toLowerCase() === team.name.toLowerCase();
@@ -108,7 +140,26 @@ export function calculatePlayerStats(
   matches: Match[],
   tournamentSessions: TournamentSession[] = []
 ): PlayerStats[] {
-  const stats: PlayerStats[] = players.map((player) => {
+  const allPlayers = [...players];
+  const knownPlayerNames = new Set(players.map((p) => p.name.toLowerCase()));
+
+  for (const session of tournamentSessions) {
+    if (session.mode === 'a5' && session.players5) {
+      for (const p of session.players5) {
+        if (p.name && !knownPlayerNames.has(p.name.toLowerCase())) {
+          knownPlayerNames.add(p.name.toLowerCase());
+          allPlayers.push({
+            id: 'synth_p_' + p.name.toLowerCase().replace(/\s+/g, '_'),
+            name: p.name,
+            avatarSuit: 'denari',
+            createdAt: session.startedAt,
+          });
+        }
+      }
+    }
+  }
+
+  const stats: PlayerStats[] = allPlayers.map((player) => {
     const pNameLower = player.name.toLowerCase();
     const playerTeamIds = new Set(teams.filter((t) => t.playerIds.includes(player.id)).map((t) => t.id));
 
@@ -121,6 +172,18 @@ export function calculatePlayerStats(
 
     // Aggiungi vittorie e partite disputate nei tornei per il singolo giocatore
     for (const session of tournamentSessions) {
+      if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
+        const pEntry = session.players5.find((p) => p.name.toLowerCase() === pNameLower);
+        if (pEntry) {
+          const maxWins = Math.max(0, ...session.players5.map((p) => p.wins || 0));
+          const sumWins = session.players5.reduce((sum, p) => sum + (p.wins || 0), 0);
+          const sessionHands = Math.max(pEntry.wins || 0, maxWins, Math.round(sumWins / 2.5));
+          wins += pEntry.wins || 0;
+          matchesPlayed += sessionHands;
+        }
+        continue;
+      }
+
       const inTeam1 =
         session.team1Players?.some((p) => p.toLowerCase() === pNameLower) ||
         session.team1Name?.toLowerCase() === pNameLower ||
@@ -211,6 +274,23 @@ export function calculateHeadToHead(
 
   // Aggiungi risultati da tornei
   for (const session of tournamentSessions) {
+    if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
+      const p1Entry = session.players5.find(
+        (p) => p.name.toLowerCase() === team1.name.toLowerCase()
+      );
+      const p2Entry = session.players5.find(
+        (p) => p.name.toLowerCase() === team2.name.toLowerCase()
+      );
+      if (p1Entry && p2Entry) {
+        team1Wins += p1Entry.wins || 0;
+        team2Wins += p2Entry.wins || 0;
+        const maxWins = Math.max(0, ...session.players5.map((p) => p.wins || 0));
+        const sumWins = session.players5.reduce((sum, p) => sum + (p.wins || 0), 0);
+        totalMatches += Math.max(p1Entry.wins || 0, p2Entry.wins || 0, maxWins, Math.round(sumWins / 2.5));
+      }
+      continue;
+    }
+
     const sessionTeams: { name: string; wins: number }[] = [
       { name: session.team1Name, wins: session.team1Wins || 0 },
       { name: session.team2Name, wins: session.team2Wins || 0 },
@@ -258,7 +338,14 @@ export function getDailySummary(
 
   const totalMatches =
     dayMatches.length +
-    daySessions.reduce((acc, s) => acc + s.team1Wins + s.team2Wins + (s.team3Wins || 0), 0);
+    daySessions.reduce((acc, s) => {
+      if (s.mode === 'a5' && s.players5) {
+        const maxWins = Math.max(0, ...s.players5.map((p) => p.wins || 0));
+        const sumWins = s.players5.reduce((sum, p) => sum + (p.wins || 0), 0);
+        return acc + Math.max(maxWins, Math.round(sumWins / 2.5));
+      }
+      return acc + s.team1Wins + s.team2Wins + (s.team3Wins || 0);
+    }, 0);
 
   if (totalMatches === 0) {
     return {
@@ -277,6 +364,15 @@ export function getDailySummary(
   }
 
   for (const s of daySessions) {
+    if (s.mode === 'a5' && s.players5) {
+      for (const p of s.players5) {
+        const t = teams.find((team) => team.name.toLowerCase() === p.name.toLowerCase());
+        const key = t ? t.id : p.name;
+        winCount[key] = (winCount[key] || 0) + (p.wins || 0);
+      }
+      continue;
+    }
+
     const sessionTeams: [string, number][] = [
       [s.team1Name, s.team1Wins || 0],
       [s.team2Name, s.team2Wins || 0],

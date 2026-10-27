@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, LogIn, Home, Users, AlertCircle } from 'lucide-react';
 import { HouseService } from '@/lib/houseService';
+
+const emptySubscribe = () => () => {};
 
 interface CreateOrJoinHouseModalProps {
   isOpen: boolean;
@@ -15,6 +18,7 @@ export function CreateOrJoinHouseModal({
   onClose,
   initialTab = 'create',
 }: CreateOrJoinHouseModalProps) {
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [tab, setTab] = useState<'create' | 'join'>(initialTab);
   const [houseName, setHouseName] = useState('');
   const [membersInput, setMembersInput] = useState('');
@@ -24,14 +28,19 @@ export function CreateOrJoinHouseModal({
 
   useEffect(() => {
     if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,15 +97,17 @@ export function CreateOrJoinHouseModal({
     }
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in"
       style={{ overscrollBehavior: 'contain' }}
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
     >
       <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6">
         <div
-          className="relative w-full max-w-md my-auto rounded-2xl bg-[var(--surface)] border border-[var(--divider)] shadow-2xl overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
+          className="relative z-10 w-full max-w-md my-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Pinned Header */}
@@ -261,6 +272,7 @@ export function CreateOrJoinHouseModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

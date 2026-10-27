@@ -1,5 +1,5 @@
 import type { House, KnownHouse } from '../types/house.ts';
-import type { Player, CardSuit } from '../types/game.ts';
+import type { Player, CardSuit, Match, TournamentSession } from '../types/game.ts';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient.ts';
 
 import { getStoredItem as getStorageItem, setStoredItem as setStorageItem, removeStoredItem as removeStorageItem } from './storagePrimitives.ts';
@@ -468,13 +468,47 @@ export const HouseService = {
       // 3. Matches
       const { data: matches } = await client.from('matches').select('*').eq('house_id', houseId);
       if (Array.isArray(matches)) {
-        setStorageItem(getHouseResourceKey(houseId, 'matches'), JSON.stringify(matches));
+        const mappedMatches: Match[] = matches.map((m) => ({
+          id: m.id,
+          houseId: m.house_id,
+          gameType: m.game_type || m.gameType || 'briscola',
+          timestamp: m.timestamp,
+          dateKey: m.date_key || m.dateKey,
+          team1Id: m.team1_id || m.team1Id,
+          team2Id: m.team2_id || m.team2Id,
+          winnerTeamId: m.winner_team_id || m.winnerTeamId,
+          scoreTeam1: m.score_team1 ?? m.scoreTeam1,
+          scoreTeam2: m.score_team2 ?? m.scoreTeam2,
+          notes: m.notes ?? undefined,
+        }));
+        setStorageItem(getHouseResourceKey(houseId, 'matches'), JSON.stringify(mappedMatches));
       }
 
       // 4. Tournament Sessions
       const { data: sessions } = await client.from('tournament_sessions').select('*').eq('house_id', houseId);
       if (Array.isArray(sessions)) {
-        setStorageItem(getHouseResourceKey(houseId, 'sessions'), JSON.stringify(sessions));
+        const mappedSessions: TournamentSession[] = sessions.map((s) => ({
+          id: s.id,
+          houseId: s.house_id,
+          dateKey: s.date_key,
+          startedAt: s.created_at || s.started_at || new Date().toISOString(),
+          endedAt: s.ended_at || undefined,
+          mode: s.mode || '2vs2',
+          team1Name: s.team1_name || s.team1Name || '',
+          team1Players: s.team1_players || s.team1Players || [],
+          team2Name: s.team2_name || s.team2Name || '',
+          team2Players: s.team2_players || s.team2Players || [],
+          team3Name: s.team3_name || s.team3Name || undefined,
+          team3Players: s.team3_players || s.team3Players || undefined,
+          players5: s.players5 || undefined,
+          team1Wins: s.team1_wins ?? s.team1Wins ?? 0,
+          team2Wins: s.team2_wins ?? s.team2Wins ?? 0,
+          team3Wins: s.team3_wins ?? s.team3Wins ?? 0,
+          status: s.is_active ? 'in_progress' : 'completed',
+          winnerTeam: s.winner_team || s.winnerTeam,
+          winnerPlayerName: s.winner_player_name || s.winnerPlayerName,
+        }));
+        setStorageItem(getHouseResourceKey(houseId, 'sessions'), JSON.stringify(mappedSessions));
       }
     } catch (err) {
       console.warn('Errore pull house data from cloud:', err);

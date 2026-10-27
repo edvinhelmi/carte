@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Trophy, Calendar, ChevronDown } from 'lucide-react';
 import { Team, Match, GameType } from '@/types/game';
 import { StorageService, formatDateKey } from '@/lib/storage';
 import { fireWinConfetti } from '@/lib/confetti';
 import { SuitIcon } from './SuitIcon';
+
+const emptySubscribe = () => () => {};
 
 interface QuickMatchModalProps {
   isOpen: boolean;
@@ -20,7 +23,7 @@ export function QuickMatchModal({
   onMatchSaved,
   defaultDateKey,
 }: QuickMatchModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
   const [customTeam1Id, setCustomTeam1Id] = useState<string>('');
   const [customTeam2Id, setCustomTeam2Id] = useState<string>('');
@@ -45,28 +48,20 @@ export function QuickMatchModal({
   const team1 = teams.find((t) => t.id === team1Id);
   const team2 = teams.find((t) => t.id === team2Id);
 
-  // Gestione apertura / chiusura modale con dialog HTML5
+  // Body scroll lock & Escape listener
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isOpen) {
-      if (!dialog.open) {
-        dialog.showModal();
-      }
-    } else {
-      if (dialog.open) {
-        dialog.close();
-      }
-    }
-  }, [isOpen]);
-
-  // Gestione click esterno per dismiss
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
-    if (e.target === dialogRef.current) {
-      onClose();
-    }
-  };
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   const handleRegisterWin = (winnerId: string) => {
     if (!team1 || !team2) return;
@@ -99,18 +94,23 @@ export function QuickMatchModal({
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
-    <dialog
-      ref={dialogRef}
-      onClick={handleBackdropClick}
-      onCancel={onClose}
-      aria-labelledby="quick-match-title"
-      className="m-auto p-0 rounded-2xl bg-[var(--surface)] text-[var(--text)] border border-[var(--control-border)] shadow-2xl backdrop:bg-black/80 backdrop:backdrop-blur-md max-w-lg w-[95vw] max-h-[min(90vh,calc(100dvh-2rem))] overflow-hidden flex flex-col"
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in"
       style={{ overscrollBehavior: 'contain' }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="quick-match-title"
     >
-      {/* Header Modal */}
+      <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6">
+        <div
+          className="relative z-10 w-full max-w-lg my-auto rounded-2xl bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header Modal */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)] bg-[var(--surface-raised)] shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)] shrink-0">
@@ -327,6 +327,9 @@ export function QuickMatchModal({
           </>
         )}
       </div>
-    </dialog>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 }

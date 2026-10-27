@@ -63,6 +63,8 @@ CREATE TABLE IF NOT EXISTS public.tournament_sessions (
   team1_players JSONB,
   team2_players JSONB,
   team3_players JSONB,
+  players5 JSONB,
+  winner_player_name TEXT,
   team1_wins INT NOT NULL DEFAULT 0,
   team2_wins INT NOT NULL DEFAULT 0,
   team3_wins INT NOT NULL DEFAULT 0,
@@ -73,6 +75,9 @@ CREATE TABLE IF NOT EXISTS public.tournament_sessions (
   ended_at TIMESTAMPTZ,
   PRIMARY KEY (house_id, id)
 );
+
+ALTER TABLE public.tournament_sessions ADD COLUMN IF NOT EXISTS players5 JSONB;
+ALTER TABLE public.tournament_sessions ADD COLUMN IF NOT EXISTS winner_player_name TEXT;
 
 -- 6. Abilitazione Row Level Security (RLS) aperta ad accesso anonimo per house_id
 ALTER TABLE public.houses ENABLE ROW LEVEL SECURITY;

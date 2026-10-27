@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Users,
   User,
+  Sparkles,
 } from 'lucide-react';
 import { TournamentSession, Team, Player, TournamentMode } from '@/types/game';
 import { StorageService } from '@/lib/storage';
@@ -36,34 +37,51 @@ export function TorneoSerataView({
   const [bumpTeam1, setBumpTeam1] = useState(false);
   const [bumpTeam2, setBumpTeam2] = useState(false);
   const [bumpTeam3, setBumpTeam3] = useState(false);
-  const prevWinsRef = useRef<{ id: string; t1: number; t2: number; t3: number } | null>(null);
+  const [bumpTeam4, setBumpTeam4] = useState(false);
+  const [bumpTeam5, setBumpTeam5] = useState(false);
+  const prevWinsRef = useRef<{ id: string; t1: number; t2: number; t3: number; t4: number; t5: number } | null>(null);
 
   useEffect(() => {
     if (!activeSession) {
       prevWinsRef.current = null;
       return;
     }
-    const t3Wins = activeSession.team3Wins || 0;
+    const isA5 = activeSession.mode === 'a5';
+    const p5Wins = activeSession.players5?.map((p) => p.wins || 0) || [];
+    const t1Wins = isA5 && p5Wins.length > 0 ? p5Wins[0] : activeSession.team1Wins;
+    const t2Wins = isA5 && p5Wins.length > 1 ? p5Wins[1] : activeSession.team2Wins;
+    const t3Wins = isA5 ? (p5Wins[2] || 0) : (activeSession.team3Wins || 0);
+    const t4Wins = isA5 ? (p5Wins[3] || 0) : 0;
+    const t5Wins = isA5 ? (p5Wins[4] || 0) : 0;
+
     if (prevWinsRef.current && prevWinsRef.current.id === activeSession.id) {
-      if (activeSession.team1Wins > prevWinsRef.current.t1) {
+      if (t1Wins > prevWinsRef.current.t1) {
         setBumpTeam1(true);
       }
-      if (activeSession.team2Wins > prevWinsRef.current.t2) {
+      if (t2Wins > prevWinsRef.current.t2) {
         setBumpTeam2(true);
       }
       if (t3Wins > prevWinsRef.current.t3) {
         setBumpTeam3(true);
       }
+      if (t4Wins > prevWinsRef.current.t4) {
+        setBumpTeam4(true);
+      }
+      if (t5Wins > prevWinsRef.current.t5) {
+        setBumpTeam5(true);
+      }
     }
     prevWinsRef.current = {
       id: activeSession.id,
-      t1: activeSession.team1Wins,
-      t2: activeSession.team2Wins,
+      t1: t1Wins,
+      t2: t2Wins,
       t3: t3Wins,
+      t4: t4Wins,
+      t5: t5Wins,
     };
   }, [activeSession]);
 
-  // Modalità di torneo selezionata: 2vs2 (squadre), 1vs1 (singoli), 1vs1vs1 (a tre)
+  // Modalità di torneo selezionata: 2vs2 (squadre), 1vs1 (singoli), 1vs1vs1 (a tre), a5 (chiamata a 5)
   const [tournamentMode, setTournamentMode] = useState<TournamentMode>('2vs2');
 
   // Form 2vs2 (Squadre)
@@ -83,6 +101,13 @@ export function TorneoSerataView({
   const [trioPlayer2, setTrioPlayer2] = useState('');
   const [trioPlayer3, setTrioPlayer3] = useState('');
 
+  // Form A 5 (Chiamata)
+  const [a5Player1, setA5Player1] = useState('');
+  const [a5Player2, setA5Player2] = useState('');
+  const [a5Player3, setA5Player3] = useState('');
+  const [a5Player4, setA5Player4] = useState('');
+  const [a5Player5, setA5Player5] = useState('');
+
   const [copied, setCopied] = useState(false);
 
   // Suggerimenti basati esclusivamente sui membri registrati nella Casa attiva
@@ -94,7 +119,7 @@ export function TorneoSerataView({
       }
     }
     if (list.length === 0 && HouseService.getActiveHouseId() === 'casa_principale') {
-      return ['Marghe', 'Irins', 'Simon', 'Edd'];
+      return ['Marghe', 'Irins', 'Simon', 'Edd', 'Luca'];
     }
     return list;
   }, [players]);
@@ -150,9 +175,54 @@ export function TorneoSerataView({
     }
   };
 
+  // Pre-compila automaticamente con i membri registrati della casa per la modalità A 5
+  const handleAutoFillA5 = () => {
+    if (availablePlayerNames[0]) setA5Player1(availablePlayerNames[0]);
+    if (availablePlayerNames[1]) setA5Player2(availablePlayerNames[1]);
+    if (availablePlayerNames[2]) setA5Player3(availablePlayerNames[2]);
+    if (availablePlayerNames[3]) setA5Player4(availablePlayerNames[3]);
+    if (availablePlayerNames[4]) setA5Player5(availablePlayerNames[4]);
+  };
+
   // Avvio torneo
   const handleStartTournament = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (tournamentMode === 'a5') {
+      const names = [
+        a5Player1.trim(),
+        a5Player2.trim(),
+        a5Player3.trim(),
+        a5Player4.trim(),
+        a5Player5.trim(),
+      ];
+      if (names.some((n) => !n)) {
+        alert('Inserisci o seleziona tutti e 5 i giocatori per la Briscola a 5!');
+        return;
+      }
+      const lowerNames = names.map((n) => n.toLowerCase());
+      if (new Set(lowerNames).size !== 5) {
+        alert('Tutti e 5 i giocatori devono avere nomi diversi!');
+        return;
+      }
+      StorageService.startTournamentSession(
+        names[0],
+        [names[0]],
+        names[1],
+        [names[1]],
+        'a5',
+        names[2],
+        [names[2]],
+        names
+      );
+      setA5Player1('');
+      setA5Player2('');
+      setA5Player3('');
+      setA5Player4('');
+      setA5Player5('');
+      onDataUpdated();
+      return;
+    }
 
     if (tournamentMode === '1vs1') {
       const p1 = singlePlayer1.trim();
@@ -220,17 +290,19 @@ export function TorneoSerataView({
   };
 
   // Incremento / Decremento vittorie in tempo reale
-  const handleAddWin = (teamIndex: 1 | 2 | 3) => {
+  const handleAddWin = (teamIndex: number) => {
     if (!activeSession) return;
     if (teamIndex === 1) setBumpTeam1(true);
     if (teamIndex === 2) setBumpTeam2(true);
     if (teamIndex === 3) setBumpTeam3(true);
+    if (teamIndex === 4) setBumpTeam4(true);
+    if (teamIndex === 5) setBumpTeam5(true);
     StorageService.incrementTournamentWin(activeSession.id, teamIndex);
     fireWinConfetti();
     onDataUpdated();
   };
 
-  const handleRemoveWin = (teamIndex: 1 | 2 | 3) => {
+  const handleRemoveWin = (teamIndex: number) => {
     if (!activeSession) return;
     StorageService.decrementTournamentWin(activeSession.id, teamIndex);
     onDataUpdated();
@@ -239,10 +311,17 @@ export function TorneoSerataView({
   // Fine torneo
   const handleEndTournament = () => {
     if (!activeSession) return;
-    const isThree = activeSession.mode === '1vs1vs1' || !!activeSession.team3Name;
-    const scoreText = isThree
-      ? `${activeSession.team1Name} (${activeSession.team1Wins}) - ${activeSession.team2Name} (${activeSession.team2Wins}) - ${activeSession.team3Name || 'Giocatore 3'} (${activeSession.team3Wins || 0})`
-      : `${activeSession.team1Name} (${activeSession.team1Wins}) - ${activeSession.team2Name} (${activeSession.team2Wins})`;
+    const isA5 = activeSession.mode === 'a5';
+    const isThree = !isA5 && (activeSession.mode === '1vs1vs1' || !!activeSession.team3Name);
+    
+    let scoreText = '';
+    if (isA5 && activeSession.players5) {
+      scoreText = activeSession.players5.map((p) => `${p.name} (${p.wins})`).join(' - ');
+    } else if (isThree) {
+      scoreText = `${activeSession.team1Name} (${activeSession.team1Wins}) - ${activeSession.team2Name} (${activeSession.team2Wins}) - ${activeSession.team3Name || 'Giocatore 3'} (${activeSession.team3Wins || 0})`;
+    } else {
+      scoreText = `${activeSession.team1Name} (${activeSession.team1Wins}) - ${activeSession.team2Name} (${activeSession.team2Wins})`;
+    }
 
     const confirmEnd = confirm(
       `Concludere il torneo? Punteggio attuale: ${scoreText}. Verrà registrato nel calendario!`
@@ -269,21 +348,24 @@ export function TorneoSerataView({
     [sessions]
   );
 
+  const isA5Mode = Boolean(activeSession && activeSession.mode === 'a5');
   const isThreeWay = Boolean(
-    activeSession && (activeSession.mode === '1vs1vs1' || activeSession.team3Name)
+    activeSession && !isA5Mode && (activeSession.mode === '1vs1vs1' || activeSession.team3Name)
   );
 
   const totalMatchesTonight = activeSession
-    ? activeSession.team1Wins + activeSession.team2Wins + (activeSession.team3Wins || 0)
+    ? isA5Mode && activeSession.players5
+      ? activeSession.players5.reduce((sum, p) => sum + (p.wins || 0), 0)
+      : activeSession.team1Wins + activeSession.team2Wins + (activeSession.team3Wins || 0)
     : 0;
 
-  // Rilevamento leader attuale nel tabellone
+  // Rilevamento leader attuale nel tabellone (per 2vs2, 1vs1, 1vs1vs1)
   const w1 = activeSession ? activeSession.team1Wins : 0;
   const w2 = activeSession ? activeSession.team2Wins : 0;
   const w3 = activeSession ? activeSession.team3Wins || 0 : 0;
-  const isT1Leading = isThreeWay ? w1 > w2 && w1 > w3 : w1 > w2;
-  const isT2Leading = isThreeWay ? w2 > w1 && w2 > w3 : w2 > w1;
-  const isT3Leading = isThreeWay && w3 > w1 && w3 > w2;
+  const isT1Leading = !isA5Mode && (isThreeWay ? w1 > w2 && w1 > w3 : w1 > w2);
+  const isT2Leading = !isA5Mode && (isThreeWay ? w2 > w1 && w2 > w3 : w2 > w1);
+  const isT3Leading = !isA5Mode && isThreeWay && w3 > w1 && w3 > w2;
 
   return (
     <div className="space-y-6">
@@ -321,7 +403,9 @@ export function TorneoSerataView({
                   Torneo live in corso stasera
                 </span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-bold">
-                  {activeSession.mode === '1vs1vs1'
+                  {activeSession.mode === 'a5'
+                    ? 'A 5 (Chiamata)'
+                    : activeSession.mode === '1vs1vs1'
                     ? '1 vs 1 vs 1'
                     : activeSession.mode === '1vs1'
                     ? '1 vs 1'
@@ -329,14 +413,20 @@ export function TorneoSerataView({
                 </span>
               </div>
               <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
-                {activeSession.team1Name}{' '}
-                <span className="text-[var(--accent)] font-normal">vs</span>{' '}
-                {activeSession.team2Name}
-                {isThreeWay && (
+                {isA5Mode && activeSession.players5 ? (
+                  activeSession.players5.map((p) => p.name).join(' • ')
+                ) : (
                   <>
-                    {' '}
+                    {activeSession.team1Name}{' '}
                     <span className="text-[var(--accent)] font-normal">vs</span>{' '}
-                    {activeSession.team3Name}
+                    {activeSession.team2Name}
+                    {isThreeWay && (
+                      <>
+                        {' '}
+                        <span className="text-[var(--accent)] font-normal">vs</span>{' '}
+                        {activeSession.team3Name}
+                      </>
+                    )}
                   </>
                 )}
               </h1>
@@ -352,12 +442,178 @@ export function TorneoSerataView({
             </button>
           </div>
 
-          {/* GRANDE SEGNAPUNTI LIVE AFFIANCATO (2 O 3 PARTECIPANTI) */}
-          <div
-            className={`grid gap-4 sm:gap-6 ${
-              isThreeWay ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'
-            }`}
-          >
+          {/* TABELLONE LIVE: A 5 GIOCATORI OPPURE 2/3 SQUADRE */}
+          {isA5Mode && activeSession.players5 ? (
+            <>
+              {/* GRIGLIA A 5 GIOCATORI: 2 col su mobile, 3 su tablet, 5 su desktop */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+                {activeSession.players5.map((player, idx) => {
+                  const maxWins = Math.max(...activeSession.players5!.map((p) => p.wins || 0));
+                  const isLeader = maxWins > 0 && player.wins === maxWins;
+                  const bumpState = [bumpTeam1, bumpTeam2, bumpTeam3, bumpTeam4, bumpTeam5][idx];
+                  const setBump = [setBumpTeam1, setBumpTeam2, setBumpTeam3, setBumpTeam4, setBumpTeam5][idx];
+                  const bumpClass = [
+                    'animate-score-bump',
+                    'animate-score-bump-sky',
+                    'animate-score-bump-emerald',
+                    'animate-score-bump-purple',
+                    'animate-score-bump-rose',
+                  ][idx];
+                  const accentStyles = [
+                    {
+                      text: 'text-[var(--accent)]',
+                      border: 'border-[var(--accent)]',
+                      ring: 'ring-[var(--accent)]/30',
+                      btnBorder: 'hover:border-amber-500/40',
+                      leaderBg: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+                    },
+                    {
+                      text: 'text-sky-400',
+                      border: 'border-sky-400',
+                      ring: 'ring-sky-400/30',
+                      btnBorder: 'hover:border-sky-500/40',
+                      leaderBg: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+                    },
+                    {
+                      text: 'text-emerald-400',
+                      border: 'border-emerald-400',
+                      ring: 'ring-emerald-400/30',
+                      btnBorder: 'hover:border-emerald-500/40',
+                      leaderBg: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+                    },
+                    {
+                      text: 'text-purple-400',
+                      border: 'border-purple-400',
+                      ring: 'ring-purple-400/30',
+                      btnBorder: 'hover:border-purple-500/40',
+                      leaderBg: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
+                    },
+                    {
+                      text: 'text-rose-400',
+                      border: 'border-rose-400',
+                      ring: 'ring-rose-400/30',
+                      btnBorder: 'hover:border-rose-500/40',
+                      leaderBg: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+                    },
+                  ][idx];
+
+                  return (
+                    <div
+                      key={player.name + idx}
+                      className={`relative rounded-2xl p-4 sm:p-5 lg:p-6 flex flex-col justify-between text-center transition-[border-color,box-shadow] duration-200 ${
+                        idx === 4 ? 'col-span-2 sm:col-span-1' : ''
+                      } ${
+                        isLeader
+                          ? `bg-[var(--surface)] border ${accentStyles.border} shadow-md shadow-black/40 ring-1 ${accentStyles.ring}`
+                          : 'bg-[var(--surface)] border border-[var(--divider)]'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-1 mb-1.5">
+                          <span className="text-[11px] font-mono text-[var(--text-subtle)] font-semibold">
+                            #{idx + 1}
+                          </span>
+                          {isLeader && (
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${accentStyles.leaderBg}`}>
+                              <span>Leader</span> 🏆
+                            </span>
+                          )}
+                        </div>
+                        <h2 className="font-heading text-lg sm:text-xl lg:text-2xl font-extrabold text-[var(--text)] tracking-tight truncate">
+                          {player.name}
+                        </h2>
+                      </div>
+
+                      {/* Numero Vittorie Gigante */}
+                      <div className="my-3 sm:my-5">
+                        <span
+                          className={`text-5xl sm:text-6xl lg:text-7xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block ${
+                            bumpState ? bumpClass : ''
+                          }`}
+                          onAnimationEnd={() => setBump(false)}
+                        >
+                          {player.wins}
+                        </span>
+                        <span className="text-[11px] sm:text-xs text-[var(--text-muted)] font-medium mt-0.5 sm:mt-1 block">
+                          {player.wins === 1 ? 'partita vinta' : 'partite vinte'}
+                        </span>
+                      </div>
+
+                      {/* Tasto Touch +1 Vittoria & Correggi */}
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => handleAddWin(idx + 1)}
+                          className={`w-full py-3 sm:py-3.5 px-2 sm:px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] ${accentStyles.btnBorder} text-[var(--text)] font-extrabold text-xs sm:text-sm lg:text-base btn-tactile cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 group min-h-[48px]`}
+                        >
+                          <Plus className={`w-4 h-4 stroke-[3] ${accentStyles.text} transition-transform duration-200 group-hover:rotate-90 shrink-0`} />
+                          <span className="truncate max-w-[140px] sm:max-w-[180px]">+1 {player.name}</span>
+                        </button>
+
+                        {player.wins > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveWin(idx + 1)}
+                            className="touch-target inline-flex items-center gap-1.5 text-xs text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-1.5 px-3 rounded-lg hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Correggi (-1)</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Barra riassunto serie A 5 */}
+              <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 text-center space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)] font-medium">
+                  {activeSession.players5.map((p) => (
+                    <span key={p.name}>
+                      {p.name}:{' '}
+                      <strong className="text-[var(--text)] font-mono tabular-nums">
+                        {p.wins}
+                      </strong>
+                    </span>
+                  ))}
+                  <span>
+                    Totale vittorie:{' '}
+                    <strong className="text-[var(--text)] font-mono tabular-nums">
+                      {totalMatchesTonight}
+                    </strong>
+                  </span>
+                </div>
+
+                <div className="w-full bg-[var(--surface-alt)] h-2.5 rounded-full overflow-hidden flex">
+                  {activeSession.players5.map((p, idx) => {
+                    const bgColors = [
+                      'bg-[var(--accent)]',
+                      'bg-sky-400',
+                      'bg-emerald-400',
+                      'bg-purple-400',
+                      'bg-rose-400',
+                    ];
+                    const pct = totalMatchesTonight > 0 ? (p.wins / totalMatchesTonight) * 100 : 0;
+                    return (
+                      <div
+                        key={p.name}
+                        className={`${bgColors[idx]} h-full transition-[width] duration-300 ease-out`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* GRANDE SEGNAPUNTI LIVE AFFIANCATO (2 O 3 PARTECIPANTI) */}
+              <div
+                className={`grid gap-4 sm:gap-6 ${
+                  isThreeWay ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'
+                }`}
+              >
             {/* PANNELLO 1 */}
             <div
               className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-[border-color,box-shadow] duration-200 ${
@@ -605,8 +861,10 @@ export function TorneoSerataView({
               )}
             </div>
           </div>
-        </div>
-      ) : (
+        </>
+      )}
+    </div>
+  ) : (
         /* SEZIONE 2: NESSUN TORNEO ATTIVO -> FORM ELEGANTE PER AVVIARE */
         <div
           className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-6 sm:p-8 shadow-sm space-y-6"
@@ -621,54 +879,66 @@ export function TorneoSerataView({
               Avvia la Sfida di Stasera
             </h1>
             <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1.5 max-w-xl leading-relaxed">
-              Scegli la modalità di gioco (a squadre, 1 contro 1 o tutti contro tutti in 3), inserisci i partecipanti e segna le vittorie mano dopo mano con un tocco.
+              Scegli la modalità di gioco (a squadre, 1 vs 1, a 3 o Briscola Chiamata a 5), inserisci i partecipanti e segna le vittorie mano dopo mano con un tocco.
             </p>
           </div>
 
-          {/* SELETTORE MODALITÀ (Segmented Control) */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-[var(--text-muted)] block">
-              Modalità Torneo:
-            </label>
-            <div className="inline-flex p-1 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => setTournamentMode('2vs2')}
-                className={`flex-1 sm:flex-initial py-2 px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
-                  tournamentMode === '2vs2'
-                    ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-                }`}
-              >
-                <Users className="w-3.5 h-3.5" />
-                <span>2 vs 2 (Coppie)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setTournamentMode('1vs1')}
-                className={`flex-1 sm:flex-initial py-2 px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
-                  tournamentMode === '1vs1'
-                    ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-                }`}
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>1 vs 1 (Singolo)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setTournamentMode('1vs1vs1')}
-                className={`flex-1 sm:flex-initial py-2 px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
-                  tournamentMode === '1vs1vs1'
-                    ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-                }`}
-              >
-                <Swords className="w-3.5 h-3.5" />
-                <span>1 vs 1 vs 1 (In 3)</span>
-              </button>
+            {/* SELETTORE MODALITÀ (Segmented Control) */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-[var(--text-muted)] block">
+                Modalità Torneo:
+              </label>
+              <div className="inline-flex flex-wrap p-1 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setTournamentMode('2vs2')}
+                  className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                    tournamentMode === '2vs2'
+                      ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>2 vs 2 (Coppie)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTournamentMode('1vs1')}
+                  className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                    tournamentMode === '1vs1'
+                      ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>1 vs 1 (Singolo)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTournamentMode('1vs1vs1')}
+                  className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                    tournamentMode === '1vs1vs1'
+                      ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  <Swords className="w-3.5 h-3.5" />
+                  <span>1 vs 1 vs 1 (In 3)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTournamentMode('a5')}
+                  className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                    tournamentMode === 'a5'
+                      ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>A 5 (Chiamata)</span>
+                </button>
+              </div>
             </div>
-          </div>
 
           <form onSubmit={handleStartTournament} className="space-y-6">
             {/* MODALITÀ 2vs2 */}
@@ -1189,6 +1459,138 @@ export function TorneoSerataView({
               </div>
             )}
 
+            {/* MODALITÀ A 5 (CHIAMATA) */}
+            {tournamentMode === 'a5' && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface-raised)] border border-[var(--control-border)] p-4 rounded-xl">
+                  <div>
+                    <span className="text-xs font-bold text-[var(--accent)] block">
+                      Briscola a 5 (Chiamata)
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)]">
+                      Le squadre cambiano ogni mano. Le vittorie sono individuali.
+                    </span>
+                  </div>
+                  {availablePlayerNames.length >= 2 && (
+                    <button
+                      type="button"
+                      onClick={handleAutoFillA5}
+                      className="touch-target inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] text-xs font-bold text-[var(--accent-text)] border border-[var(--accent-border)] btn-tactile cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-[var(--accent)]" />
+                      <span>Pre-compila membri casa</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                  {[
+                    {
+                      num: 1,
+                      name: a5Player1,
+                      setName: setA5Player1,
+                      titleColor: 'text-[var(--accent)]',
+                      activeChip: 'bg-[var(--accent-muted)] text-[var(--accent-text)] border-[var(--accent-border)]',
+                      otherPlayers: [a5Player2, a5Player3, a5Player4, a5Player5],
+                    },
+                    {
+                      num: 2,
+                      name: a5Player2,
+                      setName: setA5Player2,
+                      titleColor: 'text-sky-400',
+                      activeChip: 'bg-sky-500/20 text-sky-300 border-sky-500/35',
+                      otherPlayers: [a5Player1, a5Player3, a5Player4, a5Player5],
+                    },
+                    {
+                      num: 3,
+                      name: a5Player3,
+                      setName: setA5Player3,
+                      titleColor: 'text-emerald-400',
+                      activeChip: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/35',
+                      otherPlayers: [a5Player1, a5Player2, a5Player4, a5Player5],
+                    },
+                    {
+                      num: 4,
+                      name: a5Player4,
+                      setName: setA5Player4,
+                      titleColor: 'text-purple-400',
+                      activeChip: 'bg-purple-500/20 text-purple-300 border-purple-500/35',
+                      otherPlayers: [a5Player1, a5Player2, a5Player3, a5Player5],
+                    },
+                    {
+                      num: 5,
+                      name: a5Player5,
+                      setName: setA5Player5,
+                      titleColor: 'text-rose-400',
+                      activeChip: 'bg-rose-500/20 text-rose-300 border-rose-500/35',
+                      otherPlayers: [a5Player1, a5Player2, a5Player3, a5Player4],
+                    },
+                  ].map((card) => (
+                    <div
+                      key={card.num}
+                      className="bg-[var(--surface-raised)] p-4 rounded-xl border border-[var(--control-border)] space-y-3"
+                    >
+                      <span className={`text-xs font-bold block ${card.titleColor}`}>
+                        Giocatore {card.num}
+                      </span>
+
+                      <div>
+                        <label className="text-[11px] text-[var(--text-muted)] block mb-1">
+                          Nome o seleziona:
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder={`Es. Giocatore ${card.num}`}
+                          value={card.name}
+                          onChange={(e) => card.setName(e.target.value)}
+                          className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3 py-2 text-xs text-[var(--text)] font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+                        />
+                      </div>
+
+                      <div>
+                        <span className="text-[11px] text-[var(--text-muted)] block mb-1.5 font-medium">
+                          Scelta rapida:
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {availablePlayerNames.map((name) => {
+                            const isSelected = card.name === name;
+                            const isTaken = card.otherPlayers.some(
+                              (p) => p.trim().toLowerCase() === name.toLowerCase()
+                            );
+                            return (
+                              <button
+                                key={name}
+                                type="button"
+                                disabled={isTaken}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    card.setName('');
+                                  } else {
+                                    card.setName(name);
+                                  }
+                                }}
+                                className={`px-2 py-0.5 rounded-lg text-[11px] font-medium border transition-colors btn-tactile select-none ${
+                                  isTaken
+                                    ? 'opacity-40 cursor-not-allowed bg-[var(--surface-alt)] text-[var(--text-subtle)] border-transparent'
+                                    : isSelected
+                                    ? `${card.activeChip} font-bold cursor-pointer`
+                                    : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] cursor-pointer'
+                                }`}
+                              >
+                                {isSelected ? '✓ ' : ''}
+                                {name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="text-center pt-2">
               <button
                 type="submit"
@@ -1216,15 +1618,28 @@ export function TorneoSerataView({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {pastSessions.map((session) => {
-              const isThree = session.mode === '1vs1vs1' || !!session.team3Name;
+              const isA5 = session.mode === 'a5' && !!session.players5;
+              const isThree = !isA5 && (session.mode === '1vs1vs1' || !!session.team3Name);
               const isT1Winner = session.winnerTeam === 1;
               const isT2Winner = session.winnerTeam === 2;
               const isT3Winner = session.winnerTeam === 3;
 
               let champText = 'Pareggio';
-              if (isT1Winner) champText = `Campione: ${session.team1Name} 🏆`;
-              else if (isT2Winner) champText = `Campione: ${session.team2Name} 🏆`;
-              else if (isT3Winner) champText = `Campione: ${session.team3Name || 'Giocatore 3'} 🏆`;
+              if (isA5) {
+                if (session.winnerTeam === 'pareggio') {
+                  if (session.winnerPlayerName && !session.winnerPlayerName.includes('Nessuno')) {
+                    champText = `Pari merito: ${session.winnerPlayerName} 🏆`;
+                  } else {
+                    champText = 'Pareggio';
+                  }
+                } else if (session.winnerPlayerName) {
+                  champText = `Campione: ${session.winnerPlayerName} 🏆`;
+                }
+              } else {
+                if (isT1Winner) champText = `Campione: ${session.team1Name} 🏆`;
+                else if (isT2Winner) champText = `Campione: ${session.team2Name} 🏆`;
+                else if (isT3Winner) champText = `Campione: ${session.team3Name || 'Giocatore 3'} 🏆`;
+              }
 
               return (
                 <div
@@ -1240,7 +1655,9 @@ export function TorneoSerataView({
                       </span>
                       <span>•</span>
                       <span className="text-[var(--text-subtle)] font-medium">
-                        {session.mode === '1vs1vs1'
+                        {session.mode === 'a5'
+                          ? 'A 5 (Chiamata)'
+                          : session.mode === '1vs1vs1'
                           ? '1 vs 1 vs 1'
                           : session.mode === '1vs1'
                           ? '1 vs 1'
@@ -1248,35 +1665,58 @@ export function TorneoSerataView({
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 text-sm pt-0.5">
-                      <span
-                        className={`font-bold font-mono tabular-nums ${
-                          isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
-                        }`}
-                      >
-                        {session.team1Name} ({session.team1Wins})
-                      </span>
-                      <span className="text-xs text-[var(--text-subtle)] font-bold">vs</span>
-                      <span
-                        className={`font-bold font-mono tabular-nums ${
-                          isT2Winner ? 'text-sky-400' : 'text-[var(--text-muted)]'
-                        }`}
-                      >
-                        {session.team2Name} ({session.team2Wins})
-                      </span>
-                      {isThree && (
-                        <>
-                          <span className="text-xs text-[var(--text-subtle)] font-bold">vs</span>
-                          <span
-                            className={`font-bold font-mono tabular-nums ${
-                              isT3Winner ? 'text-emerald-400' : 'text-[var(--text-muted)]'
-                            }`}
-                          >
-                            {session.team3Name || 'Giocatore 3'} ({session.team3Wins || 0})
-                          </span>
-                        </>
-                      )}
-                    </div>
+                    {isA5 && session.players5 ? (
+                      <div className="flex flex-wrap items-center gap-2 text-xs pt-0.5">
+                        {session.players5.map((p, idx) => {
+                          const isWinner = session.winnerPlayerName
+                            ? session.winnerPlayerName.split(' & ').includes(p.name)
+                            : (typeof session.winnerTeam === 'number' && session.winnerTeam === idx + 1);
+                          return (
+                            <span
+                              key={p.name + idx}
+                              className={`font-semibold font-mono tabular-nums ${
+                                isWinner
+                                  ? 'text-[var(--accent)] font-extrabold'
+                                  : 'text-[var(--text-muted)]'
+                              }`}
+                            >
+                              {p.name} ({p.wins}){isWinner ? ' 🏆' : ''}
+                              {idx < session.players5!.length - 1 ? ' •' : ''}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-2 text-sm pt-0.5">
+                        <span
+                          className={`font-bold font-mono tabular-nums ${
+                            isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                          }`}
+                        >
+                          {session.team1Name} ({session.team1Wins})
+                        </span>
+                        <span className="text-xs text-[var(--text-subtle)] font-bold">vs</span>
+                        <span
+                          className={`font-bold font-mono tabular-nums ${
+                            isT2Winner ? 'text-sky-400' : 'text-[var(--text-muted)]'
+                          }`}
+                        >
+                          {session.team2Name} ({session.team2Wins})
+                        </span>
+                        {isThree && (
+                          <>
+                            <span className="text-xs text-[var(--text-subtle)] font-bold">vs</span>
+                            <span
+                              className={`font-bold font-mono tabular-nums ${
+                                isT3Winner ? 'text-emerald-400' : 'text-[var(--text-muted)]'
+                              }`}
+                            >
+                              {session.team3Name || 'Giocatore 3'} ({session.team3Wins || 0})
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <button

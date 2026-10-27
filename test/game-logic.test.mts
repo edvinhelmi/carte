@@ -578,5 +578,334 @@ describe('Tournament 1vs1vs1, 1vs1, and 2vs2 logic', () => {
       assert.strictEqual(endedTwoWayTie?.winnerTeam, 'pareggio');
     });
   });
+
+  describe('Briscola a 5 (Chiamata a 5) mode logic', () => {
+    const fivePlayers: Player[] = [
+      { id: 'p1', name: 'Marghe', avatarSuit: 'coppe', createdAt: '2026-10-01' },
+      { id: 'p2', name: 'Irins', avatarSuit: 'denari', createdAt: '2026-10-01' },
+      { id: 'p3', name: 'Simon', avatarSuit: 'bastoni', createdAt: '2026-10-01' },
+      { id: 'p4', name: 'Edd', avatarSuit: 'spade', createdAt: '2026-10-01' },
+      { id: 'p5', name: 'Luca', avatarSuit: 'coppe', createdAt: '2026-10-01' },
+    ];
+
+    it('manages A 5 session lifecycle: creation, individual scoring, decrements, and winner determination', () => {
+      StorageService.clearAll();
+
+      const playerNames = ['Marghe', 'Irins', 'Simon', 'Edd', 'Luca'];
+      const session = StorageService.startTournamentSession(
+        playerNames[0],
+        [playerNames[0]],
+        playerNames[1],
+        [playerNames[1]],
+        'a5',
+        playerNames[2],
+        [playerNames[2]],
+        playerNames
+      );
+
+      assert.ok(session);
+      assert.strictEqual(session.mode, 'a5');
+      assert.strictEqual(session.players5?.length, 5);
+      assert.deepStrictEqual(
+        session.players5?.map((p) => p.name),
+        playerNames
+      );
+      assert.deepStrictEqual(
+        session.players5?.map((p) => p.wins),
+        [0, 0, 0, 0, 0]
+      );
+
+      // Increment wins for different players
+      // Marghe +2, Irins +1, Simon +4, Edd +0, Luca +3
+      StorageService.incrementTournamentWin(session.id, 1);
+      StorageService.incrementTournamentWin(session.id, 1);
+      StorageService.incrementTournamentWin(session.id, 2);
+      StorageService.incrementTournamentWin(session.id, 3);
+      StorageService.incrementTournamentWin(session.id, 3);
+      StorageService.incrementTournamentWin(session.id, 3);
+      StorageService.incrementTournamentWin(session.id, 3);
+      StorageService.incrementTournamentWin(session.id, 5);
+      StorageService.incrementTournamentWin(session.id, 5);
+      StorageService.incrementTournamentWin(session.id, 5);
+
+      let current = StorageService.getActiveTournamentSession();
+      assert.ok(current?.players5);
+      assert.strictEqual(current.players5[0].wins, 2); // Marghe
+      assert.strictEqual(current.players5[1].wins, 1); // Irins
+      assert.strictEqual(current.players5[2].wins, 4); // Simon
+      assert.strictEqual(current.players5[3].wins, 0); // Edd
+      assert.strictEqual(current.players5[4].wins, 3); // Luca
+
+      // Decrement Luca by 1, test boundary of 0 for Edd
+      StorageService.decrementTournamentWin(session.id, 5);
+      StorageService.decrementTournamentWin(session.id, 4); // already 0, should not go negative
+
+      current = StorageService.getActiveTournamentSession();
+      assert.ok(current?.players5);
+      assert.strictEqual(current.players5[4].wins, 2); // Luca now 2
+      assert.strictEqual(current.players5[3].wins, 0); // Edd still 0
+
+      // Conclude tournament: Simon has 4 wins -> Winner
+      const ended = StorageService.endTournamentSession(session.id);
+      assert.ok(ended);
+      assert.strictEqual(ended.status, 'completed');
+      assert.strictEqual(ended.winnerTeam, 3); // Simon is index 3 (1-based)
+      assert.strictEqual(ended.winnerPlayerName, 'Simon');
+    });
+
+    it('accurately resolves ties in A 5 tournament sessions', () => {
+      StorageService.clearAll();
+
+      const playerNames = ['Marghe', 'Irins', 'Simon', 'Edd', 'Luca'];
+      const session = StorageService.startTournamentSession(
+        playerNames[0],
+        [playerNames[0]],
+        playerNames[1],
+        [playerNames[1]],
+        'a5',
+        playerNames[2],
+        [playerNames[2]],
+        playerNames
+      );
+
+      // Marghe +3, Irins +1, Simon +3, Edd +2, Luca +0 -> Marghe & Simon tied
+      StorageService.incrementTournamentWin(session.id, 1);
+      StorageService.incrementTournamentWin(session.id, 1);
+      StorageService.incrementTournamentWin(session.id, 1);
+      StorageService.incrementTournamentWin(session.id, 2);
+      StorageService.incrementTournamentWin(session.id, 3);
+      StorageService.incrementTournamentWin(session.id, 3);
+      StorageService.incrementTournamentWin(session.id, 3);
+      StorageService.incrementTournamentWin(session.id, 4);
+      StorageService.incrementTournamentWin(session.id, 4);
+
+      const ended = StorageService.endTournamentSession(session.id);
+      assert.ok(ended);
+      assert.strictEqual(ended.winnerTeam, 'pareggio');
+      assert.strictEqual(ended.winnerPlayerName, 'Marghe & Simon');
+    });
+
+    it('calculates player stats correctly for A 5 sessions across all participants', () => {
+      const a5Session: TournamentSession = {
+        id: 'tour_a5_1',
+        dateKey: '2026-10-27',
+        startedAt: '2026-10-27T20:00:00Z',
+        endedAt: '2026-10-27T22:00:00Z',
+        mode: 'a5',
+        team1Name: 'Marghe',
+        team1Players: ['Marghe'],
+        team2Name: 'Irins',
+        team2Players: ['Irins'],
+        team3Name: 'Simon',
+        team3Players: ['Simon'],
+        team1Wins: 4,
+        team2Wins: 2,
+        team3Wins: 5,
+        status: 'completed',
+        winnerTeam: 3,
+        winnerPlayerName: 'Simon',
+        players5: [
+          { name: 'Marghe', wins: 4 },
+          { name: 'Irins', wins: 2 },
+          { name: 'Simon', wins: 5 },
+          { name: 'Edd', wins: 1 },
+          { name: 'Luca', wins: 3 },
+        ],
+      };
+
+      const stats = calculatePlayerStats(fivePlayers, [], [], [a5Session]);
+
+      const simonStats = stats.find((p) => p.player.name === 'Simon');
+      assert.ok(simonStats);
+      assert.strictEqual(simonStats.wins, 5);
+      assert.ok(simonStats.matchesPlayed >= 5);
+
+      const margheStats = stats.find((p) => p.player.name === 'Marghe');
+      assert.ok(margheStats);
+      assert.strictEqual(margheStats.wins, 4);
+
+      const lucaStats = stats.find((p) => p.player.name === 'Luca');
+      assert.ok(lucaStats);
+      assert.strictEqual(lucaStats.wins, 3);
+
+      const irinsStats = stats.find((p) => p.player.name === 'Irins');
+      assert.ok(irinsStats);
+      assert.strictEqual(irinsStats.wins, 2);
+
+      const eddStats = stats.find((p) => p.player.name === 'Edd');
+      assert.ok(eddStats);
+      assert.strictEqual(eddStats.wins, 1);
+    });
+
+    it('aggregates daily summary for A 5 sessions', () => {
+      const a5Session: TournamentSession = {
+        id: 'tour_a5_2',
+        dateKey: '2026-10-27',
+        startedAt: '2026-10-27T21:00:00Z',
+        endedAt: '2026-10-27T23:00:00Z',
+        mode: 'a5',
+        team1Name: 'Marghe',
+        team1Players: ['Marghe'],
+        team2Name: 'Irins',
+        team2Players: ['Irins'],
+        team3Name: 'Simon',
+        team3Players: ['Simon'],
+        team1Wins: 2,
+        team2Wins: 1,
+        team3Wins: 6,
+        status: 'completed',
+        winnerTeam: 3,
+        winnerPlayerName: 'Simon',
+        players5: [
+          { name: 'Marghe', wins: 2 },
+          { name: 'Irins', wins: 1 },
+          { name: 'Simon', wins: 6 },
+          { name: 'Edd', wins: 0 },
+          { name: 'Luca', wins: 3 },
+        ],
+      };
+
+      const summary = getDailySummary('2026-10-27', [], [], [a5Session]);
+      // In A 5, total hands estimated based on highest wins and hands count
+      assert.strictEqual(summary.totalMatches, 6);
+      assert.ok(summary.championTeam);
+      assert.strictEqual(summary.championTeam?.name, 'Simon');
+      assert.strictEqual(summary.championWins, 6);
+    });
+
+    it('computes Head-to-Head direct stats between two players in A 5 tournament sessions', () => {
+      const a5Session: TournamentSession = {
+        id: 'tour_a5_h2h',
+        dateKey: '2026-10-27',
+        startedAt: '2026-10-27T20:00:00Z',
+        endedAt: '2026-10-27T22:00:00Z',
+        mode: 'a5',
+        team1Name: 'Marghe',
+        team1Players: ['Marghe'],
+        team2Name: 'Irins',
+        team2Players: ['Irins'],
+        team3Name: 'Simon',
+        team3Players: ['Simon'],
+        team1Wins: 4,
+        team2Wins: 2,
+        team3Wins: 5,
+        status: 'completed',
+        winnerTeam: 3,
+        winnerPlayerName: 'Simon',
+        players5: [
+          { name: 'Marghe', wins: 4 },
+          { name: 'Irins', wins: 2 },
+          { name: 'Simon', wins: 5 },
+          { name: 'Edd', wins: 1 },
+          { name: 'Luca', wins: 3 },
+        ],
+      };
+
+      const teamStats = calculateTeamStats([], [], fivePlayers, [a5Session]);
+      const availableTeams = teamStats.map((s) => s.team);
+
+      const eddTeam = availableTeams.find((t) => t.name === 'Edd');
+      const lucaTeam = availableTeams.find((t) => t.name === 'Luca');
+      assert.ok(eddTeam, 'Edd synthetic team should exist');
+      assert.ok(lucaTeam, 'Luca synthetic team should exist');
+
+      const h2h = calculateHeadToHead(eddTeam.id, lucaTeam.id, availableTeams, [], [a5Session]);
+      assert.ok(h2h);
+      assert.strictEqual(h2h.team1Wins, 1); // Edd
+      assert.strictEqual(h2h.team2Wins, 3); // Luca
+      assert.strictEqual(h2h.totalMatches, 6); // Max/estimated hands
+    });
+
+    it('handles 5-way tie when all players have equal wins in A 5 mode', () => {
+      StorageService.clearAll();
+
+      const playerNames = ['Marghe', 'Irins', 'Simon', 'Edd', 'Luca'];
+      const session = StorageService.startTournamentSession(
+        playerNames[0],
+        [playerNames[0]],
+        playerNames[1],
+        [playerNames[1]],
+        'a5',
+        playerNames[2],
+        [playerNames[2]],
+        playerNames
+      );
+
+      // Increment all 5 players to 2 wins each
+      for (let i = 1; i <= 5; i++) {
+        StorageService.incrementTournamentWin(session.id, i);
+        StorageService.incrementTournamentWin(session.id, i);
+      }
+
+      const ended = StorageService.endTournamentSession(session.id);
+      assert.ok(ended);
+      assert.strictEqual(ended.status, 'completed');
+      assert.strictEqual(ended.winnerTeam, 'pareggio');
+      assert.strictEqual(
+        ended.winnerPlayerName,
+        'Marghe & Irins & Simon & Edd & Luca'
+      );
+    });
+
+    it('handles 0-win conclusion gracefully in A 5 mode', () => {
+      StorageService.clearAll();
+
+      const playerNames = ['Marghe', 'Irins', 'Simon', 'Edd', 'Luca'];
+      const session = StorageService.startTournamentSession(
+        playerNames[0],
+        [playerNames[0]],
+        playerNames[1],
+        [playerNames[1]],
+        'a5',
+        playerNames[2],
+        [playerNames[2]],
+        playerNames
+      );
+
+      // End immediately with 0 wins
+      const ended = StorageService.endTournamentSession(session.id);
+      assert.ok(ended);
+      assert.strictEqual(ended.status, 'completed');
+      assert.strictEqual(ended.winnerTeam, 'pareggio');
+      assert.strictEqual(ended.winnerPlayerName, 'Nessuno (0 vittorie)');
+    });
+
+    it('includes guest players from A 5 tournament sessions into player leaderboard stats', () => {
+      const a5Session: TournamentSession = {
+        id: 'tour_a5_guest',
+        dateKey: '2026-10-27',
+        startedAt: '2026-10-27T20:00:00Z',
+        endedAt: '2026-10-27T22:00:00Z',
+        mode: 'a5',
+        team1Name: 'Guest1',
+        team1Players: ['Guest1'],
+        team2Name: 'Guest2',
+        team2Players: ['Guest2'],
+        team3Name: 'Guest3',
+        team3Players: ['Guest3'],
+        team1Wins: 2,
+        team2Wins: 3,
+        team3Wins: 1,
+        status: 'completed',
+        winnerTeam: 2,
+        winnerPlayerName: 'Guest2',
+        players5: [
+          { name: 'Guest1', wins: 2 },
+          { name: 'Guest2', wins: 3 },
+          { name: 'Guest3', wins: 1 },
+          { name: 'Guest4', wins: 4 },
+          { name: 'Guest5', wins: 0 },
+        ],
+      };
+
+      // Empty registered players array: all 5 participants should still appear in player stats
+      const stats = calculatePlayerStats([], [], [], [a5Session]);
+      assert.strictEqual(stats.length, 5);
+
+      const topPlayer = stats[0];
+      assert.strictEqual(topPlayer.player.name, 'Guest4');
+      assert.strictEqual(topPlayer.wins, 4);
+    });
+  });
 });
 

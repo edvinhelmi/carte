@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { Users, User, Plus, Trash2, Shield, X, ChevronDown } from 'lucide-react';
 import { Player, Team, CardSuit } from '@/types/game';
 import { StorageService } from '@/lib/storage';
 import { SuitIcon } from './SuitIcon';
+
+const emptySubscribe = () => () => {};
 
 interface TeamsAndPlayersViewProps {
   players: Player[];
@@ -11,6 +14,8 @@ interface TeamsAndPlayersViewProps {
 }
 
 export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndPlayersViewProps) {
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+
   // Gestione stato form Giocatore
   const [showPlayerModal, setShowPlayerModal] = useState(false);
   const [playerName, setPlayerName] = useState('');
@@ -25,6 +30,8 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
 
   useEffect(() => {
     if (!showPlayerModal && !showTeamModal) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setShowPlayerModal(false);
@@ -32,7 +39,10 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [showPlayerModal, showTeamModal]);
 
   const playerMap = new Map(players.map((p) => [p.id, p]));
@@ -250,15 +260,17 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
       </div>
 
       {/* MODAL AGGIUNGI GIOCATORE */}
-      {showPlayerModal && (
+      {showPlayerModal && mounted && createPortal(
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in"
           style={{ overscrollBehavior: 'contain' }}
           onClick={() => setShowPlayerModal(false)}
+          role="dialog"
+          aria-modal="true"
         >
           <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6">
             <div
-              className="relative w-full max-w-sm my-auto rounded-2xl bg-[var(--surface)] border border-[var(--divider)] shadow-2xl overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
+              className="relative z-10 w-full max-w-sm my-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Pinned Header */}
@@ -349,19 +361,22 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* MODAL CREA SQUADRA */}
-      {showTeamModal && (
+      {showTeamModal && mounted && createPortal(
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in"
           style={{ overscrollBehavior: 'contain' }}
           onClick={() => setShowTeamModal(false)}
+          role="dialog"
+          aria-modal="true"
         >
           <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6">
             <div
-              className="relative w-full max-w-md my-auto rounded-2xl bg-[var(--surface)] border border-[var(--divider)] shadow-2xl overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
+              className="relative z-10 w-full max-w-md my-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Pinned Header */}
@@ -459,7 +474,8 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

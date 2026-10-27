@@ -42,12 +42,13 @@ export function notifyRealtimeUpdate() {
   }
 }
 
-// Dati iniziali puliti: solo Marghe, Irins, Simon, Edd
+// Dati iniziali puliti: Marghe, Irins, Simon, Edd, Luca
 const DEMO_PLAYERS: Player[] = [
   { id: 'p1', name: 'Marghe', nickname: 'Regina di Coppe', avatarSuit: 'coppe', createdAt: '2026-10-01T10:00:00Z' },
   { id: 'p2', name: 'Irins', nickname: 'Asso di Denari', avatarSuit: 'denari', createdAt: '2026-10-01T10:05:00Z' },
   { id: 'p3', name: 'Simon', nickname: 'Il Carico', avatarSuit: 'bastoni', createdAt: '2026-10-01T10:10:00Z' },
   { id: 'p4', name: 'Edd', nickname: 'Spada Affilata', avatarSuit: 'spade', createdAt: '2026-10-01T10:15:00Z' },
+  { id: 'p5', name: 'Luca', nickname: 'Il Jolly', avatarSuit: 'coppe', createdAt: '2026-10-01T10:20:00Z' },
 ];
 
 const DEMO_TEAMS: Team[] = [
@@ -327,7 +328,8 @@ export const StorageService = {
     team2Players: string[],
     mode: TournamentMode = '2vs2',
     team3Name?: string,
-    team3Players?: string[]
+    team3Players?: string[],
+    players5Names?: string[]
   ): TournamentSession {
     const sessions = this.getTournamentSessions();
     const cleanT1 = (typeof team1Name === 'string' ? team1Name.trim() : '') || (mode === '2vs2' ? 'Squadra 1' : 'Giocatore 1');
@@ -356,6 +358,23 @@ export const StorageService = {
       newSession.team3Wins = 0;
     }
 
+    if (mode === 'a5') {
+      const names = Array.isArray(players5Names) && players5Names.length > 0
+        ? players5Names
+        : [cleanT1, cleanT2, team3Name || 'Giocatore 3', 'Giocatore 4', 'Giocatore 5'];
+      newSession.players5 = names.map((n, i) => ({
+        name: (typeof n === 'string' ? n.trim() : '') || `Giocatore ${i + 1}`,
+        wins: 0,
+      }));
+      newSession.team1Name = newSession.players5[0]?.name || 'Giocatore 1';
+      newSession.team1Players = [newSession.team1Name];
+      newSession.team2Name = newSession.players5[1]?.name || 'Giocatore 2';
+      newSession.team2Players = [newSession.team2Name];
+      newSession.team3Name = newSession.players5[2]?.name || 'Giocatore 3';
+      newSession.team3Players = [newSession.team3Name];
+      newSession.team3Wins = 0;
+    }
+
     sessions.unshift(newSession);
     setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
 
@@ -375,6 +394,7 @@ export const StorageService = {
         team1_wins: newSession.team1Wins,
         team2_wins: newSession.team2Wins,
         team3_wins: newSession.team3Wins ?? null,
+        players5: newSession.players5 ?? null,
         is_active: true,
       }).then();
     }
@@ -383,17 +403,27 @@ export const StorageService = {
     return newSession;
   },
 
-  incrementTournamentWin(sessionId: string, teamIndex: 1 | 2 | 3): TournamentSession | null {
+  incrementTournamentWin(sessionId: string, teamIndex: number): TournamentSession | null {
     const sessions = this.getTournamentSessions();
     const session = sessions.find((s) => s.id === sessionId);
     if (!session || session.status !== 'in_progress') return null;
 
-    if (teamIndex === 1) {
-      session.team1Wins = (session.team1Wins || 0) + 1;
-    } else if (teamIndex === 2) {
-      session.team2Wins = (session.team2Wins || 0) + 1;
-    } else if (teamIndex === 3) {
-      session.team3Wins = (session.team3Wins || 0) + 1;
+    if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
+      const playerIdx = teamIndex - 1;
+      if (session.players5[playerIdx]) {
+        session.players5[playerIdx].wins = (session.players5[playerIdx].wins || 0) + 1;
+      }
+      if (playerIdx === 0) session.team1Wins = session.players5[0].wins;
+      if (playerIdx === 1) session.team2Wins = session.players5[1].wins;
+      if (playerIdx === 2) session.team3Wins = session.players5[2].wins;
+    } else {
+      if (teamIndex === 1) {
+        session.team1Wins = (session.team1Wins || 0) + 1;
+      } else if (teamIndex === 2) {
+        session.team2Wins = (session.team2Wins || 0) + 1;
+      } else if (teamIndex === 3) {
+        session.team3Wins = (session.team3Wins || 0) + 1;
+      }
     }
 
     setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
@@ -404,6 +434,7 @@ export const StorageService = {
         team1_wins: session.team1Wins,
         team2_wins: session.team2Wins,
         team3_wins: session.team3Wins ?? null,
+        players5: session.players5 ?? null,
       }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
     }
 
@@ -411,17 +442,27 @@ export const StorageService = {
     return session;
   },
 
-  decrementTournamentWin(sessionId: string, teamIndex: 1 | 2 | 3): TournamentSession | null {
+  decrementTournamentWin(sessionId: string, teamIndex: number): TournamentSession | null {
     const sessions = this.getTournamentSessions();
     const session = sessions.find((s) => s.id === sessionId);
     if (!session || session.status !== 'in_progress') return null;
 
-    if (teamIndex === 1 && (session.team1Wins || 0) > 0) {
-      session.team1Wins = (session.team1Wins || 0) - 1;
-    } else if (teamIndex === 2 && (session.team2Wins || 0) > 0) {
-      session.team2Wins = (session.team2Wins || 0) - 1;
-    } else if (teamIndex === 3 && (session.team3Wins || 0) > 0) {
-      session.team3Wins = (session.team3Wins || 0) - 1;
+    if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
+      const playerIdx = teamIndex - 1;
+      if (session.players5[playerIdx] && (session.players5[playerIdx].wins || 0) > 0) {
+        session.players5[playerIdx].wins = session.players5[playerIdx].wins - 1;
+      }
+      if (playerIdx === 0) session.team1Wins = session.players5[0].wins;
+      if (playerIdx === 1) session.team2Wins = session.players5[1].wins;
+      if (playerIdx === 2) session.team3Wins = session.players5[2].wins;
+    } else {
+      if (teamIndex === 1 && (session.team1Wins || 0) > 0) {
+        session.team1Wins = (session.team1Wins || 0) - 1;
+      } else if (teamIndex === 2 && (session.team2Wins || 0) > 0) {
+        session.team2Wins = (session.team2Wins || 0) - 1;
+      } else if (teamIndex === 3 && (session.team3Wins || 0) > 0) {
+        session.team3Wins = (session.team3Wins || 0) - 1;
+      }
     }
 
     setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
@@ -432,6 +473,7 @@ export const StorageService = {
         team1_wins: session.team1Wins,
         team2_wins: session.team2Wins,
         team3_wins: session.team3Wins ?? null,
+        players5: session.players5 ?? null,
       }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
     }
 
@@ -447,28 +489,46 @@ export const StorageService = {
     session.status = 'completed';
     session.endedAt = new Date().toISOString();
 
-    const isThreeWay = session.mode === '1vs1vs1' || !!session.team3Name;
-    const w1 = session.team1Wins || 0;
-    const w2 = session.team2Wins || 0;
-    const w3 = session.team3Wins || 0;
-
-    if (isThreeWay) {
-      if (w1 > w2 && w1 > w3) {
-        session.winnerTeam = 1;
-      } else if (w2 > w1 && w2 > w3) {
-        session.winnerTeam = 2;
-      } else if (w3 > w1 && w3 > w2) {
-        session.winnerTeam = 3;
-      } else {
+    if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
+      const maxWins = Math.max(...session.players5.map((p) => p.wins || 0));
+      if (maxWins === 0) {
         session.winnerTeam = 'pareggio';
+        session.winnerPlayerName = 'Nessuno (0 vittorie)';
+      } else {
+        const topPlayers = session.players5.filter((p) => (p.wins || 0) === maxWins);
+        if (topPlayers.length === 1) {
+          const leaderIdx = session.players5.findIndex((p) => p.name === topPlayers[0].name);
+          session.winnerTeam = ((leaderIdx + 1) as 1 | 2 | 3 | 4 | 5);
+          session.winnerPlayerName = topPlayers[0].name;
+        } else {
+          session.winnerTeam = 'pareggio';
+          session.winnerPlayerName = topPlayers.map((p) => p.name).join(' & ');
+        }
       }
     } else {
-      if (w1 > w2) {
-        session.winnerTeam = 1;
-      } else if (w2 > w1) {
-        session.winnerTeam = 2;
+      const isThreeWay = session.mode === '1vs1vs1' || !!session.team3Name;
+      const w1 = session.team1Wins || 0;
+      const w2 = session.team2Wins || 0;
+      const w3 = session.team3Wins || 0;
+
+      if (isThreeWay) {
+        if (w1 > w2 && w1 > w3) {
+          session.winnerTeam = 1;
+        } else if (w2 > w1 && w2 > w3) {
+          session.winnerTeam = 2;
+        } else if (w3 > w1 && w3 > w2) {
+          session.winnerTeam = 3;
+        } else {
+          session.winnerTeam = 'pareggio';
+        }
       } else {
-        session.winnerTeam = 'pareggio';
+        if (w1 > w2) {
+          session.winnerTeam = 1;
+        } else if (w2 > w1) {
+          session.winnerTeam = 2;
+        } else {
+          session.winnerTeam = 'pareggio';
+        }
       }
     }
 
@@ -480,6 +540,8 @@ export const StorageService = {
         is_active: false,
         ended_at: session.endedAt,
         winner_team: String(session.winnerTeam),
+        winner_player_name: session.winnerPlayerName ?? null,
+        players5: session.players5 ?? null,
       }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
     }
 

@@ -305,12 +305,14 @@ export function CalendarView({
                     </h4>
 
                     {selectedDaySessions.map((session) => {
-                      const isThree = session.mode === '1vs1vs1' || !!session.team3Name;
+                      const isA5 = session.mode === 'a5';
+                      const isThree = !isA5 && (session.mode === '1vs1vs1' || !!session.team3Name);
                       const isT1Winner = session.winnerTeam === 1;
                       const isT2Winner = session.winnerTeam === 2;
                       const isT3Winner = session.winnerTeam === 3;
-                      const totalGames =
-                        session.team1Wins + session.team2Wins + (session.team3Wins || 0);
+                      const totalGames = isA5 && session.players5
+                        ? session.players5.reduce((sum, p) => sum + (p.wins || 0), 0)
+                        : session.team1Wins + session.team2Wins + (session.team3Wins || 0);
 
                       return (
                         <div
@@ -323,7 +325,9 @@ export function CalendarView({
                                 🏆 Torneo Concluso
                               </span>
                               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-semibold">
-                                {session.mode === '1vs1vs1'
+                                {session.mode === 'a5'
+                                  ? 'A 5 (Chiamata)'
+                                  : session.mode === '1vs1vs1'
                                   ? '1 vs 1 vs 1'
                                   : session.mode === '1vs1'
                                   ? '1 vs 1'
@@ -332,7 +336,9 @@ export function CalendarView({
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-[var(--text-muted)] font-mono tabular-nums">
-                                {totalGames} {totalGames === 1 ? 'partita giocata' : 'partite giocate'}
+                                {isA5
+                                  ? `${totalGames} ${totalGames === 1 ? 'vittoria registrata' : 'vittorie registrate'}`
+                                  : `${totalGames} ${totalGames === 1 ? 'partita giocata' : 'partite giocate'}`}
                               </span>
                               <button
                                 type="button"
@@ -345,7 +351,38 @@ export function CalendarView({
                             </div>
                           </div>
 
-                          {isThree ? (
+                          {isA5 && session.players5 && session.players5.length > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1 text-center items-center">
+                              {session.players5.map((p, pIdx) => {
+                                const isWinner = session.winnerPlayerName
+                                  ? session.winnerPlayerName.split(' & ').includes(p.name)
+                                  : (typeof session.winnerTeam === 'number' && session.winnerTeam === pIdx + 1);
+                                return (
+                                  <div
+                                    key={p.name + pIdx}
+                                    className={`min-w-0 bg-[var(--surface-alt)] p-2.5 rounded-xl border ${
+                                      pIdx === 4 ? 'col-span-2 sm:col-span-1' : ''
+                                    } ${
+                                      isWinner
+                                        ? 'border-[var(--accent)] shadow-sm ring-1 ring-[var(--accent)]/30'
+                                        : 'border-[var(--divider)]'
+                                    }`}
+                                  >
+                                    <span
+                                      className={`text-xs sm:text-sm font-extrabold block truncate ${
+                                        isWinner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                                      }`}
+                                    >
+                                      {p.name} {isWinner && '🏆'}
+                                    </span>
+                                    <span className="text-base sm:text-lg font-mono font-black tabular-nums text-[var(--text)] block mt-0.5">
+                                      {p.wins}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : isThree ? (
                             <div className="grid grid-cols-3 gap-2 pt-1 text-center items-center">
                               <div className="min-w-0 bg-[var(--surface-alt)] p-2.5 rounded-xl border border-[var(--divider)]">
                                 <span

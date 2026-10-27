@@ -1,13 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { Home, ChevronDown, Check, Plus, QrCode } from 'lucide-react';
 import { HouseService } from '@/lib/houseService';
 import type { House, KnownHouse } from '@/types/house';
 import { ShareHouseModal } from './ShareHouseModal';
 import { CreateOrJoinHouseModal } from './CreateOrJoinHouseModal';
 
+const emptySubscribe = () => () => {};
+
 export function HouseSwitcher() {
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [activeHouse, setActiveHouse] = useState<House>(() => HouseService.getActiveHouse());
   const [knownHouses, setKnownHouses] = useState<KnownHouse[]>(() => HouseService.getKnownHouses());
   const [isOpen, setIsOpen] = useState(false);
@@ -85,84 +89,157 @@ export function HouseSwitcher() {
           />
         </button>
 
+        {/* Dropdown desktop */}
         {isOpen && (
-          <>
-            {/* Mobile backdrop */}
-            <div
-              className="fixed inset-0 z-40 bg-black/50 sm:hidden animate-fade-in"
-              onClick={() => setIsOpen(false)}
-            />
-
-            <div className="fixed left-3 right-3 top-16 max-w-sm mx-auto sm:max-w-none sm:absolute sm:inset-auto sm:top-full sm:left-0 sm:right-auto sm:mt-2 sm:w-64 rounded-2xl bg-[var(--surface)] border border-[var(--divider)] shadow-2xl p-1.5 z-50 animate-scale-in">
-              {/* Intestazione */}
-              <div className="px-3 py-2 border-b border-[var(--divider)] mb-1 flex items-center justify-between">
-                <span className="text-[10px] font-semibold tracking-wider uppercase text-[var(--text-muted)]">
-                  Le tue Case
-                </span>
-                <span className="font-mono text-[10px] text-[var(--text-muted)]">
-                  {knownHouses.length} {knownHouses.length === 1 ? 'casa' : 'case'}
-                </span>
-              </div>
-
-              {/* Lista Case note */}
-              <div className="max-h-52 overflow-y-auto space-y-0.5">
-                {knownHouses.map((house) => {
-                  const isCurrent = house.id === activeHouse.id;
-                  return (
-                    <button
-                      key={house.id}
-                      type="button"
-                      onClick={() => handleSelectHouse(house.id)}
-                      className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer ${
-                        isCurrent
-                          ? 'bg-[var(--surface-raised)] text-[var(--text)] font-bold'
-                          : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]/60'
-                      }`}
-                    >
-                      <div className="truncate pr-2">
-                        <span className="block truncate">{house.name}</span>
-                        <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                          {house.inviteCode}
-                        </span>
-                      </div>
-                      {isCurrent && <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="my-1 border-t border-[var(--divider)]" />
-
-              {/* Azioni */}
-              <div className="space-y-0.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    setShowShareModal(true);
-                  }}
-                  className="w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
-                >
-                  <QrCode className="w-3.5 h-3.5 text-[var(--accent)]" />
-                  <span>Condividi con QR / Link</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    setShowCreateModal(true);
-                  }}
-                  className="w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                  <span>Nuova o Entra in una Casa</span>
-                </button>
-              </div>
+          <div className="hidden sm:block absolute top-full left-0 mt-2 w-64 rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl p-1.5 z-50 animate-scale-in">
+            {/* Intestazione */}
+            <div className="px-3 py-2 border-b border-[var(--divider)] mb-1 flex items-center justify-between">
+              <span className="text-[10px] font-semibold tracking-wider uppercase text-[var(--text-muted)]">
+                Le tue Case
+              </span>
+              <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                {knownHouses.length} {knownHouses.length === 1 ? 'casa' : 'case'}
+              </span>
             </div>
-          </>
+
+            {/* Lista Case note */}
+            <div className="max-h-52 overflow-y-auto space-y-0.5">
+              {knownHouses.map((house) => {
+                const isCurrent = house.id === activeHouse.id;
+                return (
+                  <button
+                    key={house.id}
+                    type="button"
+                    onClick={() => handleSelectHouse(house.id)}
+                    className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer ${
+                      isCurrent
+                        ? 'bg-[var(--surface-alt)] text-[var(--text)] font-bold'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]/60'
+                    }`}
+                  >
+                    <div className="truncate pr-2">
+                      <span className="block truncate">{house.name}</span>
+                      <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                        {house.inviteCode}
+                      </span>
+                    </div>
+                    {isCurrent && <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="my-1 border-t border-[var(--divider)]" />
+
+            {/* Azioni */}
+            <div className="space-y-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setShowShareModal(true);
+                }}
+                className="w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+              >
+                <QrCode className="w-3.5 h-3.5 text-[var(--accent)]" />
+                <span>Condividi con QR / Link</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setShowCreateModal(true);
+                }}
+                className="w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                <span>Nuova o Entra in una Casa</span>
+              </button>
+            </div>
+          </div>
         )}
       </div>
+
+      {/* Dropdown mobile portalled directly to document.body to avoid header stacking context trapping */}
+      {isOpen && mounted && createPortal(
+        <div
+          className="fixed inset-0 z-[90] sm:hidden overflow-y-auto bg-black/70 backdrop-blur-sm animate-fade-in"
+          onClick={() => setIsOpen(false)}
+        >
+          <div
+            className="fixed left-3 right-3 top-16 max-w-sm mx-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 p-2 z-[91] animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Intestazione */}
+            <div className="px-3 py-2 border-b border-[var(--divider)] mb-1 flex items-center justify-between">
+              <span className="text-[10px] font-semibold tracking-wider uppercase text-[var(--text-muted)]">
+                Le tue Case
+              </span>
+              <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                {knownHouses.length} {knownHouses.length === 1 ? 'casa' : 'case'}
+              </span>
+            </div>
+
+            {/* Lista Case note */}
+            <div className="max-h-52 overflow-y-auto space-y-0.5">
+              {knownHouses.map((house) => {
+                const isCurrent = house.id === activeHouse.id;
+                return (
+                  <button
+                    key={house.id}
+                    type="button"
+                    onClick={() => handleSelectHouse(house.id)}
+                    className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer ${
+                      isCurrent
+                        ? 'bg-[var(--surface-alt)] text-[var(--text)] font-bold'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]/60'
+                    }`}
+                  >
+                    <div className="truncate pr-2">
+                      <span className="block truncate">{house.name}</span>
+                      <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                        {house.inviteCode}
+                      </span>
+                    </div>
+                    {isCurrent && <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="my-1 border-t border-[var(--divider)]" />
+
+            {/* Azioni */}
+            <div className="space-y-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setShowShareModal(true);
+                }}
+                className="w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+              >
+                <QrCode className="w-3.5 h-3.5 text-[var(--accent)]" />
+                <span>Condividi con QR / Link</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  setShowCreateModal(true);
+                }}
+                className="w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                <span>Nuova o Entra in una Casa</span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       <ShareHouseModal
         isOpen={showShareModal}
