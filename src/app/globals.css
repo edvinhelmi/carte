@@ -123,6 +123,11 @@ h1, h2, h3, .font-heading {
   height: 100%;
 }
 
+/* Mobile Safe Area for Bottom Navigation */
+.bottom-nav-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
+
 /* TasteCode Motion & Micro-Interactions */
 @keyframes view-enter {
   from {

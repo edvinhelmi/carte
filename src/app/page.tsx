@@ -72,7 +72,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)] text-[var(--text)] flex flex-col font-sans pb-24 md:pb-12 selection:bg-amber-500/20 selection:text-amber-200">
+    <div className="min-h-screen bg-[var(--canvas)] text-[var(--text)] flex flex-col font-sans pb-28 md:pb-12 selection:bg-amber-500/20 selection:text-amber-200 overflow-x-hidden">
       {/* Header di Navigazione */}
       <Header
         activeTab={activeTab}
@@ -81,7 +81,7 @@ export default function Home() {
       />
 
       {/* Contenuto Principale con Tab Switch */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-6 overflow-x-hidden">
         <div key={activeTab} className="view-transition">
           {activeTab === 'torneo' && (
             <TorneoSerataView
