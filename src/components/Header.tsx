@@ -30,7 +30,7 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shadow-sm group-hover:border-[var(--accent)]/60 transition-[border-color,box-shadow] duration-200 shrink-0">
             <Trophy className="w-5 h-5 text-[var(--accent)] icon-hover-tilt" />
           </div>
-          <span className="font-heading font-extrabold text-base sm:text-lg text-[var(--text)] tracking-tight truncate">
+          <span className="font-heading font-black text-lg sm:text-xl text-[var(--text)] tracking-tight leading-none truncate pt-0.5">
             Briscola Club
           </span>
         </button>
@@ -75,7 +75,7 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
               className="group inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] hover:shadow-[0_2px_12px_rgba(245,158,11,0.12)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90" />
-              <span className="text-xs">+ Vittoria</span>
+              <span className="text-xs">Vittoria</span>
             </button>
           )}
 
