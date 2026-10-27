@@ -2,7 +2,7 @@ import React from 'react';
 import { Trophy, Calendar as CalendarIcon, Users, Settings, Plus, Sparkles, Swords } from 'lucide-react';
 import { SuitIcon } from './SuitIcon';
 
-export type TabType = 'matches' | 'calendar' | 'tournaments' | 'leaderboard' | 'teams' | 'settings';
+export type TabType = 'matches' | 'torneo' | 'calendar' | 'leaderboard' | 'teams' | 'settings';
 
 interface HeaderProps {
   activeTab: TabType;
@@ -13,8 +13,8 @@ interface HeaderProps {
 export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProps) {
   const navItems = [
     { id: 'matches' as TabType, label: 'Partite', icon: Sparkles },
+    { id: 'torneo' as TabType, label: 'Torneo Serata', icon: Swords },
     { id: 'calendar' as TabType, label: 'Calendario', icon: CalendarIcon },
-    { id: 'tournaments' as TabType, label: 'Tornei Live', icon: Swords },
     { id: 'leaderboard' as TabType, label: 'Classifica', icon: Trophy },
     { id: 'teams' as TabType, label: 'Squadre & Giocatori', icon: Users },
     { id: 'settings' as TabType, label: 'Impostazioni', icon: Settings },

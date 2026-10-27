@@ -2,20 +2,22 @@
 
 import { useSyncExternalStore } from 'react';
 import { StorageService } from './storage';
-import { Player, Team, Match, Tournament } from '@/types/game';
+import { Player, Team, Match, TournamentSession } from '@/types/game';
 
 interface StorageData {
   players: Player[];
   teams: Team[];
   matches: Match[];
-  tournaments: Tournament[];
+  tournamentSessions: TournamentSession[];
+  activeSession: TournamentSession | null;
 }
 
 let cachedData: StorageData = {
   players: [],
   teams: [],
   matches: [],
-  tournaments: [],
+  tournamentSessions: [],
+  activeSession: null,
 };
 
 function getSnapshot(): StorageData {
@@ -24,17 +26,19 @@ function getSnapshot(): StorageData {
   const players = StorageService.getPlayers();
   const teams = StorageService.getTeams();
   const matches = StorageService.getMatches();
-  const tournaments = StorageService.getTournaments();
+  const tournamentSessions = StorageService.getTournamentSessions();
+  const activeSession = StorageService.getActiveTournamentSession();
 
-  // Confronto per mantenere lo stesso riferimento se non è cambiato nulla
   if (
     cachedData.players.length !== players.length ||
     cachedData.teams.length !== teams.length ||
     cachedData.matches.length !== matches.length ||
-    cachedData.tournaments.length !== tournaments.length ||
-    JSON.stringify(cachedData) !== JSON.stringify({ players, teams, matches, tournaments })
+    cachedData.tournamentSessions.length !== tournamentSessions.length ||
+    JSON.stringify(cachedData.activeSession) !== JSON.stringify(activeSession) ||
+    JSON.stringify(cachedData) !==
+      JSON.stringify({ players, teams, matches, tournamentSessions, activeSession })
   ) {
-    cachedData = { players, teams, matches, tournaments };
+    cachedData = { players, teams, matches, tournamentSessions, activeSession };
   }
   return cachedData;
 }
@@ -44,7 +48,8 @@ function getServerSnapshot(): StorageData {
     players: [],
     teams: [],
     matches: [],
-    tournaments: [],
+    tournamentSessions: [],
+    activeSession: null,
   };
 }
 

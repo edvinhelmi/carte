@@ -1,10 +1,10 @@
-import { Player, Team, Match, Tournament } from '@/types/game';
+import { Player, Team, Match, TournamentSession } from '@/types/game';
 
 const STORAGE_KEYS = {
   PLAYERS: 'carte_briscola_players_v1',
   TEAMS: 'carte_briscola_teams_v1',
   MATCHES: 'carte_briscola_matches_v1',
-  TOURNAMENTS: 'carte_briscola_tournaments_v1',
+  TOURNAMENT_SESSIONS: 'carte_tournament_sessions_v2',
   SETTINGS: 'carte_briscola_settings_v1',
 };
 
@@ -48,8 +48,6 @@ const DEMO_PLAYERS: Player[] = [
   { id: 'p2', name: 'Matteo', nickname: 'Asso Pigliatutto', avatarSuit: 'bastoni', createdAt: '2026-10-01T10:05:00Z' },
   { id: 'p3', name: 'Sara', nickname: 'Strozza-Re', avatarSuit: 'coppe', createdAt: '2026-10-01T10:10:00Z' },
   { id: 'p4', name: 'Elena', nickname: 'La Tagliatrice', avatarSuit: 'spade', createdAt: '2026-10-01T10:15:00Z' },
-  { id: 'p5', name: 'Luca', nickname: 'Il Saggio', avatarSuit: 'spade', createdAt: '2026-10-01T10:20:00Z' },
-  { id: 'p6', name: 'Chiara', nickname: 'Lampi e Tuoni', avatarSuit: 'denari', createdAt: '2026-10-01T10:25:00Z' },
 ];
 
 const DEMO_TEAMS: Team[] = [
@@ -69,25 +67,8 @@ const DEMO_TEAMS: Team[] = [
     suit: 'coppe',
     createdAt: '2026-10-01T10:25:00Z',
   },
-  {
-    id: 't3',
-    name: 'Assi di Spade',
-    playerIds: ['p5', 'p1'],
-    color: '#0ea5e9',
-    suit: 'spade',
-    createdAt: '2026-10-01T10:30:00Z',
-  },
-  {
-    id: 't4',
-    name: 'Signori dei Denari',
-    playerIds: ['p6', 'p2'],
-    color: '#eab308',
-    suit: 'denari',
-    createdAt: '2026-10-01T10:35:00Z',
-  },
 ];
 
-// Genera partite demo
 function generateDemoMatches(): Match[] {
   const now = new Date();
   const todayKey = formatDateKey(now);
@@ -176,57 +157,26 @@ function generateDemoMatches(): Match[] {
   ];
 }
 
-// Genera torneo demo iniziale
-function generateDemoTournaments(): Tournament[] {
+function generateDemoSessions(): TournamentSession[] {
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = formatDateKey(yesterday);
+
   return [
     {
-      id: 'tour_demo_1',
-      name: 'Torneo dei Quattro Semi 🏆',
-      gameType: 'briscola',
-      format: 'knockout',
-      teamIds: ['t1', 't2', 't3', 't4'],
-      status: 'in_progress',
-      createdAt: '2026-10-26T20:00:00Z',
-      matches: [
-        {
-          id: 'tm_demo_semi1',
-          roundIndex: 1,
-          roundName: 'Semifinale 1',
-          team1Id: 't1',
-          team2Id: 't2',
-          scoreTeam1: 66,
-          scoreTeam2: 54,
-          winnerTeamId: 't1',
-          status: 'completed',
-          nextMatchId: 'tm_demo_final',
-          nextMatchSlot: 'team1',
-        },
-        {
-          id: 'tm_demo_semi2',
-          roundIndex: 1,
-          roundName: 'Semifinale 2',
-          team1Id: 't3',
-          team2Id: 't4',
-          scoreTeam1: undefined,
-          scoreTeam2: undefined,
-          winnerTeamId: null,
-          status: 'pending',
-          nextMatchId: 'tm_demo_final',
-          nextMatchSlot: 'team2',
-        },
-        {
-          id: 'tm_demo_final',
-          roundIndex: 2,
-          roundName: 'Grand Finale 🏆',
-          team1Id: 't1', // qualificato da semi1
-          team2Id: null, // in attesa di semi2
-          scoreTeam1: undefined,
-          scoreTeam2: undefined,
-          winnerTeamId: null,
-          status: 'pending',
-        },
-      ],
-      winnerTeamId: null,
+      id: 'tour_demo_yesterday',
+      dateKey: yesterdayKey,
+      startedAt: `${yesterdayKey}T20:45:00Z`,
+      endedAt: `${yesterdayKey}T22:30:00Z`,
+      team1Name: 'I Bastonatori',
+      team1Players: ['Marco', 'Matteo'],
+      team2Name: 'Regine di Coppe',
+      team2Players: ['Sara', 'Elena'],
+      team1Wins: 1,
+      team2Wins: 2,
+      status: 'completed',
+      winnerTeam: 2,
     },
   ];
 }
@@ -244,8 +194,8 @@ export const StorageService = {
       if (!localStorage.getItem(STORAGE_KEYS.MATCHES)) {
         localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(generateDemoMatches()));
       }
-      if (!localStorage.getItem(STORAGE_KEYS.TOURNAMENTS)) {
-        localStorage.setItem(STORAGE_KEYS.TOURNAMENTS, JSON.stringify(generateDemoTournaments()));
+      if (!localStorage.getItem(STORAGE_KEYS.TOURNAMENT_SESSIONS)) {
+        localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(generateDemoSessions()));
       }
     } catch (e) {
       console.error('Storage init error:', e);
@@ -342,51 +292,133 @@ export const StorageService = {
     notifyRealtimeUpdate();
   },
 
-  // Tornei
-  getTournaments(): Tournament[] {
+  // GESTIONE TORNEI / SERATE
+  getTournamentSessions(): TournamentSession[] {
     if (typeof window === 'undefined') return [];
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.TOURNAMENTS);
-      return data ? JSON.parse(data) : generateDemoTournaments();
+      const data = localStorage.getItem(STORAGE_KEYS.TOURNAMENT_SESSIONS);
+      return data ? JSON.parse(data) : generateDemoSessions();
     } catch {
-      return generateDemoTournaments();
+      return generateDemoSessions();
     }
   },
 
-  saveTournament(tournament: Tournament): void {
-    if (typeof window === 'undefined') return;
-    const tournaments = this.getTournaments();
-    const index = tournaments.findIndex((t) => t.id === tournament.id);
-    if (index >= 0) {
-      tournaments[index] = tournament;
+  getActiveTournamentSession(): TournamentSession | null {
+    const sessions = this.getTournamentSessions();
+    return sessions.find((s) => s.status === 'in_progress') || null;
+  },
+
+  startTournamentSession(
+    team1Name: string,
+    team1Players: string[],
+    team2Name: string,
+    team2Players: string[]
+  ): TournamentSession {
+    const sessions = this.getTournamentSessions();
+    const newSession: TournamentSession = {
+      id: `tour_${Date.now()}`,
+      dateKey: formatDateKey(),
+      startedAt: new Date().toISOString(),
+      team1Name: team1Name.trim() || 'Squadra 1',
+      team1Players,
+      team2Name: team2Name.trim() || 'Squadra 2',
+      team2Players,
+      team1Wins: 0,
+      team2Wins: 0,
+      status: 'in_progress',
+    };
+
+    sessions.unshift(newSession);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
+      notifyRealtimeUpdate();
+    }
+    return newSession;
+  },
+
+  incrementTournamentWin(sessionId: string, teamIndex: 1 | 2): void {
+    const sessions = this.getTournamentSessions();
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session || session.status !== 'in_progress') return;
+
+    if (teamIndex === 1) {
+      session.team1Wins += 1;
     } else {
-      tournaments.unshift(tournament);
+      session.team2Wins += 1;
     }
-    localStorage.setItem(STORAGE_KEYS.TOURNAMENTS, JSON.stringify(tournaments));
-    notifyRealtimeUpdate();
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
+      notifyRealtimeUpdate();
+    }
   },
 
-  deleteTournament(tournamentId: string): void {
+  decrementTournamentWin(sessionId: string, teamIndex: 1 | 2): void {
+    const sessions = this.getTournamentSessions();
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session || session.status !== 'in_progress') return;
+
+    if (teamIndex === 1 && session.team1Wins > 0) {
+      session.team1Wins -= 1;
+    } else if (teamIndex === 2 && session.team2Wins > 0) {
+      session.team2Wins -= 1;
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
+      notifyRealtimeUpdate();
+    }
+  },
+
+  endTournamentSession(sessionId: string): TournamentSession | null {
+    const sessions = this.getTournamentSessions();
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session) return null;
+
+    session.status = 'completed';
+    session.endedAt = new Date().toISOString();
+
+    if (session.team1Wins > session.team2Wins) {
+      session.winnerTeam = 1;
+    } else if (session.team2Wins > session.team1Wins) {
+      session.winnerTeam = 2;
+    } else {
+      session.winnerTeam = 'pareggio';
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
+      notifyRealtimeUpdate();
+    }
+    return session;
+  },
+
+  deleteTournamentSession(sessionId: string): void {
     if (typeof window === 'undefined') return;
-    const tournaments = this.getTournaments().filter((t) => t.id !== tournamentId);
-    localStorage.setItem(STORAGE_KEYS.TOURNAMENTS, JSON.stringify(tournaments));
+    const sessions = this.getTournamentSessions().filter((s) => s.id !== sessionId);
+    localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
     notifyRealtimeUpdate();
   },
 
   // Export completo
   exportAllData() {
     return {
-      version: '1.1',
+      version: '1.2',
       exportedAt: new Date().toISOString(),
       players: this.getPlayers(),
       teams: this.getTeams(),
       matches: this.getMatches(),
-      tournaments: this.getTournaments(),
+      tournamentSessions: this.getTournamentSessions(),
     };
   },
 
   // Importazione da file JSON
-  importAllData(data: { players?: Player[]; teams?: Team[]; matches?: Match[]; tournaments?: Tournament[] }) {
+  importAllData(data: {
+    players?: Player[];
+    teams?: Team[];
+    matches?: Match[];
+    tournamentSessions?: TournamentSession[];
+  }) {
     if (typeof window === 'undefined') return;
     if (Array.isArray(data.players)) {
       localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(data.players));
@@ -397,8 +429,8 @@ export const StorageService = {
     if (Array.isArray(data.matches)) {
       localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(data.matches));
     }
-    if (Array.isArray(data.tournaments)) {
-      localStorage.setItem(STORAGE_KEYS.TOURNAMENTS, JSON.stringify(data.tournaments));
+    if (Array.isArray(data.tournamentSessions)) {
+      localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(data.tournamentSessions));
     }
     notifyRealtimeUpdate();
   },
@@ -409,7 +441,7 @@ export const StorageService = {
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(DEMO_PLAYERS));
     localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(DEMO_TEAMS));
     localStorage.setItem(STORAGE_KEYS.MATCHES, JSON.stringify(generateDemoMatches()));
-    localStorage.setItem(STORAGE_KEYS.TOURNAMENTS, JSON.stringify(generateDemoTournaments()));
+    localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(generateDemoSessions()));
     notifyRealtimeUpdate();
   },
 
@@ -419,7 +451,7 @@ export const StorageService = {
     localStorage.removeItem(STORAGE_KEYS.PLAYERS);
     localStorage.removeItem(STORAGE_KEYS.TEAMS);
     localStorage.removeItem(STORAGE_KEYS.MATCHES);
-    localStorage.removeItem(STORAGE_KEYS.TOURNAMENTS);
+    localStorage.removeItem(STORAGE_KEYS.TOURNAMENT_SESSIONS);
     notifyRealtimeUpdate();
   },
 };

@@ -46,15 +46,15 @@ export function BottomNav({ activeTab, setActiveTab, onOpenQuickMatch }: BottomN
           <span className="text-[10px] text-amber-400/90 font-medium mt-0.5">Vittoria</span>
         </div>
 
-        {/* Tab 3: Tornei Live */}
+        {/* Tab 3: Torneo Serata */}
         <button
-          onClick={() => setActiveTab('tournaments')}
+          onClick={() => setActiveTab('torneo')}
           className={`flex flex-col items-center justify-center py-1 px-2 rounded-lg transition-colors ${
-            activeTab === 'tournaments' ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
+            activeTab === 'torneo' ? 'text-amber-400 font-semibold' : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
           <Swords className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">Tornei</span>
+          <span className="text-[10px] tracking-tight">Torneo</span>
         </button>
 
         {/* Tab 4: Classifica */}

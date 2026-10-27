@@ -60,31 +60,18 @@ export interface HeadToHeadStats {
   lastMatches: Match[];
 }
 
-export type TournamentFormat = 'round_robin' | 'knockout';
-
-export interface TournamentMatch {
+// Sessione di Torneo / Serata di partite consecutive tra due squadre
+export interface TournamentSession {
   id: string;
-  roundIndex: number;
-  roundName: string;
-  team1Id: string | null;
-  team2Id: string | null;
-  scoreTeam1?: number;
-  scoreTeam2?: number;
-  winnerTeamId?: string | null;
-  status: 'pending' | 'completed';
-  nextMatchId?: string; // per eliminazione diretta: id della partita successiva
-  nextMatchSlot?: 'team1' | 'team2'; // quale slot occupare nella partita successiva
-}
-
-export interface Tournament {
-  id: string;
-  name: string;
-  gameType: GameType;
-  format: TournamentFormat;
-  teamIds: string[];
+  dateKey: string; // YYYY-MM-DD
+  startedAt: string;
+  endedAt?: string;
+  team1Name: string;
+  team1Players: string[];
+  team2Name: string;
+  team2Players: string[];
+  team1Wins: number;
+  team2Wins: number;
   status: 'in_progress' | 'completed';
-  createdAt: string;
-  matches: TournamentMatch[];
-  winnerTeamId?: string | null;
+  winnerTeam?: 1 | 2 | 'pareggio';
 }
-
