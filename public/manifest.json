@@ -1,0 +1,16 @@
+{
+  "name": "Briscola Club • Tracciatore Vittorie",
+  "short_name": "Briscola",
+  "description": "Segnapunti e tracker per partite a Briscola in casa",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
