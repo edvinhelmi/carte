@@ -1,4 +1,5 @@
 import { Player, Team, Match, TournamentSession } from '@/types/game';
+import { RealtimeSyncService } from './realtimeSync';
 
 const STORAGE_KEYS = {
   PLAYERS: 'carte_briscola_players_v1',
@@ -332,6 +333,7 @@ export const StorageService = {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
       notifyRealtimeUpdate();
+      RealtimeSyncService.publishUpdate('TOURNAMENT_START', newSession);
     }
     return newSession;
   },
@@ -350,6 +352,7 @@ export const StorageService = {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
       notifyRealtimeUpdate();
+      RealtimeSyncService.publishUpdate('TOURNAMENT_UPDATE', session);
     }
   },
 
@@ -367,6 +370,7 @@ export const StorageService = {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
       notifyRealtimeUpdate();
+      RealtimeSyncService.publishUpdate('TOURNAMENT_UPDATE', session);
     }
   },
 
@@ -389,6 +393,7 @@ export const StorageService = {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.TOURNAMENT_SESSIONS, JSON.stringify(sessions));
       notifyRealtimeUpdate();
+      RealtimeSyncService.publishUpdate('TOURNAMENT_END', session);
     }
     return session;
   },

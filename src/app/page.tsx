@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { useStorageData } from '@/lib/useStorageData';
+import { RealtimeSyncService } from '@/lib/realtimeSync';
 import { Header, TabType } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { MatchesHomeView } from '@/components/MatchesHomeView';
@@ -27,6 +28,14 @@ export default function Home() {
   // Stato Modale Quick Match
   const [isQuickMatchOpen, setIsQuickMatchOpen] = useState(false);
   const [quickMatchDateKey, setQuickMatchDateKey] = useState<string | undefined>(undefined);
+
+  // Connessione Real-time Cloud SSE per sincronizzazione multi-telefono e multi-dispositivo
+  useEffect(() => {
+    RealtimeSyncService.connect();
+    return () => {
+      RealtimeSyncService.disconnect();
+    };
+  }, []);
 
   // Apertura modale per registrare partita con data specifica
   const handleOpenQuickMatchWithDate = (dateKey: string) => {

@@ -6,9 +6,12 @@ import {
   Minus,
   Trash2,
   Clock,
+  Share2,
+  Check,
 } from 'lucide-react';
 import { TournamentSession, Team, Player } from '@/types/game';
 import { StorageService } from '@/lib/storage';
+import { RealtimeSyncService } from '@/lib/realtimeSync';
 import { fireWinConfetti } from '@/lib/confetti';
 
 interface TorneoSerataViewProps {
@@ -33,6 +36,21 @@ export function TorneoSerataView({
   const [team2SelectedPlayers, setTeam2SelectedPlayers] = useState<string[]>([]);
   const [customPlayerInput1, setCustomPlayerInput1] = useState('');
   const [customPlayerInput2, setCustomPlayerInput2] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleShareLink = () => {
+    if (typeof window === 'undefined') return;
+    const room = RealtimeSyncService.getRoom();
+    const url = `${window.location.origin}?room=${room}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      });
+    } else {
+      prompt('Copia questo link e invialo a chi gioca al tavolo:', url);
+    }
+  };
 
   // Seleziona una squadra esistente come preset
   const handleSelectTeam1Preset = (teamId: string) => {
@@ -135,7 +153,29 @@ export function TorneoSerataView({
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* BARRA LIVE CLOUD SYNC & CONDIVISIONE */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 bg-emerald-950/40 border border-emerald-500/30 px-4 py-2.5 rounded-2xl text-xs shadow-md">
+        <div className="flex items-center gap-2">
+          <span className="flex h-2 w-2 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          <span className="text-emerald-300 font-medium">
+            <strong>Sincronizzazione Live Cloud:</strong> Chiunque apre il link dal telefono vede e modifica i punteggi in tempo reale.
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleShareLink}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold border border-emerald-500/40 transition-colors cursor-pointer"
+        >
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+          <span>{copied ? 'Link Copiato!' : 'Condividi con chi gioca'}</span>
+        </button>
+      </div>
+
       {/* SEZIONE 1: TABELLONE IN TEMPO REALE SE C'È UN TORNEO ATTIVO */}
       {activeSession ? (
         <div className="space-y-6">
