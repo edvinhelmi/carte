@@ -59,18 +59,24 @@ export interface HeadToHeadStats {
   lastMatches: Match[];
 }
 
-// Sessione di Torneo / Serata di partite consecutive tra due squadre
+export type TournamentMode = '2vs2' | '1vs1' | '1vs1vs1';
+
+// Sessione di Torneo / Serata di partite consecutive tra due o tre partecipanti
 export interface TournamentSession {
   id: string;
   dateKey: string; // YYYY-MM-DD
   startedAt: string;
   endedAt?: string;
+  mode?: TournamentMode;
   team1Name: string;
   team1Players: string[];
   team2Name: string;
   team2Players: string[];
+  team3Name?: string;
+  team3Players?: string[];
   team1Wins: number;
   team2Wins: number;
+  team3Wins?: number;
   status: 'in_progress' | 'completed';
-  winnerTeam?: 1 | 2 | 'pareggio';
+  winnerTeam?: 1 | 2 | 3 | 'pareggio';
 }

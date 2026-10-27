@@ -1,4 +1,4 @@
-import { TournamentSession, Match, Team, Player } from '@/types/game';
+import type { TournamentSession, Match, Team, Player } from '@/types/game';
 
 const DEFAULT_ROOM = 'carte_briscola_live_casa';
 const NTFY_BASE_URL = 'https://ntfy.sh';

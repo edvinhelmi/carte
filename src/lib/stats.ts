@@ -1,4 +1,4 @@
-import { Player, Team, Match, TournamentSession, TeamStats, PlayerStats, HeadToHeadStats } from '@/types/game';
+import type { Player, Team, Match, TournamentSession, TeamStats, PlayerStats, HeadToHeadStats } from '@/types/game';
 
 export function calculateTeamStats(
   teams: Team[],
@@ -12,10 +12,15 @@ export function calculateTeamStats(
   // Includi anche team creati durante i tornei che potrebbero non essere salvati nei preset
   const allTeams = [...teams];
   for (const session of tournamentSessions) {
-    for (const [tName, pNames] of [
+    const sessionTeams: [string, string[]][] = [
       [session.team1Name, session.team1Players],
       [session.team2Name, session.team2Players],
-    ] as const) {
+    ];
+    if (session.team3Name) {
+      sessionTeams.push([session.team3Name, session.team3Players || []]);
+    }
+
+    for (const [tName, pNames] of sessionTeams) {
       if (!tName) continue;
       const exists = allTeams.some((t) => t.name.toLowerCase() === tName.toLowerCase());
       if (!exists) {
@@ -40,12 +45,20 @@ export function calculateTeamStats(
 
     // Aggiungi vittorie e partite dalle sessioni di torneo
     for (const session of tournamentSessions) {
-      if (session.team1Name.toLowerCase() === team.name.toLowerCase()) {
+      const totalSessionWins = (session.team1Wins || 0) + (session.team2Wins || 0) + (session.team3Wins || 0);
+      const isT1 = session.team1Name.toLowerCase() === team.name.toLowerCase();
+      const isT2 = session.team2Name.toLowerCase() === team.name.toLowerCase();
+      const isT3 = !!session.team3Name && session.team3Name.toLowerCase() === team.name.toLowerCase();
+
+      if (isT1) {
         wins += session.team1Wins;
-        matchesPlayed += session.team1Wins + session.team2Wins;
-      } else if (session.team2Name.toLowerCase() === team.name.toLowerCase()) {
+        matchesPlayed += totalSessionWins;
+      } else if (isT2) {
         wins += session.team2Wins;
-        matchesPlayed += session.team1Wins + session.team2Wins;
+        matchesPlayed += totalSessionWins;
+      } else if (isT3) {
+        wins += session.team3Wins || 0;
+        matchesPlayed += totalSessionWins;
       }
     }
 
@@ -105,15 +118,28 @@ export function calculatePlayerStats(
 
     // Aggiungi vittorie e partite disputate nei tornei per il singolo giocatore
     for (const session of tournamentSessions) {
-      const inTeam1 = session.team1Players.some((p) => p.toLowerCase() === pNameLower);
-      const inTeam2 = session.team2Players.some((p) => p.toLowerCase() === pNameLower);
+      const inTeam1 =
+        session.team1Players.some((p) => p.toLowerCase() === pNameLower) ||
+        session.team1Name.toLowerCase() === pNameLower;
+      const inTeam2 =
+        session.team2Players.some((p) => p.toLowerCase() === pNameLower) ||
+        session.team2Name.toLowerCase() === pNameLower;
+      const inTeam3 =
+        session.team3Players?.some((p) => p.toLowerCase() === pNameLower) ||
+        (session.team3Name ? session.team3Name.toLowerCase() === pNameLower : false);
+
+      const totalSessionMatches =
+        (session.team1Wins || 0) + (session.team2Wins || 0) + (session.team3Wins || 0);
 
       if (inTeam1) {
         wins += session.team1Wins;
-        matchesPlayed += session.team1Wins + session.team2Wins;
+        matchesPlayed += totalSessionMatches;
       } else if (inTeam2) {
         wins += session.team2Wins;
-        matchesPlayed += session.team1Wins + session.team2Wins;
+        matchesPlayed += totalSessionMatches;
+      } else if (inTeam3) {
+        wins += session.team3Wins || 0;
+        matchesPlayed += totalSessionMatches;
       }
     }
 
@@ -175,21 +201,26 @@ export function calculateHeadToHead(
 
   // Aggiungi risultati da tornei
   for (const session of tournamentSessions) {
-    const isT1T2 =
-      session.team1Name.toLowerCase() === team1.name.toLowerCase() &&
-      session.team2Name.toLowerCase() === team2.name.toLowerCase();
-    const isT2T1 =
-      session.team1Name.toLowerCase() === team2.name.toLowerCase() &&
-      session.team2Name.toLowerCase() === team1.name.toLowerCase();
+    const sessionTeams: { name: string; wins: number }[] = [
+      { name: session.team1Name, wins: session.team1Wins || 0 },
+      { name: session.team2Name, wins: session.team2Wins || 0 },
+    ];
+    if (session.team3Name) {
+      sessionTeams.push({ name: session.team3Name, wins: session.team3Wins || 0 });
+    }
 
-    if (isT1T2) {
-      team1Wins += session.team1Wins;
-      team2Wins += session.team2Wins;
-      totalMatches += session.team1Wins + session.team2Wins;
-    } else if (isT2T1) {
-      team1Wins += session.team2Wins;
-      team2Wins += session.team1Wins;
-      totalMatches += session.team1Wins + session.team2Wins;
+    const t1Entry = sessionTeams.find(
+      (t) => t.name.toLowerCase() === team1.name.toLowerCase()
+    );
+    const t2Entry = sessionTeams.find(
+      (t) => t.name.toLowerCase() === team2.name.toLowerCase()
+    );
+
+    if (t1Entry && t2Entry) {
+      const totalSessionWins = sessionTeams.reduce((sum, t) => sum + t.wins, 0);
+      team1Wins += t1Entry.wins;
+      team2Wins += t2Entry.wins;
+      totalMatches += totalSessionWins;
     }
   }
 
@@ -217,7 +248,7 @@ export function getDailySummary(
 
   const totalMatches =
     dayMatches.length +
-    daySessions.reduce((acc, s) => acc + s.team1Wins + s.team2Wins, 0);
+    daySessions.reduce((acc, s) => acc + s.team1Wins + s.team2Wins + (s.team3Wins || 0), 0);
 
   if (totalMatches === 0) {
     return {
@@ -236,13 +267,19 @@ export function getDailySummary(
   }
 
   for (const s of daySessions) {
-    const t1 = teams.find((t) => t.name.toLowerCase() === s.team1Name.toLowerCase());
-    const t2 = teams.find((t) => t.name.toLowerCase() === s.team2Name.toLowerCase());
-    const t1Key = t1 ? t1.id : s.team1Name;
-    const t2Key = t2 ? t2.id : s.team2Name;
+    const sessionTeams: [string, number][] = [
+      [s.team1Name, s.team1Wins || 0],
+      [s.team2Name, s.team2Wins || 0],
+    ];
+    if (s.team3Name) {
+      sessionTeams.push([s.team3Name, s.team3Wins || 0]);
+    }
 
-    winCount[t1Key] = (winCount[t1Key] || 0) + s.team1Wins;
-    winCount[t2Key] = (winCount[t2Key] || 0) + s.team2Wins;
+    for (const [name, wins] of sessionTeams) {
+      const t = teams.find((team) => team.name.toLowerCase() === name.toLowerCase());
+      const key = t ? t.id : name;
+      winCount[key] = (winCount[key] || 0) + wins;
+    }
   }
 
   let championKey: string | null = null;
@@ -274,3 +311,4 @@ export function getDailySummary(
     matches: dayMatches,
   };
 }
+

@@ -1,4 +1,4 @@
-import { Player, Team, Match, TournamentSession } from '@/types/game';
+import type { Player, Team, Match, TournamentSession, TournamentMode } from '@/types/game';
 import { RealtimeSyncService } from './realtimeSync';
 
 const STORAGE_KEYS = {
@@ -232,21 +232,31 @@ export const StorageService = {
     team1Name: string,
     team1Players: string[],
     team2Name: string,
-    team2Players: string[]
+    team2Players: string[],
+    mode: TournamentMode = '2vs2',
+    team3Name?: string,
+    team3Players?: string[]
   ): TournamentSession {
     const sessions = this.getTournamentSessions();
     const newSession: TournamentSession = {
       id: `tour_${Date.now()}`,
       dateKey: formatDateKey(),
       startedAt: new Date().toISOString(),
-      team1Name: team1Name.trim() || 'Squadra 1',
+      mode,
+      team1Name: team1Name.trim() || (mode === '2vs2' ? 'Squadra 1' : 'Giocatore 1'),
       team1Players,
-      team2Name: team2Name.trim() || 'Squadra 2',
+      team2Name: team2Name.trim() || (mode === '2vs2' ? 'Squadra 2' : 'Giocatore 2'),
       team2Players,
       team1Wins: 0,
       team2Wins: 0,
       status: 'in_progress',
     };
+
+    if (mode === '1vs1vs1' || team3Name) {
+      newSession.team3Name = team3Name?.trim() || 'Giocatore 3';
+      newSession.team3Players = team3Players || (team3Name ? [team3Name.trim()] : ['Giocatore 3']);
+      newSession.team3Wins = 0;
+    }
 
     sessions.unshift(newSession);
     if (typeof window !== 'undefined') {
@@ -256,15 +266,17 @@ export const StorageService = {
     return newSession;
   },
 
-  incrementTournamentWin(sessionId: string, teamIndex: 1 | 2): void {
+  incrementTournamentWin(sessionId: string, teamIndex: 1 | 2 | 3): void {
     const sessions = this.getTournamentSessions();
     const session = sessions.find((s) => s.id === sessionId);
     if (!session || session.status !== 'in_progress') return;
 
     if (teamIndex === 1) {
       session.team1Wins += 1;
-    } else {
+    } else if (teamIndex === 2) {
       session.team2Wins += 1;
+    } else if (teamIndex === 3) {
+      session.team3Wins = (session.team3Wins || 0) + 1;
     }
 
     if (typeof window !== 'undefined') {
@@ -273,7 +285,7 @@ export const StorageService = {
     }
   },
 
-  decrementTournamentWin(sessionId: string, teamIndex: 1 | 2): void {
+  decrementTournamentWin(sessionId: string, teamIndex: 1 | 2 | 3): void {
     const sessions = this.getTournamentSessions();
     const session = sessions.find((s) => s.id === sessionId);
     if (!session || session.status !== 'in_progress') return;
@@ -282,6 +294,8 @@ export const StorageService = {
       session.team1Wins -= 1;
     } else if (teamIndex === 2 && session.team2Wins > 0) {
       session.team2Wins -= 1;
+    } else if (teamIndex === 3 && (session.team3Wins || 0) > 0) {
+      session.team3Wins = (session.team3Wins || 0) - 1;
     }
 
     if (typeof window !== 'undefined') {
@@ -298,12 +312,29 @@ export const StorageService = {
     session.status = 'completed';
     session.endedAt = new Date().toISOString();
 
-    if (session.team1Wins > session.team2Wins) {
-      session.winnerTeam = 1;
-    } else if (session.team2Wins > session.team1Wins) {
-      session.winnerTeam = 2;
+    const isThreeWay = session.mode === '1vs1vs1' || !!session.team3Name;
+    const w1 = session.team1Wins || 0;
+    const w2 = session.team2Wins || 0;
+    const w3 = session.team3Wins || 0;
+
+    if (isThreeWay) {
+      if (w1 > w2 && w1 > w3) {
+        session.winnerTeam = 1;
+      } else if (w2 > w1 && w2 > w3) {
+        session.winnerTeam = 2;
+      } else if (w3 > w1 && w3 > w2) {
+        session.winnerTeam = 3;
+      } else {
+        session.winnerTeam = 'pareggio';
+      }
     } else {
-      session.winnerTeam = 'pareggio';
+      if (w1 > w2) {
+        session.winnerTeam = 1;
+      } else if (w2 > w1) {
+        session.winnerTeam = 2;
+      } else {
+        session.winnerTeam = 'pareggio';
+      }
     }
 
     if (typeof window !== 'undefined') {
