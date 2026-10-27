@@ -131,7 +131,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
             return (
               <div
                 key={team.id}
-                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-5 transition-all interactive-card flex flex-col justify-between"
+                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-5 interactive-card flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -206,7 +206,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
           {players.map((player) => (
             <div
               key={player.id}
-              className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-3.5 flex items-center justify-between transition-all interactive-card group"
+              className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-3.5 flex items-center justify-between interactive-card group"
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shrink-0 group-hover:border-[var(--accent)]/50 transition-colors">
@@ -288,7 +288,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                       key={s}
                       type="button"
                       onClick={() => setPlayerSuit(s)}
-                      className={`p-2.5 rounded-xl flex flex-col items-center justify-center border transition-all btn-tactile cursor-pointer ${
+                      className={`p-2.5 rounded-xl flex flex-col items-center justify-center border btn-tactile cursor-pointer ${
                         playerSuit === s
                           ? 'bg-[var(--accent-muted)] border-[var(--accent)] text-[var(--accent-text)]'
                           : 'bg-[var(--surface-alt)] border-[var(--divider)] text-[var(--text-muted)] hover:text-[var(--text)]'

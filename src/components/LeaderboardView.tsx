@@ -135,9 +135,9 @@ export function LeaderboardView({
                 return (
                   <div
                     key={stat.team.id}
-                    className={`rounded-2xl p-5 border transition-all interactive-card ${
+                    className={`rounded-2xl p-5 border interactive-card ${
                       isLeader
-                        ? 'bg-[var(--surface)] border-[var(--accent-border)] shadow-md shadow-amber-500/10 glow-active-card'
+                        ? 'bg-[var(--surface)] border-[var(--accent)] shadow-md shadow-amber-500/10 ring-1 ring-[var(--accent)]/30'
                         : 'bg-[var(--surface)] border-[var(--divider)] hover:border-[var(--control-border)]'
                     }`}
                   >
@@ -203,7 +203,7 @@ export function LeaderboardView({
                     {/* Barra grafica di Win Rate */}
                     <div className="mt-3.5 w-full bg-[var(--surface-alt)] rounded-full h-1.5 overflow-hidden">
                       <div
-                        className="bg-[var(--accent)] h-1.5 rounded-full transition-all duration-500"
+                        className="bg-[var(--accent)] h-1.5 rounded-full transition-[width] duration-500 ease-out"
                         style={{ width: `${stat.winRate}%` }}
                       />
                     </div>
@@ -222,7 +222,7 @@ export function LeaderboardView({
             {playerStats.map((pStat, idx) => (
               <div
                 key={pStat.player.id}
-                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 transition-all interactive-card"
+                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 interactive-card"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -324,7 +324,7 @@ export function LeaderboardView({
                   <span className="font-mono tabular-nums">Totale: {h2hStats.totalMatches} partite</span>
                   <div className="w-full bg-[var(--surface-alt)] h-2 rounded-full mt-2 overflow-hidden flex">
                     <div
-                      className="bg-[var(--accent)] h-full transition-all duration-300"
+                      className="bg-[var(--accent)] h-full transition-[width] duration-300 ease-out"
                       style={{
                         width: `${
                           h2hStats.totalMatches > 0
@@ -334,7 +334,7 @@ export function LeaderboardView({
                       }}
                     />
                     <div
-                      className="bg-sky-400 h-full transition-all duration-300"
+                      className="bg-sky-400 h-full transition-[width] duration-300 ease-out"
                       style={{
                         width: `${
                           h2hStats.totalMatches > 0

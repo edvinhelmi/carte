@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Trophy,
   Swords,
@@ -29,6 +29,31 @@ export function TorneoSerataView({
   players,
   onDataUpdated,
 }: TorneoSerataViewProps) {
+  // Score bump animation triggers
+  const [bumpTeam1, setBumpTeam1] = useState(false);
+  const [bumpTeam2, setBumpTeam2] = useState(false);
+  const prevWinsRef = useRef<{ id: string; t1: number; t2: number } | null>(null);
+
+  useEffect(() => {
+    if (!activeSession) {
+      prevWinsRef.current = null;
+      return;
+    }
+    if (prevWinsRef.current && prevWinsRef.current.id === activeSession.id) {
+      if (activeSession.team1Wins > prevWinsRef.current.t1) {
+        setBumpTeam1(true);
+      }
+      if (activeSession.team2Wins > prevWinsRef.current.t2) {
+        setBumpTeam2(true);
+      }
+    }
+    prevWinsRef.current = {
+      id: activeSession.id,
+      t1: activeSession.team1Wins,
+      t2: activeSession.team2Wins,
+    };
+  }, [activeSession]);
+
   // Form creazione nuovo torneo
   const [team1Name, setTeam1Name] = useState('');
   const [team1SelectedPlayers, setTeam1SelectedPlayers] = useState<string[]>([]);
@@ -124,6 +149,8 @@ export function TorneoSerataView({
   // Incremento / Decremento vittorie in tempo reale
   const handleAddWin = (teamIndex: 1 | 2) => {
     if (!activeSession) return;
+    if (teamIndex === 1) setBumpTeam1(true);
+    if (teamIndex === 2) setBumpTeam2(true);
     StorageService.incrementTournamentWin(activeSession.id, teamIndex);
     fireWinConfetti();
     onDataUpdated();
@@ -234,9 +261,9 @@ export function TorneoSerataView({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* PANNELLO SQUADRA 1 */}
             <div
-              className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-all ${
+              className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-[border-color,box-shadow] duration-200 ${
                 activeSession.team1Wins > activeSession.team2Wins
-                  ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-md shadow-amber-500/10 ring-1 ring-[var(--accent)]/30 glow-active-card'
+                  ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-md shadow-amber-500/10 ring-1 ring-[var(--accent)]/30'
                   : 'bg-[var(--surface)] border border-[var(--divider)]'
               }`}
             >
@@ -254,11 +281,13 @@ export function TorneoSerataView({
                 )}
               </div>
 
-              {/* Numero Vittorie Gigante con animazione pop */}
+              {/* Numero Vittorie Gigante con animazione pop su incremento */}
               <div className="my-6">
                 <span
-                  key={activeSession.team1Wins}
-                  className="text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block animate-score-bump"
+                  className={`text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block ${
+                    bumpTeam1 ? 'animate-score-bump' : ''
+                  }`}
+                  onAnimationEnd={() => setBumpTeam1(false)}
                 >
                   {activeSession.team1Wins}
                 </span>
@@ -293,9 +322,9 @@ export function TorneoSerataView({
 
             {/* PANNELLO SQUADRA 2 */}
             <div
-              className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-all ${
+              className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-[border-color,box-shadow] duration-200 ${
                 activeSession.team2Wins > activeSession.team1Wins
-                  ? 'bg-[var(--surface)] border border-sky-400 shadow-md shadow-sky-500/10 ring-1 ring-sky-400/30 glow-active-card-sky'
+                  ? 'bg-[var(--surface)] border border-sky-400 shadow-md shadow-sky-500/10 ring-1 ring-sky-400/30'
                   : 'bg-[var(--surface)] border border-[var(--divider)]'
               }`}
             >
@@ -313,11 +342,13 @@ export function TorneoSerataView({
                 )}
               </div>
 
-              {/* Numero Vittorie Gigante con animazione pop */}
+              {/* Numero Vittorie Gigante con animazione pop su incremento */}
               <div className="my-6">
                 <span
-                  key={activeSession.team2Wins}
-                  className="text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block animate-score-bump-sky"
+                  className={`text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block ${
+                    bumpTeam2 ? 'animate-score-bump-sky' : ''
+                  }`}
+                  onAnimationEnd={() => setBumpTeam2(false)}
                 >
                   {activeSession.team2Wins}
                 </span>
@@ -361,7 +392,7 @@ export function TorneoSerataView({
 
             <div className="w-full bg-[var(--surface-alt)] h-2.5 rounded-full overflow-hidden flex">
               <div
-                className="bg-[var(--accent)] h-full transition-all duration-300"
+                className="bg-[var(--accent)] h-full transition-[width] duration-300 ease-out"
                 style={{
                   width: `${
                     totalMatchesTonight > 0
@@ -371,7 +402,7 @@ export function TorneoSerataView({
                 }}
               />
               <div
-                className="bg-sky-400 h-full transition-all duration-300"
+                className="bg-sky-400 h-full transition-[width] duration-300 ease-out"
                 style={{
                   width: `${
                     totalMatchesTonight > 0
@@ -665,7 +696,7 @@ export function TorneoSerataView({
               return (
                 <div
                   key={session.id}
-                  className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 transition-all interactive-card flex items-center justify-between"
+                  className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 interactive-card flex items-center justify-between"
                 >
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">

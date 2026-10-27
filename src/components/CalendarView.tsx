@@ -222,13 +222,13 @@ export function CalendarView({
                   key={dateStr}
                   type="button"
                   onClick={() => setSelectedDateKey(dateStr)}
-                  className={`h-10 sm:h-12 rounded-xl flex flex-col items-center justify-center relative text-xs font-mono tabular-nums transition-all btn-tactile cursor-pointer ${
+                  className={`h-10 sm:h-12 rounded-xl flex flex-col items-center justify-center relative text-xs font-mono tabular-nums btn-tactile cursor-pointer ${
                     isSelected
-                      ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-md shadow-amber-500/25 z-10 scale-105 ring-2 ring-amber-300/40'
+                      ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-md shadow-amber-500/25 z-10 ring-2 ring-amber-300/40'
                       : isToday
-                      ? 'bg-[var(--surface-raised)] text-[var(--accent-text)] border border-[var(--accent-border)] hover:bg-[var(--surface-alt)] hover:scale-[1.02]'
+                      ? 'bg-[var(--surface-raised)] text-[var(--accent-text)] border border-[var(--accent-border)] hover:bg-[var(--surface-alt)]'
                       : hasItems
-                      ? 'bg-[var(--surface-raised)] text-[var(--text)] hover:bg-[var(--surface-alt)] border border-[var(--divider)] hover:scale-[1.02]'
+                      ? 'bg-[var(--surface-raised)] text-[var(--text)] hover:bg-[var(--surface-alt)] border border-[var(--divider)]'
                       : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)] hover:text-[var(--text)]'
                   }`}
                 >
@@ -304,7 +304,7 @@ export function CalendarView({
                       return (
                         <div
                           key={session.id}
-                          className="p-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] shadow-sm space-y-2 interactive-card transition-all"
+                          className="p-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] shadow-sm space-y-2 interactive-card"
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-bold text-[var(--accent)]">
@@ -420,7 +420,7 @@ export function CalendarView({
                         return (
                           <div
                             key={m.id}
-                            className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] hover:border-[var(--control-border)] transition-all interactive-card"
+                            className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] hover:border-[var(--control-border)] interactive-card"
                           >
                             <div className="flex items-center gap-3 min-w-0">
                               <div className="flex items-center gap-1 text-xs text-[var(--text-subtle)] font-mono tabular-nums w-12 shrink-0">

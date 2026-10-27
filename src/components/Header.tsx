@@ -31,7 +31,7 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
           onClick={() => setActiveTab('torneo')}
           className="flex items-center gap-2.5 sm:gap-3 text-left group cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-xl min-w-0"
         >
-          <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shadow-sm group-hover:border-[var(--accent)]/60 group-hover:shadow-[0_0_12px_rgba(245,158,11,0.2)] transition-all shrink-0">
+          <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shadow-sm group-hover:border-[var(--accent)]/60 group-hover:shadow-[0_0_12px_rgba(245,158,11,0.2)] transition-[border-color,box-shadow] duration-200 shrink-0">
             <SuitIcon suit="coppe" className="w-5 h-5 text-[var(--accent)] icon-hover-tilt" />
             <span
               className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5"
@@ -72,7 +72,7 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
                 key={item.id}
                 type="button"
                 onClick={() => setActiveTab(item.id)}
-                className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold btn-tactile transition-all cursor-pointer ${
+                className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer ${
                   isActive
                     ? 'bg-[var(--surface-alt)] text-[var(--text)] border border-[var(--control-border)] shadow-sm'
                     : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] border border-transparent'
@@ -99,7 +99,7 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
               type="button"
               onClick={onOpenQuickMatch}
               aria-label="Registra vittoria rapida"
-              className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] hover:shadow-[0_2px_12px_rgba(245,158,11,0.12)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+              className="group inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] hover:shadow-[0_2px_12px_rgba(245,158,11,0.12)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90" />
               <span className="text-xs">+ Vittoria</span>
@@ -110,7 +110,7 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
           <button
             type="button"
             onClick={() => setActiveTab('torneo')}
-            className={`hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold btn-tactile cursor-pointer shadow-sm transition-all ${
+            className={`hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold btn-tactile cursor-pointer shadow-sm ${
               activeTab === 'torneo'
                 ? 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] shadow-[0_2px_14px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/40'
                 : 'bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--control-border)] text-[var(--text)]'

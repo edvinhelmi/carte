@@ -31,25 +31,25 @@ export function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
               key={item.id}
               type="button"
               onClick={() => setActiveTab(item.id)}
-              className={`w-full min-h-[48px] flex flex-col items-center justify-center py-1 px-0.5 rounded-xl transition-all btn-tactile cursor-pointer select-none relative ${
+              className={`w-full min-h-[48px] flex flex-col items-center justify-center py-1 px-0.5 rounded-xl transition-colors btn-tactile cursor-pointer select-none relative ${
                 isActive
                   ? 'text-[var(--accent)] font-semibold'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)] active:text-[var(--accent)]'
               }`}
             >
               {isActive && (
-                <span className="absolute top-0 w-8 h-1 rounded-full bg-[var(--accent)] shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+                <span className="absolute top-0 w-6 h-0.5 rounded-full bg-[var(--accent)] shadow-[0_0_6px_rgba(245,158,11,0.5)]" />
               )}
               <div
-                className={`w-5 h-5 flex items-center justify-center shrink-0 mb-0.5 transition-transform duration-200 ${
-                  isActive ? 'scale-115 -translate-y-0.5 text-[var(--accent)]' : 'scale-100'
+                className={`w-5 h-5 flex items-center justify-center shrink-0 mb-0.5 transition-transform duration-150 ${
+                  isActive ? 'scale-110 -translate-y-0.5 text-[var(--accent)]' : 'scale-100'
                 }`}
               >
-                <Icon className="w-4.5 h-4.5" />
+                <Icon size={18} />
               </div>
               <span
-                className={`text-[10px] leading-none tracking-tight text-center truncate max-w-full block whitespace-nowrap transition-all ${
-                  isActive ? 'font-bold text-[var(--accent)] scale-105' : 'font-medium text-[var(--text-muted)]'
+                className={`text-[10px] leading-none tracking-tight text-center truncate max-w-full block whitespace-nowrap transition-colors duration-150 ${
+                  isActive ? 'font-bold text-[var(--accent)]' : 'font-medium text-[var(--text-muted)]'
                 }`}
               >
                 {item.label}

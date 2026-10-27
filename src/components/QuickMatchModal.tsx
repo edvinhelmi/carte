@@ -213,7 +213,7 @@ export function QuickMatchModal({
                   type="button"
                   onClick={() => handleRegisterWin(team1?.id || '')}
                   disabled={!team1 || team1.id === team2?.id}
-                  className="group relative flex flex-col items-center justify-center p-4 rounded-xl border border-[var(--accent-border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] hover:border-[var(--accent)] hover:shadow-[0_0_16px_rgba(245,158,11,0.2)] active:scale-95 btn-tactile text-center cursor-pointer shadow-sm transition-all"
+                  className="group relative flex flex-col items-center justify-center p-4 rounded-xl border border-[var(--accent-border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] hover:border-[var(--accent)] hover:shadow-[0_0_16px_rgba(245,158,11,0.2)] btn-tactile text-center cursor-pointer shadow-sm"
                 >
                   <div className="w-10 h-10 rounded-full bg-[var(--accent-muted)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center mb-2 group-hover:scale-110 group-hover:rotate-6 transition-transform">
                     <Trophy className="w-5 h-5 text-[var(--accent)]" />
@@ -231,7 +231,7 @@ export function QuickMatchModal({
                   type="button"
                   onClick={() => handleRegisterWin(team2?.id || '')}
                   disabled={!team2 || team1?.id === team2.id}
-                  className="group relative flex flex-col items-center justify-center p-4 rounded-xl border border-[var(--control-border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] hover:border-sky-400 hover:shadow-[0_0_16px_rgba(56,189,248,0.2)] active:scale-95 btn-tactile text-center cursor-pointer shadow-sm transition-all"
+                  className="group relative flex flex-col items-center justify-center p-4 rounded-xl border border-[var(--control-border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] hover:border-sky-400 hover:shadow-[0_0_16px_rgba(56,189,248,0.2)] btn-tactile text-center cursor-pointer shadow-sm"
                 >
                   <div className="w-10 h-10 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/25 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:-rotate-6 transition-transform">
                     <Trophy className="w-5 h-5 text-sky-400" />
