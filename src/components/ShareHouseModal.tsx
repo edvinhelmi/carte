@@ -35,6 +35,15 @@ export function ShareHouseModal({ isOpen, onClose, house }: ShareHouseModalProps
       .catch((err) => console.warn('Errore generazione QR code:', err));
   }, [isOpen, shareUrl]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleCopyLink = async () => {
@@ -73,93 +82,106 @@ export function ShareHouseModal({ isOpen, onClose, house }: ShareHouseModalProps
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm animate-fade-in"
+      style={{ overscrollBehavior: 'contain' }}
       onClick={onClose}
     >
-      <div
-        className="relative w-full max-w-sm rounded-2xl bg-[var(--surface)] border border-[var(--divider)] shadow-2xl p-6 text-center space-y-5 animate-scale-in"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Pulsante Chiusura */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
-          aria-label="Chiudi"
+      <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6">
+        <div
+          className="relative w-full max-w-sm my-auto rounded-2xl bg-[var(--surface)] border border-[var(--divider)] shadow-2xl overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
+          onClick={(e) => e.stopPropagation()}
         >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* Titolo e Casa */}
-        <div>
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] text-[var(--accent)] mb-3">
-            <QrCode className="w-5 h-5" />
-          </div>
-          <h2 className="text-xl font-heading font-extrabold text-[var(--text)] tracking-tight">
-            Condividi {house.name}
-          </h2>
-          <p className="text-xs text-[var(--text-muted)] mt-1">
-            Fai inquadrare il codice con la fotocamera per entrare subito senza registrazione.
-          </p>
-        </div>
-
-        {/* Riquadro QR Code */}
-        <div className="flex justify-center p-3 rounded-xl bg-white shadow-inner max-w-[240px] mx-auto border border-slate-200">
-          {qrDataUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={qrDataUrl}
-              alt={`QR Code per unirsi a ${house.name}`}
-              className="w-full h-auto rounded-lg select-none"
-            />
-          ) : (
-            <div className="w-48 h-48 flex items-center justify-center text-slate-400 text-xs">
-              Generazione QR in corso...
+          {/* Pinned Header */}
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--divider)] bg-[var(--surface-raised)] shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)] shrink-0">
+                <QrCode className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 text-left">
+                <h2 className="font-heading font-bold text-sm sm:text-base text-[var(--text)] leading-tight truncate">
+                  Condividi {house.name}
+                </h2>
+                <p className="text-[11px] text-[var(--text-muted)] truncate">
+                  Codice e QR per unirsi
+                </p>
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Codice Breve Invito */}
-        <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)]">
-          <div className="text-left">
-            <span className="text-[10px] text-[var(--text-muted)] font-medium block">
-              Codice Casa
-            </span>
-            <span className="font-mono text-base font-bold text-[var(--accent)] tracking-wider">
-              {house.inviteCode}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={handleCopyCode}
-            className="p-2 text-xs font-medium text-[var(--text)] hover:text-[var(--accent)] rounded-lg hover:bg-[var(--surface-alt)] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
-          >
-            {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            <span>{copiedCode ? 'Copiato' : 'Copia'}</span>
-          </button>
-        </div>
-
-        {/* Azioni Condivisione */}
-        <div className="space-y-2 pt-1">
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="w-full py-3 px-4 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-[var(--text)] font-bold text-sm btn-tactile cursor-pointer flex items-center justify-center gap-2"
-          >
-            {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            <span>{copiedLink ? 'Link copiato negli appunti!' : 'Copia Link Diretto'}</span>
-          </button>
-
-          {canShare && (
             <button
               type="button"
-              onClick={handleNativeShare}
-              className="w-full py-3 px-4 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-bold text-sm btn-tactile cursor-pointer flex items-center justify-center gap-2"
+              onClick={onClose}
+              className="touch-target p-2 text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg hover:bg-[var(--surface-alt)] transition-colors cursor-pointer shrink-0 ml-2"
+              aria-label="Chiudi"
             >
-              <Share2 className="w-4 h-4" />
-              <span>Invia su WhatsApp / Condividi</span>
+              <X className="w-5 h-5" />
             </button>
-          )}
+          </div>
+
+          {/* Scrollable Body */}
+          <div className="p-5 overflow-y-auto space-y-4 text-center flex-1 min-h-0">
+            <p className="text-xs text-[var(--text-muted)]">
+              Fai inquadrare il codice con la fotocamera per entrare subito senza registrazione.
+            </p>
+
+            {/* Riquadro QR Code */}
+            <div className="flex justify-center p-3 rounded-xl bg-white shadow-inner max-w-[210px] sm:max-w-[240px] mx-auto border border-slate-200">
+              {qrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={qrDataUrl}
+                  alt={`QR Code per unirsi a ${house.name}`}
+                  className="w-full h-auto rounded-lg select-none"
+                />
+              ) : (
+                <div className="w-44 h-44 flex items-center justify-center text-slate-400 text-xs">
+                  Generazione QR in corso...
+                </div>
+              )}
+            </div>
+
+            {/* Codice Breve Invito */}
+            <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)]">
+              <div className="text-left">
+                <span className="text-[10px] text-[var(--text-muted)] font-medium block">
+                  Codice Casa
+                </span>
+                <span className="font-mono text-base font-bold text-[var(--accent)] tracking-wider">
+                  {house.inviteCode}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="touch-target p-2 text-xs font-medium text-[var(--text)] hover:text-[var(--accent)] rounded-lg hover:bg-[var(--surface-alt)] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedCode ? 'Copiato' : 'Copia'}</span>
+              </button>
+            </div>
+
+            {/* Azioni Condivisione */}
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-[var(--text)] font-bold text-sm btn-tactile cursor-pointer flex items-center justify-center gap-2"
+              >
+                {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedLink ? 'Link copiato negli appunti!' : 'Copia Link Diretto'}</span>
+              </button>
+
+              {canShare && (
+                <button
+                  type="button"
+                  onClick={handleNativeShare}
+                  className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-bold text-sm btn-tactile cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Invia su WhatsApp / Condividi</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -107,32 +107,33 @@ export function QuickMatchModal({
       onClick={handleBackdropClick}
       onCancel={onClose}
       aria-labelledby="quick-match-title"
-      className="m-auto p-0 rounded-2xl bg-[var(--surface)] text-[var(--text)] border border-[var(--control-border)] shadow-2xl backdrop:bg-black/80 backdrop:backdrop-blur-md max-w-lg w-[95vw] overflow-hidden"
+      className="m-auto p-0 rounded-2xl bg-[var(--surface)] text-[var(--text)] border border-[var(--control-border)] shadow-2xl backdrop:bg-black/80 backdrop:backdrop-blur-md max-w-lg w-[95vw] max-h-[min(90vh,calc(100dvh-2rem))] overflow-hidden flex flex-col"
       style={{ overscrollBehavior: 'contain' }}
     >
       {/* Header Modal */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)] bg-[var(--surface-raised)]">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)]">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)] bg-[var(--surface-raised)] shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)] shrink-0">
             <Trophy className="w-4 h-4" />
           </div>
-          <div>
-            <h2 id="quick-match-title" className="font-heading font-bold text-base text-[var(--text)]">
+          <div className="min-w-0">
+            <h2 id="quick-match-title" className="font-heading font-bold text-base text-[var(--text)] leading-tight truncate">
               Registra Risultato Briscola
             </h2>
-            <p className="text-xs text-[var(--text-muted)]">Assegna la vittoria con un solo tocco</p>
+            <p className="text-xs text-[var(--text-muted)] truncate">Assegna la vittoria con un solo tocco</p>
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="touch-target p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+          className="touch-target p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)] transition-colors cursor-pointer shrink-0 ml-2"
+          aria-label="Chiudi"
         >
           <X className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="p-5 space-y-5 max-h-[80vh] overflow-y-auto">
+      <div className="p-5 space-y-5 overflow-y-auto flex-1 min-h-0 max-h-[calc(100dvh-7rem)] sm:max-h-[75vh]">
         {teams.length < 2 ? (
           <div className="text-center py-6 space-y-3">
             <p className="text-sm font-semibold text-[var(--text)]">

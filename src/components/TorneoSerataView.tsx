@@ -299,7 +299,7 @@ export function TorneoSerataView({
         <button
           type="button"
           onClick={handleShareLink}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] text-[var(--text)] text-xs font-semibold border border-[var(--control-border)] hover:border-[var(--control-border-hover)] btn-tactile cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] text-[var(--text)] text-xs font-semibold border border-[var(--control-border)] hover:border-[var(--control-border-hover)] btn-tactile cursor-pointer min-h-[44px]"
         >
           {copied ? (
             <Check className="w-3.5 h-3.5 text-[var(--accent)]" />
@@ -345,7 +345,7 @@ export function TorneoSerataView({
             <button
               type="button"
               onClick={handleEndTournament}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--surface-raised)] hover:bg-rose-950/40 text-rose-300 hover:text-rose-200 border border-rose-500/30 hover:border-rose-500/50 font-bold text-xs btn-tactile cursor-pointer shadow-sm"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--surface-raised)] hover:bg-rose-950/40 text-rose-300 hover:text-rose-200 border border-rose-500/30 hover:border-rose-500/50 font-bold text-xs btn-tactile cursor-pointer shadow-sm min-h-[44px]"
             >
               <Trophy className="w-4 h-4 text-[var(--accent)]" />
               <span>Concludi Serata Torneo</span>
@@ -400,10 +400,10 @@ export function TorneoSerataView({
                 <button
                   type="button"
                   onClick={() => handleAddWin(1)}
-                  className="w-full py-4 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-amber-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group"
+                  className="w-full py-4 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-amber-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[52px]"
                 >
-                  <Plus className="w-5 h-5 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90" />
-                  <span>+1 Vittoria {activeSession.team1Name}</span>
+                  <Plus className="w-5 h-5 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
+                  <span className="truncate max-w-[240px]">+1 {activeSession.team1Name}</span>
                 </button>
 
                 {activeSession.team1Wins > 0 && (
@@ -461,10 +461,10 @@ export function TorneoSerataView({
                 <button
                   type="button"
                   onClick={() => handleAddWin(2)}
-                  className="w-full py-4 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-sky-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group"
+                  className="w-full py-4 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-sky-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[52px]"
                 >
-                  <Plus className="w-5 h-5 stroke-[3] text-sky-400 transition-transform duration-200 group-hover:rotate-90" />
-                  <span>+1 Vittoria {activeSession.team2Name}</span>
+                  <Plus className="w-5 h-5 stroke-[3] text-sky-400 transition-transform duration-200 group-hover:rotate-90 shrink-0" />
+                  <span className="truncate max-w-[240px]">+1 {activeSession.team2Name}</span>
                 </button>
 
                 {activeSession.team2Wins > 0 && (
@@ -518,10 +518,10 @@ export function TorneoSerataView({
                   <button
                     type="button"
                     onClick={() => handleAddWin(3)}
-                    className="w-full py-4 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-emerald-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group"
+                    className="w-full py-4 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-emerald-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[52px]"
                   >
-                    <Plus className="w-5 h-5 stroke-[3] text-emerald-400 transition-transform duration-200 group-hover:rotate-90" />
-                    <span>+1 Vittoria {activeSession.team3Name || 'Giocatore 3'}</span>
+                    <Plus className="w-5 h-5 stroke-[3] text-emerald-400 transition-transform duration-200 group-hover:rotate-90 shrink-0" />
+                    <span className="truncate max-w-[240px]">+1 {activeSession.team3Name || 'Giocatore 3'}</span>
                   </button>
 
                   {(activeSession.team3Wins || 0) > 0 && (

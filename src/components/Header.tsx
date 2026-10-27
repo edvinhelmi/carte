@@ -33,7 +33,8 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
               <Trophy className="w-5 h-5 text-[var(--accent)] icon-hover-tilt" />
             </div>
             <span className="font-heading font-black text-base sm:text-lg text-[var(--text)] tracking-tight leading-none truncate pt-0.5">
-              Briscola Club
+              <span className="hidden min-[360px]:inline">Briscola Club</span>
+              <span className="min-[360px]:hidden inline">Briscola</span>
             </span>
           </button>
 
@@ -78,7 +79,7 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
               type="button"
               onClick={onOpenQuickMatch}
               aria-label="Registra vittoria rapida"
-              className="group inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] hover:shadow-[0_2px_12px_rgba(245,158,11,0.12)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+              className="touch-target group inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] hover:shadow-[0_2px_12px_rgba(245,158,11,0.12)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer min-h-[44px]"
             >
               <Plus className="w-3.5 h-3.5 text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90" />
               <span className="text-xs">Vittoria</span>
@@ -89,7 +90,7 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
           <button
             type="button"
             onClick={() => setActiveTab('torneo')}
-            className={`hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold btn-tactile cursor-pointer shadow-sm ${
+            className={`hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold btn-tactile cursor-pointer shadow-sm min-h-[44px] ${
               activeTab === 'torneo'
                 ? 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] shadow-[0_2px_14px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/40'
                 : 'bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--control-border)] text-[var(--text)]'

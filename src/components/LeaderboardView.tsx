@@ -90,11 +90,11 @@ export function LeaderboardView({
         </div>
 
         {/* Tab switch */}
-        <div className="flex items-center gap-1 bg-[var(--surface)] p-1 rounded-xl border border-[var(--divider)]">
+        <div className="flex items-center gap-1 bg-[var(--surface)] p-1 rounded-xl border border-[var(--divider)] w-full sm:w-auto overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('teams')}
-            className={`touch-target flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer ${
+            className={`touch-target flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer whitespace-nowrap min-h-[44px] ${
               activeTab === 'teams'
                 ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
                 : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]'
@@ -106,7 +106,7 @@ export function LeaderboardView({
           <button
             type="button"
             onClick={() => setActiveTab('players')}
-            className={`touch-target flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer ${
+            className={`touch-target flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer whitespace-nowrap min-h-[44px] ${
               activeTab === 'players'
                 ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
                 : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]'
@@ -118,7 +118,7 @@ export function LeaderboardView({
           <button
             type="button"
             onClick={() => setActiveTab('h2h')}
-            className={`touch-target flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer ${
+            className={`touch-target flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer whitespace-nowrap min-h-[44px] ${
               activeTab === 'h2h'
                 ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
                 : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]'

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, User, Plus, Trash2, Shield, X, ChevronDown } from 'lucide-react';
 import { Player, Team, CardSuit } from '@/types/game';
 import { StorageService } from '@/lib/storage';
@@ -22,6 +22,18 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
   const [teamName, setTeamName] = useState('');
   const [selectedPlayer1, setSelectedPlayer1] = useState('');
   const [selectedPlayer2, setSelectedPlayer2] = useState('');
+
+  useEffect(() => {
+    if (!showPlayerModal && !showTeamModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowPlayerModal(false);
+        setShowTeamModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showPlayerModal, showTeamModal]);
 
   const playerMap = new Map(players.map((p) => [p.id, p]));
 
@@ -239,175 +251,213 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
 
       {/* MODAL AGGIUNGI GIOCATORE */}
       {showPlayerModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--control-border)] p-6 max-w-sm w-full space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="font-heading font-bold text-lg text-[var(--text)]">Nuovo Giocatore</h3>
-              <button
-                type="button"
-                onClick={() => setShowPlayerModal(false)}
-                className="touch-target p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)]"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSavePlayer} className="space-y-4">
-              <div>
-                <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Nome:</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Es. Luca"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">
-                  Soprannome (opzionale):
-                </label>
-                <input
-                  type="text"
-                  placeholder="Es. Il Re delle Coppe"
-                  value={playerNickname}
-                  onChange={(e) => setPlayerNickname(e.target.value)}
-                  className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">
-                  Seme preferito:
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(['coppe', 'denari', 'spade', 'bastoni'] as CardSuit[]).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setPlayerSuit(s)}
-                      className={`p-2.5 rounded-xl flex flex-col items-center justify-center border btn-tactile cursor-pointer ${
-                        playerSuit === s
-                          ? 'bg-[var(--accent-muted)] border-[var(--accent)] text-[var(--accent-text)]'
-                          : 'bg-[var(--surface-alt)] border-[var(--divider)] text-[var(--text-muted)] hover:text-[var(--text)]'
-                      }`}
-                    >
-                      <SuitIcon suit={s} className="w-5 h-5 mb-1" />
-                      <span className="text-[10px] capitalize font-medium">{s}</span>
-                    </button>
-                  ))}
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm animate-fade-in"
+          style={{ overscrollBehavior: 'contain' }}
+          onClick={() => setShowPlayerModal(false)}
+        >
+          <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6">
+            <div
+              className="relative w-full max-w-sm my-auto rounded-2xl bg-[var(--surface)] border border-[var(--divider)] shadow-2xl overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Pinned Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)] bg-[var(--surface-raised)] shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)] shrink-0">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-heading font-bold text-base text-[var(--text)]">Nuovo Giocatore</h3>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowPlayerModal(false)}
-                  className="px-3.5 py-2 rounded-xl text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] cursor-pointer"
+                  className="touch-target p-2 text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+                  aria-label="Chiudi"
                 >
-                  Annulla
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-bold text-xs btn-tactile cursor-pointer shadow-sm"
-                >
-                  Salva Giocatore
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Scrollable Form Body */}
+              <div className="p-5 overflow-y-auto space-y-4 flex-1 min-h-0">
+                <form onSubmit={handleSavePlayer} className="space-y-4">
+                  <div>
+                    <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Nome:</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Es. Luca"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">
+                      Soprannome (opzionale):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Es. Il Re delle Coppe"
+                      value={playerNickname}
+                      onChange={(e) => setPlayerNickname(e.target.value)}
+                      className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">
+                      Seme preferito:
+                    </label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {(['coppe', 'denari', 'spade', 'bastoni'] as CardSuit[]).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setPlayerSuit(s)}
+                          className={`min-h-[52px] p-2 rounded-xl flex flex-col items-center justify-center border btn-tactile cursor-pointer ${
+                            playerSuit === s
+                              ? 'bg-[var(--accent-muted)] border-[var(--accent)] text-[var(--accent-text)]'
+                              : 'bg-[var(--surface-alt)] border-[var(--divider)] text-[var(--text-muted)] hover:text-[var(--text)]'
+                          }`}
+                        >
+                          <SuitIcon suit={s} className="w-5 h-5 mb-1" />
+                          <span className="text-[10px] capitalize font-medium">{s}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--divider)]">
+                    <button
+                      type="button"
+                      onClick={() => setShowPlayerModal(false)}
+                      className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] cursor-pointer"
+                    >
+                      Annulla
+                    </button>
+                    <button
+                      type="submit"
+                      className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-bold text-xs btn-tactile cursor-pointer shadow-sm"
+                    >
+                      Salva Giocatore
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* MODAL CREA SQUADRA */}
       {showTeamModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--control-border)] p-6 max-w-md w-full space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="font-heading font-bold text-lg text-[var(--text)]">Crea Nuova Squadra</h3>
-              <button
-                type="button"
-                onClick={() => setShowTeamModal(false)}
-                className="touch-target p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)]"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveTeam} className="space-y-4">
-              <div>
-                <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Nome Squadra:</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Es. Gli Invincibili"
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Giocatore 1:</label>
-                  <div className="relative">
-                    <select
-                      required
-                      value={selectedPlayer1}
-                      onChange={(e) => setSelectedPlayer1(e.target.value)}
-                      className="w-full appearance-none bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl pl-3 pr-8 py-2 text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] cursor-pointer truncate"
-                    >
-                      <option value="">Seleziona...</option>
-                      {players.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm animate-fade-in"
+          style={{ overscrollBehavior: 'contain' }}
+          onClick={() => setShowTeamModal(false)}
+        >
+          <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6">
+            <div
+              className="relative w-full max-w-md my-auto rounded-2xl bg-[var(--surface)] border border-[var(--divider)] shadow-2xl overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Pinned Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)] bg-[var(--surface-raised)] shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)] shrink-0">
+                    <Users className="w-4 h-4" />
                   </div>
+                  <h3 className="font-heading font-bold text-base text-[var(--text)]">Crea Nuova Squadra</h3>
                 </div>
-
-                <div>
-                  <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">
-                    Giocatore 2 (opzionale):
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={selectedPlayer2}
-                      onChange={(e) => setSelectedPlayer2(e.target.value)}
-                      className="w-full appearance-none bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl pl-3 pr-8 py-2 text-xs text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] cursor-pointer truncate"
-                    >
-                      <option value="">Nessuno (1v1)</option>
-                      {players.map((p) => (
-                        <option key={p.id} value={p.id} disabled={p.id === selectedPlayer1}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowTeamModal(false)}
-                  className="px-3.5 py-2 rounded-xl text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] cursor-pointer"
+                  className="touch-target p-2 text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+                  aria-label="Chiudi"
                 >
-                  Annulla
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-bold text-xs btn-tactile cursor-pointer shadow-sm"
-                >
-                  Salva Squadra
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Scrollable Form Body */}
+              <div className="p-5 overflow-y-auto space-y-4 flex-1 min-h-0">
+                <form onSubmit={handleSaveTeam} className="space-y-4">
+                  <div>
+                    <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Nome Squadra:</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Es. Gli Invincibili"
+                      value={teamName}
+                      onChange={(e) => setTeamName(e.target.value)}
+                      className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Giocatore 1:</label>
+                      <div className="relative">
+                        <select
+                          required
+                          value={selectedPlayer1}
+                          onChange={(e) => setSelectedPlayer1(e.target.value)}
+                          className="w-full appearance-none bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl pl-3.5 pr-8 py-2.5 text-xs sm:text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] cursor-pointer truncate"
+                        >
+                          <option value="">Seleziona...</option>
+                          {players.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">
+                        Giocatore 2 (opzionale):
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={selectedPlayer2}
+                          onChange={(e) => setSelectedPlayer2(e.target.value)}
+                          className="w-full appearance-none bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl pl-3.5 pr-8 py-2.5 text-xs sm:text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] cursor-pointer truncate"
+                        >
+                          <option value="">Nessuno (1v1)</option>
+                          {players.map((p) => (
+                            <option key={p.id} value={p.id} disabled={p.id === selectedPlayer1}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--divider)]">
+                    <button
+                      type="button"
+                      onClick={() => setShowTeamModal(false)}
+                      className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] cursor-pointer"
+                    >
+                      Annulla
+                    </button>
+                    <button
+                      type="submit"
+                      className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-bold text-xs btn-tactile cursor-pointer shadow-sm"
+                    >
+                      Salva Squadra
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
       )}

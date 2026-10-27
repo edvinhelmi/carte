@@ -222,7 +222,7 @@ export function CalendarView({
                   key={dateStr}
                   type="button"
                   onClick={() => setSelectedDateKey(dateStr)}
-                  className={`h-10 sm:h-12 rounded-xl flex flex-col items-center justify-center relative text-xs font-mono tabular-nums btn-tactile cursor-pointer ${
+                  className={`min-h-[44px] h-11 sm:h-12 rounded-xl flex flex-col items-center justify-center relative text-xs font-mono tabular-nums btn-tactile cursor-pointer ${
                     isSelected
                       ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-md shadow-amber-500/25 z-10 ring-2 ring-amber-300/40'
                       : isToday
@@ -242,7 +242,14 @@ export function CalendarView({
                           : 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
                       }`}
                     >
-                      {dayTourneys.length > 0 ? '🏆' : `${dayMatches.length} part.`}
+                      {dayTourneys.length > 0 ? (
+                        '🏆'
+                      ) : (
+                        <>
+                          <span className="hidden sm:inline">{dayMatches.length} part.</span>
+                          <span className="sm:hidden">{dayMatches.length}p</span>
+                        </>
+                      )}
                     </span>
                   )}
                 </button>
