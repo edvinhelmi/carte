@@ -315,15 +315,13 @@ export function CalendarView({
                               <span className="text-xs font-bold text-[var(--accent)]">
                                 🏆 Torneo Concluso
                               </span>
-                              {session.mode && (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-semibold">
-                                  {session.mode === '1vs1vs1'
-                                    ? '1 vs 1 vs 1'
-                                    : session.mode === '1vs1'
-                                    ? '1 vs 1'
-                                    : '2 vs 2'}
-                                </span>
-                              )}
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-semibold">
+                                {session.mode === '1vs1vs1'
+                                  ? '1 vs 1 vs 1'
+                                  : session.mode === '1vs1'
+                                  ? '1 vs 1'
+                                  : '2 vs 2'}
+                              </span>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-[var(--text-muted)] font-mono tabular-nums">
@@ -374,7 +372,7 @@ export function CalendarView({
                                     isT3Winner ? 'text-emerald-400' : 'text-[var(--text)]'
                                   }`}
                                 >
-                                  {session.team3Name} {isT3Winner && '🏆'}
+                                  {session.team3Name || 'Giocatore 3'} {isT3Winner && '🏆'}
                                 </span>
                                 <span className="text-lg sm:text-xl font-mono font-black tabular-nums text-[var(--text)] block mt-0.5">
                                   {session.team3Wins || 0}
@@ -391,7 +389,7 @@ export function CalendarView({
                                 >
                                   {session.team1Name} {isT1Winner && '🏆'}
                                 </span>
-                                {session.team1Players.length > 0 && session.mode === '2vs2' && (
+                                {session.team1Players && session.team1Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
                                   <span className="text-xs text-[var(--text-muted)]">
                                     {session.team1Players.join(' & ')}
                                   </span>
@@ -411,7 +409,7 @@ export function CalendarView({
                                 >
                                   {session.team2Name} {isT2Winner && '🏆'}
                                 </span>
-                                {session.team2Players.length > 0 && session.mode === '2vs2' && (
+                                {session.team2Players && session.team2Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
                                   <span className="text-xs text-[var(--text-muted)]">
                                     {session.team2Players.join(' & ')}
                                   </span>
@@ -435,7 +433,9 @@ export function CalendarView({
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-semibold text-[var(--accent)]">
-                            Squadra più vincente del giorno
+                            {dailySummary.championTeam.playerIds.length === 1
+                              ? 'Campione più vincente del giorno'
+                              : 'Squadra più vincente del giorno'}
                           </span>
                           <Sparkles className="w-3.5 h-3.5 text-[var(--accent)]" />
                         </div>
@@ -460,7 +460,7 @@ export function CalendarView({
                 {dailySummary.matches.length > 0 && (
                   <div className="space-y-3">
                     <h4 className="text-xs font-bold text-[var(--text-muted)]">
-                      Partite Singole ({dailySummary.totalMatches})
+                      Partite Singole ({dailySummary.matches.length})
                     </h4>
 
                     <div className="space-y-2">

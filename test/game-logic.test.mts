@@ -6,6 +6,7 @@ import {
   calculateHeadToHead,
   getDailySummary,
 } from '../src/lib/stats.ts';
+import { StorageService } from '../src/lib/storage.ts';
 import type { Team, Player, Match, TournamentSession } from '../src/types/game.ts';
 
 describe('Tournament 1vs1vs1, 1vs1, and 2vs2 logic', () => {
@@ -440,5 +441,142 @@ describe('Tournament 1vs1vs1, 1vs1, and 2vs2 logic', () => {
       assert.strictEqual(edd?.wins, 3);
       assert.strictEqual(edd?.matchesPlayed, 19);
     });
+
+    it('correctly attributes player stats when team names are delimited strings without player array', () => {
+      const delimitedSession: TournamentSession = {
+        id: 's_delimited',
+        dateKey: '2026-10-27',
+        startedAt: '2026-10-27T15:00:00Z',
+        mode: '2vs2',
+        team1Name: 'Marghe & Irins',
+        team1Players: [], // empty explicit chips
+        team2Name: 'Edd e Simon',
+        team2Players: [],
+        team1Wins: 5,
+        team2Wins: 3,
+        status: 'completed',
+        winnerTeam: 1,
+      };
+
+      const stats = calculatePlayerStats(demoPlayers, demoTeams, [], [delimitedSession]);
+      const marghe = stats.find((p) => p.player.name === 'Marghe');
+      const irins = stats.find((p) => p.player.name === 'Irins');
+      const edd = stats.find((p) => p.player.name === 'Edd');
+      const simon = stats.find((p) => p.player.name === 'Simon');
+
+      assert.strictEqual(marghe?.wins, 5);
+      assert.strictEqual(marghe?.matchesPlayed, 8);
+      assert.strictEqual(irins?.wins, 5);
+      assert.strictEqual(irins?.matchesPlayed, 8);
+      assert.strictEqual(edd?.wins, 3);
+      assert.strictEqual(edd?.matchesPlayed, 8);
+      assert.strictEqual(simon?.wins, 3);
+      assert.strictEqual(simon?.matchesPlayed, 8);
+    });
+  });
+
+  describe('StorageService lifecycle and score operations for 1vs1vs1 and 1vs1', () => {
+    it('manages 1vs1vs1 session creation, increments, decrements, and winner completion', () => {
+      // Clear memory store first
+      StorageService.clearAll();
+
+      const created = StorageService.startTournamentSession(
+        'Simon',
+        ['Simon'],
+        'Edd',
+        ['Edd'],
+        '1vs1vs1',
+        'Marghe',
+        ['Marghe']
+      );
+
+      assert.ok(created.id);
+      assert.strictEqual(created.mode, '1vs1vs1');
+      assert.strictEqual(created.team1Wins, 0);
+      assert.strictEqual(created.team2Wins, 0);
+      assert.strictEqual(created.team3Wins, 0);
+      assert.strictEqual(created.status, 'in_progress');
+
+      // Increment team 3
+      StorageService.incrementTournamentWin(created.id, 3);
+      StorageService.incrementTournamentWin(created.id, 3);
+      // Increment team 1
+      StorageService.incrementTournamentWin(created.id, 1);
+      // Increment team 2
+      StorageService.incrementTournamentWin(created.id, 2);
+
+      const sessions = StorageService.getTournamentSessions();
+      let current = sessions.find((s) => s.id === created.id);
+      assert.strictEqual(current?.team1Wins, 1);
+      assert.strictEqual(current?.team2Wins, 1);
+      assert.strictEqual(current?.team3Wins, 2);
+
+      // Decrement team 2 to 0
+      StorageService.decrementTournamentWin(created.id, 2);
+      // Attempt decrement below 0
+      StorageService.decrementTournamentWin(created.id, 2);
+
+      current = StorageService.getTournamentSessions().find((s) => s.id === created.id);
+      assert.strictEqual(current?.team2Wins, 0);
+
+      // End session: team 3 has 2 wins, team 1 has 1 win, team 2 has 0 wins -> team 3 winner
+      const ended = StorageService.endTournamentSession(created.id);
+      assert.ok(ended);
+      assert.strictEqual(ended.status, 'completed');
+      assert.strictEqual(ended.winnerTeam, 3);
+      assert.ok(ended.endedAt);
+
+      // Delete session
+      StorageService.deleteTournamentSession(created.id);
+      const afterDelete = StorageService.getTournamentSessions().find((s) => s.id === created.id);
+      assert.strictEqual(afterDelete, undefined);
+    });
+
+    it('correctly handles ties when ending a 1vs1vs1 session', () => {
+      StorageService.clearAll();
+
+      const created = StorageService.startTournamentSession(
+        'Simon',
+        ['Simon'],
+        'Edd',
+        ['Edd'],
+        '1vs1vs1',
+        'Marghe',
+        ['Marghe']
+      );
+
+      // 3-way tie: 2 - 2 - 2
+      StorageService.incrementTournamentWin(created.id, 1);
+      StorageService.incrementTournamentWin(created.id, 1);
+      StorageService.incrementTournamentWin(created.id, 2);
+      StorageService.incrementTournamentWin(created.id, 2);
+      StorageService.incrementTournamentWin(created.id, 3);
+      StorageService.incrementTournamentWin(created.id, 3);
+
+      const endedTie = StorageService.endTournamentSession(created.id);
+      assert.strictEqual(endedTie?.winnerTeam, 'pareggio');
+
+      // 2-way tie for 1st place: 3 - 3 - 1
+      const created2 = StorageService.startTournamentSession(
+        'Simon',
+        ['Simon'],
+        'Edd',
+        ['Edd'],
+        '1vs1vs1',
+        'Marghe',
+        ['Marghe']
+      );
+      StorageService.incrementTournamentWin(created2.id, 1);
+      StorageService.incrementTournamentWin(created2.id, 1);
+      StorageService.incrementTournamentWin(created2.id, 1);
+      StorageService.incrementTournamentWin(created2.id, 2);
+      StorageService.incrementTournamentWin(created2.id, 2);
+      StorageService.incrementTournamentWin(created2.id, 2);
+      StorageService.incrementTournamentWin(created2.id, 3);
+
+      const endedTwoWayTie = StorageService.endTournamentSession(created2.id);
+      assert.strictEqual(endedTwoWayTie?.winnerTeam, 'pareggio');
+    });
   });
 });
+

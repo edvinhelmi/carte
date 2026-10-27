@@ -89,7 +89,7 @@ export function TorneoSerataView({
   const availablePlayerNames = useMemo(() => {
     const list = ['Marghe', 'Irins', 'Simon', 'Edd'];
     for (const p of players) {
-      if (p.name && !list.includes(p.name)) {
+      if (p.name && !list.some((n) => n.toLowerCase() === p.name.toLowerCase())) {
         list.push(p.name);
       }
     }
@@ -164,6 +164,8 @@ export function TorneoSerataView({
         return;
       }
       StorageService.startTournamentSession(p1, [p1], p2, [p2], '1vs1');
+      setSinglePlayer1('');
+      setSinglePlayer2('');
       onDataUpdated();
       return;
     }
@@ -185,6 +187,9 @@ export function TorneoSerataView({
         return;
       }
       StorageService.startTournamentSession(p1, [p1], p2, [p2], '1vs1vs1', p3, [p3]);
+      setTrioPlayer1('');
+      setTrioPlayer2('');
+      setTrioPlayer3('');
       onDataUpdated();
       return;
     }
@@ -205,6 +210,10 @@ export function TorneoSerataView({
       team2SelectedPlayers,
       '2vs2'
     );
+    setTeam1Name('');
+    setTeam2Name('');
+    setTeam1SelectedPlayers([]);
+    setTeam2SelectedPlayers([]);
     onDataUpdated();
   };
 
@@ -231,7 +240,7 @@ export function TorneoSerataView({
     const isThree = activeSession.mode === '1vs1vs1' || !!activeSession.team3Name;
     const scoreText = isThree
       ? `${activeSession.team1Name} (${activeSession.team1Wins}) - ${activeSession.team2Name} (${activeSession.team2Wins}) - ${activeSession.team3Name || 'Giocatore 3'} (${activeSession.team3Wins || 0})`
-      : `${activeSession.team1Name} (${activeSession.team1Wins}) - (${activeSession.team2Wins}) ${activeSession.team2Name}`;
+      : `${activeSession.team1Name} (${activeSession.team1Wins}) - ${activeSession.team2Name} (${activeSession.team2Wins})`;
 
     const confirmEnd = confirm(
       `Concludere il torneo? Punteggio attuale: ${scoreText}. Verrà registrato nel calendario!`
@@ -357,12 +366,12 @@ export function TorneoSerataView({
             >
               <div>
                 <span className="text-xs font-medium text-[var(--text-muted)] block mb-1">
-                  {activeSession.mode === '2vs2' ? 'Squadra 1' : 'Giocatore 1'}
+                  {(activeSession.mode ?? '2vs2') === '2vs2' ? 'Squadra 1' : 'Giocatore 1'}
                 </span>
                 <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
                   {activeSession.team1Name}
                 </h2>
-                {activeSession.team1Players.length > 0 && activeSession.mode === '2vs2' && (
+                {activeSession.team1Players && activeSession.team1Players.length > 0 && (activeSession.mode ?? '2vs2') === '2vs2' && (
                   <p className="text-xs text-[var(--text-muted)] mt-1 font-medium">
                     {activeSession.team1Players.join(' & ')}
                   </p>
@@ -418,12 +427,12 @@ export function TorneoSerataView({
             >
               <div>
                 <span className="text-xs font-medium text-[var(--text-muted)] block mb-1">
-                  {activeSession.mode === '2vs2' ? 'Squadra 2' : 'Giocatore 2'}
+                  {(activeSession.mode ?? '2vs2') === '2vs2' ? 'Squadra 2' : 'Giocatore 2'}
                 </span>
                 <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
                   {activeSession.team2Name}
                 </h2>
-                {activeSession.team2Players.length > 0 && activeSession.mode === '2vs2' && (
+                {activeSession.team2Players && activeSession.team2Players.length > 0 && (activeSession.mode ?? '2vs2') === '2vs2' && (
                   <p className="text-xs text-[var(--text-muted)] mt-1 font-medium">
                     {activeSession.team2Players.join(' & ')}
                   </p>
@@ -935,15 +944,19 @@ export function TorneoSerataView({
                     <div className="flex flex-wrap gap-1.5">
                       {availablePlayerNames.map((name) => {
                         const isSelected = singlePlayer1 === name;
+                        const isTaken = singlePlayer2.trim().toLowerCase() === name.toLowerCase();
                         return (
                           <button
                             key={name}
                             type="button"
+                            disabled={isTaken}
                             onClick={() => setSinglePlayer1(name)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors btn-tactile cursor-pointer select-none ${
-                              isSelected
-                                ? 'bg-[var(--accent-muted)] text-[var(--accent-text)] border-[var(--accent-border)] font-bold'
-                                : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)]'
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors btn-tactile select-none ${
+                              isTaken
+                                ? 'opacity-40 cursor-not-allowed bg-[var(--surface-alt)] text-[var(--text-subtle)] border-transparent'
+                                : isSelected
+                                ? 'bg-[var(--accent-muted)] text-[var(--accent-text)] border-[var(--accent-border)] font-bold cursor-pointer'
+                                : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] cursor-pointer'
                             }`}
                           >
                             {isSelected ? '✓ ' : ''}
@@ -984,15 +997,19 @@ export function TorneoSerataView({
                     <div className="flex flex-wrap gap-1.5">
                       {availablePlayerNames.map((name) => {
                         const isSelected = singlePlayer2 === name;
+                        const isTaken = singlePlayer1.trim().toLowerCase() === name.toLowerCase();
                         return (
                           <button
                             key={name}
                             type="button"
+                            disabled={isTaken}
                             onClick={() => setSinglePlayer2(name)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors btn-tactile cursor-pointer select-none ${
-                              isSelected
-                                ? 'bg-sky-500/20 text-sky-300 border-sky-500/35 font-bold'
-                                : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)]'
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors btn-tactile select-none ${
+                              isTaken
+                                ? 'opacity-40 cursor-not-allowed bg-[var(--surface-alt)] text-[var(--text-subtle)] border-transparent'
+                                : isSelected
+                                ? 'bg-sky-500/20 text-sky-300 border-sky-500/35 font-bold cursor-pointer'
+                                : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] cursor-pointer'
                             }`}
                           >
                             {isSelected ? '✓ ' : ''}
@@ -1036,15 +1053,21 @@ export function TorneoSerataView({
                     <div className="flex flex-wrap gap-1.5">
                       {availablePlayerNames.map((name) => {
                         const isSelected = trioPlayer1 === name;
+                        const isTaken = [trioPlayer2, trioPlayer3].some(
+                          (p) => p.trim().toLowerCase() === name.toLowerCase()
+                        );
                         return (
                           <button
                             key={name}
                             type="button"
+                            disabled={isTaken}
                             onClick={() => setTrioPlayer1(name)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors btn-tactile cursor-pointer select-none ${
-                              isSelected
-                                ? 'bg-[var(--accent-muted)] text-[var(--accent-text)] border-[var(--accent-border)] font-bold'
-                                : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)]'
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors btn-tactile select-none ${
+                              isTaken
+                                ? 'opacity-40 cursor-not-allowed bg-[var(--surface-alt)] text-[var(--text-subtle)] border-transparent'
+                                : isSelected
+                                ? 'bg-[var(--accent-muted)] text-[var(--accent-text)] border-[var(--accent-border)] font-bold cursor-pointer'
+                                : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] cursor-pointer'
                             }`}
                           >
                             {isSelected ? '✓ ' : ''}
@@ -1083,15 +1106,21 @@ export function TorneoSerataView({
                     <div className="flex flex-wrap gap-1.5">
                       {availablePlayerNames.map((name) => {
                         const isSelected = trioPlayer2 === name;
+                        const isTaken = [trioPlayer1, trioPlayer3].some(
+                          (p) => p.trim().toLowerCase() === name.toLowerCase()
+                        );
                         return (
                           <button
                             key={name}
                             type="button"
+                            disabled={isTaken}
                             onClick={() => setTrioPlayer2(name)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors btn-tactile cursor-pointer select-none ${
-                              isSelected
-                                ? 'bg-sky-500/20 text-sky-300 border-sky-500/35 font-bold'
-                                : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)]'
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors btn-tactile select-none ${
+                              isTaken
+                                ? 'opacity-40 cursor-not-allowed bg-[var(--surface-alt)] text-[var(--text-subtle)] border-transparent'
+                                : isSelected
+                                ? 'bg-sky-500/20 text-sky-300 border-sky-500/35 font-bold cursor-pointer'
+                                : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] cursor-pointer'
                             }`}
                           >
                             {isSelected ? '✓ ' : ''}
@@ -1130,15 +1159,21 @@ export function TorneoSerataView({
                     <div className="flex flex-wrap gap-1.5">
                       {availablePlayerNames.map((name) => {
                         const isSelected = trioPlayer3 === name;
+                        const isTaken = [trioPlayer1, trioPlayer2].some(
+                          (p) => p.trim().toLowerCase() === name.toLowerCase()
+                        );
                         return (
                           <button
                             key={name}
                             type="button"
+                            disabled={isTaken}
                             onClick={() => setTrioPlayer3(name)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors btn-tactile cursor-pointer select-none ${
-                              isSelected
-                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/35 font-bold'
-                                : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)]'
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors btn-tactile select-none ${
+                              isTaken
+                                ? 'opacity-40 cursor-not-allowed bg-[var(--surface-alt)] text-[var(--text-subtle)] border-transparent'
+                                : isSelected
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/35 font-bold cursor-pointer'
+                                : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] cursor-pointer'
                             }`}
                           >
                             {isSelected ? '✓ ' : ''}
@@ -1187,7 +1222,7 @@ export function TorneoSerataView({
               let champText = 'Pareggio';
               if (isT1Winner) champText = `Campione: ${session.team1Name} 🏆`;
               else if (isT2Winner) champText = `Campione: ${session.team2Name} 🏆`;
-              else if (isT3Winner) champText = `Campione: ${session.team3Name} 🏆`;
+              else if (isT3Winner) champText = `Campione: ${session.team3Name || 'Giocatore 3'} 🏆`;
 
               return (
                 <div
@@ -1201,18 +1236,14 @@ export function TorneoSerataView({
                       <span className="font-semibold text-[var(--accent-text)]">
                         {champText}
                       </span>
-                      {session.mode && (
-                        <>
-                          <span>•</span>
-                          <span className="text-[var(--text-subtle)] font-medium">
-                            {session.mode === '1vs1vs1'
-                              ? '1 vs 1 vs 1'
-                              : session.mode === '1vs1'
-                              ? '1 vs 1'
-                              : '2 vs 2'}
-                          </span>
-                        </>
-                      )}
+                      <span>•</span>
+                      <span className="text-[var(--text-subtle)] font-medium">
+                        {session.mode === '1vs1vs1'
+                          ? '1 vs 1 vs 1'
+                          : session.mode === '1vs1'
+                          ? '1 vs 1'
+                          : '2 vs 2'}
+                      </span>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 text-sm pt-0.5">
@@ -1239,7 +1270,7 @@ export function TorneoSerataView({
                               isT3Winner ? 'text-emerald-400' : 'text-[var(--text-muted)]'
                             }`}
                           >
-                            {session.team3Name} ({session.team3Wins || 0})
+                            {session.team3Name || 'Giocatore 3'} ({session.team3Wins || 0})
                           </span>
                         </>
                       )}

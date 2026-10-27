@@ -13,8 +13,8 @@ export function calculateTeamStats(
   const allTeams = [...teams];
   for (const session of tournamentSessions) {
     const sessionTeams: [string, string[]][] = [
-      [session.team1Name, session.team1Players],
-      [session.team2Name, session.team2Players],
+      [session.team1Name || '', session.team1Players || []],
+      [session.team2Name || '', session.team2Players || []],
     ];
     if (session.team3Name) {
       sessionTeams.push([session.team3Name, session.team3Players || []]);
@@ -22,11 +22,12 @@ export function calculateTeamStats(
 
     for (const [tName, pNames] of sessionTeams) {
       if (!tName) continue;
-      const exists = allTeams.some((t) => t.name.toLowerCase() === tName.toLowerCase());
-      if (!exists) {
-        const pIds = pNames
-          .map((pn) => playerNameMap.get(pn.toLowerCase())?.id)
-          .filter(Boolean) as string[];
+      const existingTeam = allTeams.find((t) => t.name.toLowerCase() === tName.toLowerCase());
+      const pIds = (pNames || [])
+        .map((pn) => playerNameMap.get(pn.toLowerCase())?.id)
+        .filter(Boolean) as string[];
+
+      if (!existingTeam) {
         allTeams.push({
           id: 'synth_' + tName.toLowerCase().replace(/\s+/g, '_'),
           name: tName,
@@ -34,6 +35,8 @@ export function calculateTeamStats(
           color: '#10b981',
           createdAt: session.startedAt,
         });
+      } else if (existingTeam.playerIds.length === 0 && pIds.length > 0) {
+        existingTeam.playerIds = pIds;
       }
     }
   }
@@ -46,15 +49,15 @@ export function calculateTeamStats(
     // Aggiungi vittorie e partite dalle sessioni di torneo
     for (const session of tournamentSessions) {
       const totalSessionWins = (session.team1Wins || 0) + (session.team2Wins || 0) + (session.team3Wins || 0);
-      const isT1 = session.team1Name.toLowerCase() === team.name.toLowerCase();
-      const isT2 = session.team2Name.toLowerCase() === team.name.toLowerCase();
+      const isT1 = session.team1Name?.toLowerCase() === team.name.toLowerCase();
+      const isT2 = session.team2Name?.toLowerCase() === team.name.toLowerCase();
       const isT3 = !!session.team3Name && session.team3Name.toLowerCase() === team.name.toLowerCase();
 
       if (isT1) {
-        wins += session.team1Wins;
+        wins += session.team1Wins || 0;
         matchesPlayed += totalSessionWins;
       } else if (isT2) {
-        wins += session.team2Wins;
+        wins += session.team2Wins || 0;
         matchesPlayed += totalSessionWins;
       } else if (isT3) {
         wins += session.team3Wins || 0;
@@ -119,23 +122,30 @@ export function calculatePlayerStats(
     // Aggiungi vittorie e partite disputate nei tornei per il singolo giocatore
     for (const session of tournamentSessions) {
       const inTeam1 =
-        session.team1Players.some((p) => p.toLowerCase() === pNameLower) ||
-        session.team1Name.toLowerCase() === pNameLower;
+        session.team1Players?.some((p) => p.toLowerCase() === pNameLower) ||
+        session.team1Name?.toLowerCase() === pNameLower ||
+        session.team1Name?.toLowerCase().split(/\s*(?:&|\+|\be\b|\bed\b|,)\s*/).includes(pNameLower);
+
       const inTeam2 =
-        session.team2Players.some((p) => p.toLowerCase() === pNameLower) ||
-        session.team2Name.toLowerCase() === pNameLower;
+        session.team2Players?.some((p) => p.toLowerCase() === pNameLower) ||
+        session.team2Name?.toLowerCase() === pNameLower ||
+        session.team2Name?.toLowerCase().split(/\s*(?:&|\+|\be\b|\bed\b|,)\s*/).includes(pNameLower);
+
       const inTeam3 =
         session.team3Players?.some((p) => p.toLowerCase() === pNameLower) ||
-        (session.team3Name ? session.team3Name.toLowerCase() === pNameLower : false);
+        (session.team3Name ? session.team3Name.toLowerCase() === pNameLower : false) ||
+        (session.team3Name
+          ? session.team3Name.toLowerCase().split(/\s*(?:&|\+|\be\b|\bed\b|,)\s*/).includes(pNameLower)
+          : false);
 
       const totalSessionMatches =
         (session.team1Wins || 0) + (session.team2Wins || 0) + (session.team3Wins || 0);
 
       if (inTeam1) {
-        wins += session.team1Wins;
+        wins += session.team1Wins || 0;
         matchesPlayed += totalSessionMatches;
       } else if (inTeam2) {
-        wins += session.team2Wins;
+        wins += session.team2Wins || 0;
         matchesPlayed += totalSessionMatches;
       } else if (inTeam3) {
         wins += session.team3Wins || 0;
@@ -297,7 +307,7 @@ export function getDailySummary(
     championTeam = {
       id: 'synth_' + championKey,
       name: championKey,
-      playerIds: [],
+      playerIds: [championKey],
       color: '#10b981',
       createdAt: '',
     };

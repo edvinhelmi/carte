@@ -18,10 +18,8 @@ export function LeaderboardView({
   tournamentSessions = [],
 }: LeaderboardViewProps) {
   const [activeTab, setActiveTab] = useState<'teams' | 'players' | 'h2h'>('teams');
-
-  // H2H state
-  const [h2hTeam1, setH2hTeam1] = useState<string>(teams[0]?.id || '');
-  const [h2hTeam2, setH2hTeam2] = useState<string>(teams[1]?.id || '');
+  const [h2hTeam1, setH2hTeam1] = useState<string>('');
+  const [h2hTeam2, setH2hTeam2] = useState<string>('');
 
   const teamStats = useMemo(
     () => calculateTeamStats(teams, matches, players, tournamentSessions),
@@ -32,10 +30,21 @@ export function LeaderboardView({
     [players, teams, matches, tournamentSessions]
   );
 
+  // Includi tutti i team (sia preset che generati da tornei 1v1 o 1vs1vs1) per H2H
+  const availableTeams = useMemo(() => {
+    return teamStats.map((s) => s.team);
+  }, [teamStats]);
+
+  const effectiveTeam1Id = h2hTeam1 || availableTeams[0]?.id || '';
+  const effectiveTeam2Id =
+    h2hTeam2 && h2hTeam2 !== effectiveTeam1Id
+      ? h2hTeam2
+      : availableTeams.find((t) => t.id !== effectiveTeam1Id)?.id || '';
+
   const h2hStats = useMemo(() => {
-    if (!h2hTeam1 || !h2hTeam2 || h2hTeam1 === h2hTeam2) return null;
-    return calculateHeadToHead(h2hTeam1, h2hTeam2, teams, matches, tournamentSessions);
-  }, [h2hTeam1, h2hTeam2, teams, matches, tournamentSessions]);
+    if (!effectiveTeam1Id || !effectiveTeam2Id || effectiveTeam1Id === effectiveTeam2Id) return null;
+    return calculateHeadToHead(effectiveTeam1Id, effectiveTeam2Id, availableTeams, matches, tournamentSessions);
+  }, [effectiveTeam1Id, effectiveTeam2Id, availableTeams, matches, tournamentSessions]);
 
   const getRankBadge = (index: number) => {
     switch (index) {
@@ -159,7 +168,14 @@ export function LeaderboardView({
                             )}
                           </div>
                           <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                            {stat.players.map((p) => p.name).join(' & ') || 'Nessun giocatore assegnato'}
+                            {stat.players.length === 1 &&
+                            stat.team.name.toLowerCase() === stat.players[0].name.toLowerCase()
+                              ? stat.players[0].nickname
+                                ? `"${stat.players[0].nickname}"`
+                                : 'Giocatore singolo'
+                              : stat.players.length > 0
+                              ? stat.players.map((p) => p.name).join(' & ')
+                              : 'Partecipante torneo'}
                           </p>
                         </div>
                       </div>
@@ -284,11 +300,11 @@ export function LeaderboardView({
             <div className="flex items-center gap-2">
               <div className="relative">
                 <select
-                  value={h2hTeam1}
+                  value={effectiveTeam1Id}
                   onChange={(e) => setH2hTeam1(e.target.value)}
                   className="appearance-none bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs rounded-xl pl-3 pr-7 py-2 text-[var(--text)] focus:outline-none cursor-pointer"
                 >
-                  {teams.map((t) => (
+                  {availableTeams.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.name}
                     </option>
@@ -301,12 +317,12 @@ export function LeaderboardView({
 
               <div className="relative">
                 <select
-                  value={h2hTeam2}
+                  value={effectiveTeam2Id}
                   onChange={(e) => setH2hTeam2(e.target.value)}
                   className="appearance-none bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs rounded-xl pl-3 pr-7 py-2 text-[var(--text)] focus:outline-none cursor-pointer"
                 >
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id} disabled={t.id === h2hTeam1}>
+                  {availableTeams.map((t) => (
+                    <option key={t.id} value={t.id} disabled={t.id === effectiveTeam1Id}>
                       {t.name}
                     </option>
                   ))}
@@ -364,33 +380,35 @@ export function LeaderboardView({
               </div>
 
               {/* Ultime sfide dirette */}
-              <div>
-                <h4 className="text-xs font-bold text-[var(--text-muted)] mb-3">
-                  Ultime Sfide Dirette ({h2hStats.lastMatches.length})
-                </h4>
-                <div className="space-y-2">
-                  {h2hStats.lastMatches.map((m) => {
-                    const winner = m.winnerTeamId === h2hStats.team1.id ? h2hStats.team1 : h2hStats.team2;
-                    return (
-                      <div
-                        key={m.id}
-                        className="flex items-center justify-between p-3 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] text-xs"
-                      >
-                        <span className="text-[var(--text-subtle)] font-mono tabular-nums">{m.dateKey}</span>
-                        <span className="font-medium text-[var(--text)]">
-                          Vincitore:{' '}
-                          <span className="text-[var(--accent-text)] font-bold">{winner.name}</span>
-                        </span>
-                        {m.scoreTeam1 !== undefined && m.scoreTeam2 !== undefined && (
-                          <span className="font-mono tabular-nums text-[var(--text-muted)]">
-                            {m.scoreTeam1} - {m.scoreTeam2}
+              {h2hStats.lastMatches.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-[var(--text-muted)] mb-3">
+                    Ultime Sfide Dirette ({h2hStats.lastMatches.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {h2hStats.lastMatches.map((m) => {
+                      const winner = m.winnerTeamId === h2hStats.team1.id ? h2hStats.team1 : h2hStats.team2;
+                      return (
+                        <div
+                          key={m.id}
+                          className="flex items-center justify-between p-3 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] text-xs"
+                        >
+                          <span className="text-[var(--text-subtle)] font-mono tabular-nums">{m.dateKey}</span>
+                          <span className="font-medium text-[var(--text)]">
+                            Vincitore:{' '}
+                            <span className="text-[var(--accent-text)] font-bold">{winner.name}</span>
                           </span>
-                        )}
-                      </div>
-                    );
-                  })}
+                          {m.scoreTeam1 !== undefined && m.scoreTeam2 !== undefined && (
+                            <span className="font-mono tabular-nums text-[var(--text-muted)]">
+                              {m.scoreTeam1} - {m.scoreTeam2}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8 text-[var(--text-muted)] text-xs">
