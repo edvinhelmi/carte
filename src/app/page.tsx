@@ -15,7 +15,7 @@ import { SettingsView } from '@/components/SettingsView';
 import { QuickMatchModal } from '@/components/QuickMatchModal';
 import { EmptyHouseState } from '@/components/EmptyHouseState';
 import { ProfileModal } from '@/components/ProfileModal';
-import { Trophy } from 'lucide-react';
+import { Trophy, ArrowUp } from 'lucide-react';
 
 const emptySubscribe = () => () => {};
 
@@ -88,6 +88,20 @@ export default function Home() {
     return cleanup;
   }, [mounted, activeTab, hasHouse]);
 
+  // Gestione visibilità pulsante "Torna in alto" per dispositivi mobili
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 280);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleScrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Apertura modale per registrare partita con data specifica
   const handleOpenQuickMatchWithDate = (dateKey: string) => {
     setQuickMatchDateKey(dateKey);
@@ -115,7 +129,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)] text-[var(--text)] flex flex-col font-sans pb-28 md:pb-12 selection:bg-amber-500/20 selection:text-amber-200 overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--canvas)] text-[var(--text)] flex flex-col font-sans pb-28 md:pb-12 selection:bg-amber-500/20 selection:text-amber-200 overflow-x-clip">
       {/* Header di Navigazione */}
       <Header
         activeTab={activeTab}
@@ -134,7 +148,7 @@ export default function Home() {
       )}
 
       {/* Contenuto Principale: Schermata Vuota (se nessuna casa) oppure Viste Dashboard */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-6 overflow-x-hidden">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-6 overflow-x-clip">
         {!hasHouse ? (
           <EmptyHouseState
             onHouseJoinedOrCreated={() => {
@@ -209,6 +223,18 @@ export default function Home() {
           setActiveTab={setActiveTab}
           onOpenQuickMatch={handleOpenStandardQuickMatch}
         />
+      )}
+
+      {/* Pulsante Floating "Torna in alto" per mobile/desktop */}
+      {showScrollTop && (
+        <button
+          type="button"
+          onClick={handleScrollToTop}
+          aria-label="Torna in cima"
+          className="fixed bottom-20 md:bottom-6 right-4 z-40 p-3 rounded-full bg-[var(--surface-raised)]/95 backdrop-blur-md border border-[var(--control-border)] text-[var(--accent)] hover:text-[var(--accent-hover)] shadow-xl btn-tactile cursor-pointer transition-all animate-fade-in"
+        >
+          <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+        </button>
       )}
     </div>
   );

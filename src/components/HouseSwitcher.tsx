@@ -77,7 +77,7 @@ export function HouseSwitcher() {
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="touch-target inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--accent)]/40 text-[var(--text)] transition-colors cursor-pointer group select-none max-w-[120px] min-[380px]:max-w-[170px] sm:max-w-[240px]"
+          className="touch-target inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--accent)]/40 text-[var(--text)] transition-colors cursor-pointer group select-none max-w-[105px] min-[360px]:max-w-[125px] min-[400px]:max-w-[160px] sm:max-w-[240px] min-h-[44px]"
           aria-haspopup="true"
           aria-expanded={isOpen}
           title={activeHouse ? `Casa attiva: ${activeHouse.name}` : 'Nessuna casa attiva'}
@@ -85,8 +85,8 @@ export function HouseSwitcher() {
           <Home className={`w-3.5 h-3.5 ${activeHouse ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} shrink-0`} />
           <span className="text-xs font-bold truncate tracking-tight">{houseName}</span>
           <ChevronDown
-            className={`w-3.5 h-3.5 text-[var(--text-muted)] shrink-0 transition-transform duration-200 ${
-              isOpen ? 'rotate-180' : ''
+            className={`w-3 h-3 text-[var(--text-muted)] shrink-0 transition-transform duration-200 ${
+              isOpen ? 'rotate-180 text-[var(--accent)]' : ''
             }`}
           />
         </button>

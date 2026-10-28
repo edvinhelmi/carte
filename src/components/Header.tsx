@@ -47,18 +47,23 @@ export function Header({
     <header className="sticky top-0 z-40 bg-[var(--canvas)]/90 backdrop-blur-xl border-b border-[var(--divider)] px-3.5 sm:px-6 lg:px-8 py-2.5 sm:py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand / Logo & House Switcher */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
           <button
             type="button"
             onClick={() => setActiveTab('torneo')}
-            className="flex items-center gap-2 sm:gap-2.5 text-left group cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-full min-w-0 min-h-[44px]"
+            className="flex items-center gap-2 sm:gap-2.5 text-left group cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-full shrink-0 min-h-[44px]"
+            title="Briscola Club"
+            aria-label="Home Torneo"
           >
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shadow-sm group-hover:border-[var(--accent)]/60 transition-[border-color,box-shadow] duration-200 shrink-0">
-              <Trophy className="w-5 h-5 text-[var(--accent)] icon-hover-tilt" />
+              <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--accent)] icon-hover-tilt" />
             </div>
-            <span className="font-heading font-black text-base sm:text-lg text-[var(--text)] tracking-tight leading-none truncate pt-0.5">
-              <span className="hidden min-[360px]:inline">Briscola Club</span>
-              <span className="min-[360px]:hidden inline">Briscola</span>
+            <span
+              className={`font-heading font-black text-base sm:text-lg text-[var(--text)] tracking-tight leading-none pt-0.5 ${
+                hasActiveHouse ? 'hidden md:inline' : 'inline'
+              }`}
+            >
+              Briscola Club
             </span>
           </button>
 
@@ -99,16 +104,17 @@ export function Header({
         )}
 
         {/* Quick Actions & Profile */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {hasActiveHouse && onOpenQuickMatch && (
             <button
               type="button"
               onClick={onOpenQuickMatch}
               aria-label="Registra vittoria rapida"
-              className="touch-target group inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] hover:shadow-[0_2px_12px_rgba(245,158,11,0.12)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer min-h-[44px]"
+              title="Registra vittoria rapida"
+              className="touch-target group inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] hover:shadow-[0_2px_12px_rgba(245,158,11,0.12)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer min-h-[44px] min-w-[44px]"
             >
-              <Plus className="w-3.5 h-3.5 text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90" />
-              <span className="text-xs">Vittoria</span>
+              <Plus className="w-4 h-4 text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
+              <span className="hidden sm:inline">Vittoria</span>
             </button>
           )}
 
@@ -117,7 +123,7 @@ export function Header({
             <button
               type="button"
               onClick={() => setActiveTab('torneo')}
-              className={`hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold btn-tactile cursor-pointer shadow-sm min-h-[44px] ${
+              className={`hidden md:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold btn-tactile cursor-pointer shadow-sm min-h-[44px] ${
                 activeTab === 'torneo'
                   ? 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] shadow-[0_2px_14px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/40'
                   : 'bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--control-border)] text-[var(--text)]'
@@ -135,21 +141,21 @@ export function Header({
               onClick={onOpenProfile}
               aria-label="Apri profilo utente"
               title={`Profilo: ${currentUser.displayName}`}
-              className="touch-target inline-flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-[var(--text)] btn-tactile cursor-pointer min-h-[44px] group"
+              className="touch-target inline-flex items-center justify-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-[var(--text)] btn-tactile cursor-pointer min-h-[44px] min-w-[44px] group"
             >
               {currentUser.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={currentUser.avatarUrl}
                   alt={currentUser.displayName}
-                  className="w-6 h-6 rounded-full object-cover ring-1 ring-[var(--accent)]/50 shrink-0"
+                  className="w-7 h-7 sm:w-6 sm:h-6 rounded-full object-cover ring-1 ring-[var(--accent)]/50 shrink-0"
                 />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-[var(--surface-alt)] flex items-center justify-center text-[var(--accent)] shrink-0">
-                  <User className="w-3.5 h-3.5" />
+                <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-[var(--surface-alt)] flex items-center justify-center text-[var(--accent)] shrink-0">
+                  <User className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                 </div>
               )}
-              <span className="text-xs font-bold truncate max-w-[90px] sm:max-w-[120px] hidden min-[400px]:inline">
+              <span className="text-xs font-bold truncate max-w-[100px] hidden md:inline">
                 {currentUser.displayName}
               </span>
             </button>

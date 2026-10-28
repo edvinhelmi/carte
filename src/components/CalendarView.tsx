@@ -317,14 +317,11 @@ export function CalendarView({
                       return (
                         <div
                           key={session.id}
-                          className="p-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] shadow-sm space-y-2 interactive-card"
+                          className="p-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] shadow-sm space-y-3 interactive-card"
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-bold text-[var(--accent)]">
-                                🏆 Torneo Concluso
-                              </span>
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-semibold">
+                          <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-medium">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-bold">
                                 {session.mode === 'a5'
                                   ? 'A 5 (Chiamata)'
                                   : session.mode === '1vs1vs1'
@@ -333,26 +330,24 @@ export function CalendarView({
                                   ? '1 vs 1'
                                   : '2 vs 2'}
                               </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-[var(--text-muted)] font-mono tabular-nums">
+                              <span className="font-mono tabular-nums text-xs">
                                 {isA5
-                                  ? `${totalGames} ${totalGames === 1 ? 'vittoria registrata' : 'vittorie registrate'}`
-                                  : `${totalGames} ${totalGames === 1 ? 'partita giocata' : 'partite giocate'}`}
+                                  ? `${totalGames} ${totalGames === 1 ? 'vittoria' : 'vittorie'}`
+                                  : `${totalGames} ${totalGames === 1 ? 'partita' : 'partite'}`}
                               </span>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteTournamentSession(session.id)}
-                                aria-label="Elimina torneo"
-                                className="touch-target p-1 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTournamentSession(session.id)}
+                              aria-label="Elimina torneo"
+                              className="touch-target p-1 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
 
                           {isA5 && session.players5 && session.players5.length > 0 ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1 text-center items-center">
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-0.5">
                               {session.players5.map((p, pIdx) => {
                                 const isWinner = session.winnerPlayerName
                                   ? session.winnerPlayerName.split(' & ').includes(p.name)
@@ -360,22 +355,31 @@ export function CalendarView({
                                 return (
                                   <div
                                     key={p.name + pIdx}
-                                    className={`min-w-0 bg-[var(--surface-alt)] p-2.5 rounded-xl border ${
+                                    className={`p-2.5 rounded-xl border flex flex-col justify-between text-center transition-all ${
                                       pIdx === 4 ? 'col-span-2 sm:col-span-1' : ''
                                     } ${
                                       isWinner
-                                        ? 'border-[var(--accent)] shadow-sm ring-1 ring-[var(--accent)]/30'
-                                        : 'border-[var(--divider)]'
+                                        ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                                        : 'bg-[var(--surface-alt)] border-[var(--divider)]'
                                     }`}
                                   >
+                                    <div className="flex items-center justify-center gap-1 min-w-0">
+                                      {isWinner && (
+                                        <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                      )}
+                                      <span
+                                        className={`text-xs sm:text-sm font-bold truncate ${
+                                          isWinner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                                        }`}
+                                      >
+                                        {p.name}
+                                      </span>
+                                    </div>
                                     <span
-                                      className={`text-xs sm:text-sm font-extrabold block truncate ${
-                                        isWinner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                                      className={`text-lg sm:text-xl font-mono font-black tabular-nums mt-1 block ${
+                                        isWinner ? 'text-[var(--accent-text)]' : 'text-[var(--text)]'
                                       }`}
                                     >
-                                      {p.name} {isWinner && '🏆'}
-                                    </span>
-                                    <span className="text-base sm:text-lg font-mono font-black tabular-nums text-[var(--text)] block mt-0.5">
                                       {p.wins}
                                     </span>
                                   </div>
@@ -383,78 +387,141 @@ export function CalendarView({
                               })}
                             </div>
                           ) : isThree ? (
-                            <div className="grid grid-cols-3 gap-2 pt-1 text-center items-center">
-                              <div className="min-w-0 bg-[var(--surface-alt)] p-2.5 rounded-xl border border-[var(--divider)]">
+                            <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-0.5">
+                              <div
+                                className={`p-3 rounded-xl border flex flex-col justify-between text-center transition-all ${
+                                  isT1Winner
+                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+                                }`}
+                              >
+                                <div className="flex items-center justify-center gap-1 min-w-0">
+                                  {isT1Winner && (
+                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                  )}
+                                  <span
+                                    className={`text-xs sm:text-sm font-bold truncate ${
+                                      isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                                    }`}
+                                  >
+                                    {session.team1Name}
+                                  </span>
+                                </div>
                                 <span
-                                  className={`text-xs sm:text-sm font-extrabold block truncate ${
-                                    isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                                  className={`text-xl sm:text-2xl font-mono font-black tabular-nums mt-1 block ${
+                                    isT1Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text)]'
                                   }`}
                                 >
-                                  {session.team1Name} {isT1Winner && '🏆'}
-                                </span>
-                                <span className="text-lg sm:text-xl font-mono font-black tabular-nums text-[var(--text)] block mt-0.5">
                                   {session.team1Wins}
                                 </span>
                               </div>
 
-                              <div className="min-w-0 bg-[var(--surface-alt)] p-2.5 rounded-xl border border-[var(--divider)]">
+                              <div
+                                className={`p-3 rounded-xl border flex flex-col justify-between text-center transition-all ${
+                                  isT2Winner
+                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+                                }`}
+                              >
+                                <div className="flex items-center justify-center gap-1 min-w-0">
+                                  {isT2Winner && (
+                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                  )}
+                                  <span
+                                    className={`text-xs sm:text-sm font-bold truncate ${
+                                      isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                                    }`}
+                                  >
+                                    {session.team2Name}
+                                  </span>
+                                </div>
                                 <span
-                                  className={`text-xs sm:text-sm font-extrabold block truncate ${
-                                    isT2Winner ? 'text-sky-400' : 'text-[var(--text)]'
+                                  className={`text-xl sm:text-2xl font-mono font-black tabular-nums mt-1 block ${
+                                    isT2Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text)]'
                                   }`}
                                 >
-                                  {session.team2Name} {isT2Winner && '🏆'}
-                                </span>
-                                <span className="text-lg sm:text-xl font-mono font-black tabular-nums text-[var(--text)] block mt-0.5">
                                   {session.team2Wins}
                                 </span>
                               </div>
 
-                              <div className="min-w-0 bg-[var(--surface-alt)] p-2.5 rounded-xl border border-[var(--divider)]">
+                              <div
+                                className={`p-3 rounded-xl border flex flex-col justify-between text-center transition-all ${
+                                  isT3Winner
+                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+                                }`}
+                              >
+                                <div className="flex items-center justify-center gap-1 min-w-0">
+                                  {isT3Winner && (
+                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                  )}
+                                  <span
+                                    className={`text-xs sm:text-sm font-bold truncate ${
+                                      isT3Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                                    }`}
+                                  >
+                                    {session.team3Name || 'Giocatore 3'}
+                                  </span>
+                                </div>
                                 <span
-                                  className={`text-xs sm:text-sm font-extrabold block truncate ${
-                                    isT3Winner ? 'text-emerald-400' : 'text-[var(--text)]'
+                                  className={`text-xl sm:text-2xl font-mono font-black tabular-nums mt-1 block ${
+                                    isT3Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text)]'
                                   }`}
                                 >
-                                  {session.team3Name || 'Giocatore 3'} {isT3Winner && '🏆'}
-                                </span>
-                                <span className="text-lg sm:text-xl font-mono font-black tabular-nums text-[var(--text)] block mt-0.5">
                                   {session.team3Wins || 0}
                                 </span>
                               </div>
                             </div>
                           ) : (
-                            <div className="flex items-center justify-between gap-3 pt-1">
+                            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 pt-1">
+                              {/* Team 1 (Left) */}
                               <div className="text-left min-w-0">
-                                <span
-                                  className={`text-base font-extrabold block truncate ${
-                                    isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
-                                  }`}
-                                >
-                                  {session.team1Name} {isT1Winner && '🏆'}
-                                </span>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  {isT1Winner && (
+                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                  )}
+                                  <span
+                                    className={`text-sm sm:text-base font-bold truncate ${
+                                      isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                                    }`}
+                                  >
+                                    {session.team1Name}
+                                  </span>
+                                </div>
                                 {session.team1Players && session.team1Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
-                                  <span className="text-xs text-[var(--text-muted)]">
+                                  <span className="text-[11px] text-[var(--text-subtle)] truncate block mt-0.5">
                                     {session.team1Players.join(' & ')}
                                   </span>
                                 )}
                               </div>
 
-                              {/* Punteggio finale torneo */}
-                              <div className="px-3.5 py-1 rounded-xl bg-[var(--surface-alt)] border border-[var(--divider)] text-base sm:text-lg font-mono font-black text-[var(--text)] tabular-nums shrink-0">
-                                {session.team1Wins} - {session.team2Wins}
+                              {/* Punteggio Scoreboard (Center) */}
+                              <div className="px-3.5 py-1.5 rounded-xl bg-[var(--surface-alt)] border border-[var(--control-border)] text-base sm:text-lg font-mono font-black tabular-nums shadow-inner shrink-0">
+                                <span className={isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'}>
+                                  {session.team1Wins}
+                                </span>
+                                <span className="text-[var(--text-subtle)] mx-1.5">-</span>
+                                <span className={isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'}>
+                                  {session.team2Wins}
+                                </span>
                               </div>
 
+                              {/* Team 2 (Right) */}
                               <div className="text-right min-w-0">
-                                <span
-                                  className={`text-base font-extrabold block truncate ${
-                                    isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
-                                  }`}
-                                >
-                                  {session.team2Name} {isT2Winner && '🏆'}
-                                </span>
+                                <div className="flex items-center justify-end gap-1.5 min-w-0">
+                                  <span
+                                    className={`text-sm sm:text-base font-bold truncate ${
+                                      isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                                    }`}
+                                  >
+                                    {session.team2Name}
+                                  </span>
+                                  {isT2Winner && (
+                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                  )}
+                                </div>
                                 {session.team2Players && session.team2Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
-                                  <span className="text-xs text-[var(--text-muted)]">
+                                  <span className="text-[11px] text-[var(--text-subtle)] truncate block mt-0.5">
                                     {session.team2Players.join(' & ')}
                                   </span>
                                 )}
@@ -522,55 +589,72 @@ export function CalendarView({
                         return (
                           <div
                             key={m.id}
-                            className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] hover:border-[var(--control-border)] interactive-card"
+                            className="p-3.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] hover:border-[var(--control-border)] interactive-card space-y-2.5"
                           >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="flex items-center gap-1 text-xs text-[var(--text-subtle)] font-mono tabular-nums w-12 shrink-0">
-                                <Clock className="w-3 h-3" />
-                                <span>{matchTime}</span>
+                            <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-mono">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <Clock className="w-3.5 h-3.5 shrink-0" />
+                                <span className="tabular-nums">{matchTime}</span>
+                                {m.notes && (
+                                  <span className="text-[11px] text-[var(--text-muted)] truncate max-w-[160px] pl-1 font-sans">
+                                    • {m.notes}
+                                  </span>
+                                )}
                               </div>
-
-                              <div className="flex items-center gap-2 text-xs sm:text-sm min-w-0">
-                                <span
-                                  className={`truncate font-semibold ${
-                                    isT1Winner ? 'text-[var(--text)] font-bold' : 'text-[var(--text-muted)]'
-                                  }`}
-                                >
-                                  {t1?.name || 'Squadra 1'}
-                                  {isT1Winner && ' 🏆'}
-                                </span>
-
-                                <span className="text-xs px-2 py-0.5 rounded bg-[var(--surface-alt)] border border-[var(--divider)] text-[var(--text-muted)] font-mono font-bold tabular-nums shrink-0">
-                                  {m.scoreTeam1 !== undefined && m.scoreTeam2 !== undefined
-                                    ? `${m.scoreTeam1} - ${m.scoreTeam2}`
-                                    : 'vs'}
-                                </span>
-
-                                <span
-                                  className={`truncate font-semibold ${
-                                    isT2Winner ? 'text-[var(--text)] font-bold' : 'text-[var(--text-muted)]'
-                                  }`}
-                                >
-                                  {t2?.name || 'Squadra 2'}
-                                  {isT2Winner && ' 🏆'}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 shrink-0 ml-2">
-                              {m.notes && (
-                                <span className="hidden sm:inline-block text-[11px] px-2 py-0.5 rounded-full bg-[var(--surface-alt)] text-[var(--text-muted)] border border-[var(--divider)] max-w-[130px] truncate">
-                                  {m.notes}
-                                </span>
-                              )}
                               <button
                                 type="button"
                                 onClick={() => handleDeleteMatch(m.id)}
                                 aria-label="Elimina partita"
-                                className="touch-target p-1.5 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+                                className="touch-target p-1 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
+                            </div>
+
+                            {/* Scoreboard: Left Team | Score Center | Right Team */}
+                            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 pt-0.5">
+                              {/* Team 1 (Left) */}
+                              <div className="text-left min-w-0">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  {isT1Winner && (
+                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                  )}
+                                  <span
+                                    className={`text-sm sm:text-base font-bold truncate ${
+                                      isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                                    }`}
+                                  >
+                                    {t1?.name || 'Squadra 1'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Punteggio Scoreboard (Center) */}
+                              <div className="px-3 py-1 rounded-xl bg-[var(--surface-alt)] border border-[var(--control-border)] font-mono font-black text-sm sm:text-base tabular-nums shadow-inner shrink-0">
+                                <span className={isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'}>
+                                  {m.scoreTeam1 !== undefined ? m.scoreTeam1 : (isT1Winner ? '1' : '0')}
+                                </span>
+                                <span className="text-[var(--text-subtle)] mx-1.5">-</span>
+                                <span className={isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'}>
+                                  {m.scoreTeam2 !== undefined ? m.scoreTeam2 : (isT2Winner ? '1' : '0')}
+                                </span>
+                              </div>
+
+                              {/* Team 2 (Right) */}
+                              <div className="text-right min-w-0">
+                                <div className="flex items-center justify-end gap-1.5 min-w-0">
+                                  <span
+                                    className={`text-sm sm:text-base font-bold truncate ${
+                                      isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                                    }`}
+                                  >
+                                    {t2?.name || 'Squadra 2'}
+                                  </span>
+                                  {isT2Winner && (
+                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         );

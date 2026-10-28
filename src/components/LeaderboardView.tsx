@@ -233,52 +233,99 @@ export function LeaderboardView({
 
       {/* TAB 2: CLASSIFICA GIOCATORI SINGOLI */}
       {activeTab === 'players' && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {playerStats.map((pStat, idx) => (
-              <div
-                key={pStat.player.id}
-                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 interactive-card"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    {getRankBadge(idx)}
-                    <SuitIcon suit={pStat.player.avatarSuit} className="w-4 h-4 text-[var(--accent)]" />
-                  </div>
-                  {pStat.streak >= 2 && (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30 font-mono tabular-nums">
-                      <Flame className="w-2.5 h-2.5 fill-rose-400" />
-                      <span>{pStat.streak}</span>
-                    </span>
-                  )}
-                </div>
+        <div className="space-y-3">
+          {playerStats.length === 0 ? (
+            <div className="text-center py-12 bg-[var(--surface)] rounded-2xl border border-[var(--divider)] text-[var(--text-muted)] text-xs">
+              Nessun giocatore registrato al momento.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {playerStats.map((pStat, idx) => {
+                const isLeader = idx === 0 && pStat.wins > 0;
+                return (
+                  <div
+                    key={pStat.player.id}
+                    className={`rounded-2xl p-5 border interactive-card ${
+                      isLeader
+                        ? 'bg-[var(--surface)] border-[var(--accent)] shadow-md shadow-amber-500/10 ring-1 ring-[var(--accent)]/30'
+                        : 'bg-[var(--surface)] border-[var(--divider)] hover:border-[var(--control-border)]'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      {/* Posizione + Seme Avatar + Nome Giocatore + Nickname */}
+                      <div className="flex items-center gap-3.5">
+                        {getRankBadge(idx)}
 
-                <h3 className="font-heading font-bold text-base text-[var(--text)]">{pStat.player.name}</h3>
-                {pStat.player.nickname ? (
-                  <p className="text-xs text-[var(--text-muted)] italic mb-3">
-                    &quot;{pStat.player.nickname}&quot;
-                  </p>
-                ) : (
-                  <div className="h-4 mb-3" />
-                )}
+                        <div className="w-10 h-10 rounded-xl bg-[var(--surface-alt)] border border-[var(--control-border)] flex items-center justify-center shrink-0 shadow-sm">
+                          <SuitIcon suit={pStat.player.avatarSuit} className="w-5 h-5 text-[var(--accent)]" />
+                        </div>
 
-                <div className="grid grid-cols-3 gap-2 pt-2.5 border-t border-[var(--divider)] text-center font-mono tabular-nums">
-                  <div>
-                    <span className="text-[10px] text-[var(--text-subtle)] font-sans block">Vinte</span>
-                    <span className="text-sm font-bold text-emerald-400">{pStat.wins}</span>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-heading font-bold text-base text-[var(--text)]">
+                              {pStat.player.name}
+                            </h3>
+                            {pStat.streak >= 2 && (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30 font-mono tabular-nums">
+                                <Flame className="w-3 h-3 fill-rose-400" />
+                                <span>{pStat.streak} di fila</span>
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                            {pStat.player.nickname ? `"${pStat.player.nickname}"` : 'Giocatore di casa'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Statistiche Metriche Tabulari (Coerenti con Squadre) */}
+                      <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 pt-3 sm:pt-0 border-[var(--divider)]">
+                        {/* Win Rate */}
+                        <div className="text-center sm:text-right">
+                          <span className="text-[11px] text-[var(--text-subtle)] font-medium block">
+                            Win Rate
+                          </span>
+                          <span className="text-base font-extrabold text-[var(--accent-text)] font-mono tabular-nums">
+                            {pStat.winRate}%
+                          </span>
+                        </div>
+
+                        {/* Vittorie / Sconfitte */}
+                        <div className="text-center sm:text-right">
+                          <span className="text-[11px] text-[var(--text-subtle)] font-medium block">
+                            V / S
+                          </span>
+                          <span className="text-sm font-bold font-mono tabular-nums">
+                            <span className="text-emerald-400">{pStat.wins}</span>
+                            <span className="text-[var(--text-subtle)] mx-1">/</span>
+                            <span className="text-rose-400">{pStat.losses}</span>
+                          </span>
+                        </div>
+
+                        {/* Partite Totali */}
+                        <div className="text-center sm:text-right min-w-[60px]">
+                          <span className="text-[11px] text-[var(--text-subtle)] font-medium block">
+                            Totali
+                          </span>
+                          <span className="text-sm font-bold text-[var(--text)] font-mono tabular-nums">
+                            {pStat.matchesPlayed}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Barra grafica di Win Rate */}
+                    <div className="mt-3.5 w-full bg-[var(--surface-alt)] rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-[var(--accent)] h-1.5 rounded-full transition-[width] duration-500 ease-out"
+                        style={{ width: `${pStat.winRate}%` }}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-[var(--text-subtle)] font-sans block">Perse</span>
-                    <span className="text-sm font-bold text-rose-400">{pStat.losses}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-[var(--text-subtle)] font-sans block">Win %</span>
-                    <span className="text-sm font-bold text-[var(--accent-text)]">{pStat.winRate}%</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
