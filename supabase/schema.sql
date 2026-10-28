@@ -159,13 +159,26 @@ ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.matches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tournament_sessions ENABLE ROW LEVEL SECURITY;
 
--- Policy aperte per multi-casa con token anonimo o utente autenticato
+-- Policy aperte per multi-casa con token anonimo o utente autenticato (idempotente)
+DROP POLICY IF EXISTS "Accesso case" ON public.houses;
 CREATE POLICY "Accesso case" ON public.houses FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Accesso profili" ON public.profiles;
 CREATE POLICY "Accesso profili" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Accesso membri casa" ON public.house_members;
 CREATE POLICY "Accesso membri casa" ON public.house_members FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Accesso giocatori" ON public.players;
 CREATE POLICY "Accesso giocatori" ON public.players FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Accesso squadre" ON public.teams;
 CREATE POLICY "Accesso squadre" ON public.teams FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Accesso partite" ON public.matches;
 CREATE POLICY "Accesso partite" ON public.matches FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Accesso tornei" ON public.tournament_sessions;
 CREATE POLICY "Accesso tornei" ON public.tournament_sessions FOR ALL USING (true) WITH CHECK (true);
 
 -- 10. Abilitazione Pubblicazione Realtime
