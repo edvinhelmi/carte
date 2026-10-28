@@ -1,5 +1,5 @@
 import type { UserProfile } from '../types/house.ts';
-import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient.ts';
+import { getSupabaseClient, isSupabaseConfigured, getSupabaseAnonKey } from './supabaseClient.ts';
 import {
   getStoredItem as getStorageItem,
   setStoredItem as setStorageItem,
@@ -221,13 +221,15 @@ export const AuthService = {
 
     try {
       const redirectUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      const anonKey = getSupabaseAnonKey();
       const { error } = await client.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectUrl,
+          redirectTo: redirectUrl || undefined,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
+            ...(anonKey ? { apikey: anonKey } : {}),
           },
         },
       });

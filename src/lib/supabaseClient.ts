@@ -7,6 +7,9 @@ export const isSupabaseConfigured = (): boolean => {
   return Boolean(supabaseUrl && supabaseAnonKey && supabaseUrl.startsWith('https://'));
 };
 
+export const getSupabaseUrl = (): string | undefined => supabaseUrl;
+export const getSupabaseAnonKey = (): string | undefined => supabaseAnonKey;
+
 let clientInstance: SupabaseClient | null = null;
 
 export function getSupabaseClient(): SupabaseClient | null {
