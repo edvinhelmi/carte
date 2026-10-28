@@ -161,6 +161,17 @@ export function calculatePlayerStats(
 
   const stats: PlayerStats[] = allPlayers.map((player) => {
     const pNameLower = player.name.toLowerCase();
+    const pNickLower = player.nickname?.toLowerCase();
+
+    const matchesNameOrNick = (target?: string | null): boolean => {
+      if (!target) return false;
+      const lower = target.toLowerCase();
+      if (lower === pNameLower) return true;
+      if (pNickLower && lower === pNickLower) return true;
+      const parts = lower.split(/\s*(?:&|\+|\be\b|\bed\b|,)\s*/);
+      return parts.includes(pNameLower) || (pNickLower ? parts.includes(pNickLower) : false);
+    };
+
     const playerTeamIds = new Set(teams.filter((t) => t.playerIds.includes(player.id)).map((t) => t.id));
 
     const playerMatches = matches.filter(
@@ -173,7 +184,7 @@ export function calculatePlayerStats(
     // Aggiungi vittorie e partite disputate nei tornei per il singolo giocatore
     for (const session of tournamentSessions) {
       if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
-        const pEntry = session.players5.find((p) => p.name.toLowerCase() === pNameLower);
+        const pEntry = session.players5.find((p) => matchesNameOrNick(p.name));
         if (pEntry) {
           const maxWins = Math.max(0, ...session.players5.map((p) => p.wins || 0));
           const sumWins = session.players5.reduce((sum, p) => sum + (p.wins || 0), 0);
@@ -185,21 +196,16 @@ export function calculatePlayerStats(
       }
 
       const inTeam1 =
-        session.team1Players?.some((p) => p.toLowerCase() === pNameLower) ||
-        session.team1Name?.toLowerCase() === pNameLower ||
-        session.team1Name?.toLowerCase().split(/\s*(?:&|\+|\be\b|\bed\b|,)\s*/).includes(pNameLower);
+        session.team1Players?.some((p) => matchesNameOrNick(p)) ||
+        matchesNameOrNick(session.team1Name);
 
       const inTeam2 =
-        session.team2Players?.some((p) => p.toLowerCase() === pNameLower) ||
-        session.team2Name?.toLowerCase() === pNameLower ||
-        session.team2Name?.toLowerCase().split(/\s*(?:&|\+|\be\b|\bed\b|,)\s*/).includes(pNameLower);
+        session.team2Players?.some((p) => matchesNameOrNick(p)) ||
+        matchesNameOrNick(session.team2Name);
 
       const inTeam3 =
-        session.team3Players?.some((p) => p.toLowerCase() === pNameLower) ||
-        (session.team3Name ? session.team3Name.toLowerCase() === pNameLower : false) ||
-        (session.team3Name
-          ? session.team3Name.toLowerCase().split(/\s*(?:&|\+|\be\b|\bed\b|,)\s*/).includes(pNameLower)
-          : false);
+        session.team3Players?.some((p) => matchesNameOrNick(p)) ||
+        matchesNameOrNick(session.team3Name);
 
       const totalSessionMatches =
         (session.team1Wins || 0) + (session.team2Wins || 0) + (session.team3Wins || 0);

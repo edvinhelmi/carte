@@ -13,6 +13,8 @@ import { LeaderboardView } from '@/components/LeaderboardView';
 import { TeamsAndPlayersView } from '@/components/TeamsAndPlayersView';
 import { SettingsView } from '@/components/SettingsView';
 import { QuickMatchModal } from '@/components/QuickMatchModal';
+import { EmptyHouseState } from '@/components/EmptyHouseState';
+import { ProfileModal } from '@/components/ProfileModal';
 import { Trophy } from 'lucide-react';
 
 const emptySubscribe = () => () => {};
@@ -25,8 +27,24 @@ export default function Home() {
   );
   const [activeTab, setActiveTab] = useState<TabType>('torneo');
   const [joinNotification, setJoinNotification] = useState<string | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [hasHouse, setHasHouse] = useState<boolean>(() => HouseService.hasActiveHouse());
+
   const { players, teams, matches, tournamentSessions, activeSession, refresh } =
     useStorageData();
+
+  // Monitora cambiamenti alle case note e casa attiva
+  useEffect(() => {
+    const checkHouse = () => {
+      setHasHouse(HouseService.hasActiveHouse());
+    };
+    window.addEventListener('carte_storage_update', checkHouse);
+    window.addEventListener('carte_house_change', checkHouse);
+    return () => {
+      window.removeEventListener('carte_storage_update', checkHouse);
+      window.removeEventListener('carte_house_change', checkHouse);
+    };
+  }, []);
 
   // Rileva parametro ?casa=... da QR Code o link invito
   useEffect(() => {
@@ -41,6 +59,7 @@ export default function Home() {
             setTimeout(() => setJoinNotification(null), 4000);
             url.searchParams.delete('casa');
             window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+            setHasHouse(true);
             refresh();
           }
         });
@@ -67,7 +86,7 @@ export default function Home() {
     if (!mounted) return;
     const cleanup = installReferenceReveals();
     return cleanup;
-  }, [mounted, activeTab]);
+  }, [mounted, activeTab, hasHouse]);
 
   // Apertura modale per registrare partita con data specifica
   const handleOpenQuickMatchWithDate = (dateKey: string) => {
@@ -102,6 +121,8 @@ export default function Home() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenQuickMatch={handleOpenStandardQuickMatch}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        hasActiveHouse={hasHouse}
       />
 
       {/* Toast Notifica Casa */}
@@ -112,61 +133,83 @@ export default function Home() {
         </div>
       )}
 
-      {/* Contenuto Principale con Tab Switch */}
+      {/* Contenuto Principale: Schermata Vuota (se nessuna casa) oppure Viste Dashboard */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-6 overflow-x-hidden">
-        <div key={activeTab} className="view-transition">
-          {activeTab === 'torneo' && (
-            <TorneoSerataView
-              sessions={tournamentSessions}
-              activeSession={activeSession}
-              teams={teams}
-              players={players}
-              onDataUpdated={refresh}
-            />
-          )}
+        {!hasHouse ? (
+          <EmptyHouseState
+            onHouseJoinedOrCreated={() => {
+              setHasHouse(HouseService.hasActiveHouse());
+              refresh();
+            }}
+          />
+        ) : (
+          <div key={activeTab} className="view-transition">
+            {activeTab === 'torneo' && (
+              <TorneoSerataView
+                sessions={tournamentSessions}
+                activeSession={activeSession}
+                teams={teams}
+                players={players}
+                onDataUpdated={refresh}
+              />
+            )}
 
-          {activeTab === 'calendar' && (
-            <CalendarView
-              matches={matches}
-              teams={teams}
-              tournamentSessions={tournamentSessions}
-              onOpenQuickMatchWithDate={handleOpenQuickMatchWithDate}
-              onMatchesUpdated={refresh}
-            />
-          )}
+            {activeTab === 'calendar' && (
+              <CalendarView
+                matches={matches}
+                teams={teams}
+                tournamentSessions={tournamentSessions}
+                onOpenQuickMatchWithDate={handleOpenQuickMatchWithDate}
+                onMatchesUpdated={refresh}
+              />
+            )}
 
-          {activeTab === 'leaderboard' && (
-            <LeaderboardView
-              teams={teams}
-              players={players}
-              matches={matches}
-              tournamentSessions={tournamentSessions}
-            />
-          )}
+            {activeTab === 'leaderboard' && (
+              <LeaderboardView
+                teams={teams}
+                players={players}
+                matches={matches}
+                tournamentSessions={tournamentSessions}
+              />
+            )}
 
-          {activeTab === 'teams' && (
-            <TeamsAndPlayersView players={players} teams={teams} onDataUpdated={refresh} />
-          )}
+            {activeTab === 'teams' && (
+              <TeamsAndPlayersView players={players} teams={teams} onDataUpdated={refresh} />
+            )}
 
-          {activeTab === 'settings' && <SettingsView onDataUpdated={refresh} />}
-        </div>
+            {activeTab === 'settings' && <SettingsView onDataUpdated={refresh} />}
+          </div>
+        )}
       </main>
 
-      {/* Modale Registrazione Partita / Vittoria Rapida */}
-      <QuickMatchModal
-        isOpen={isQuickMatchOpen}
-        onClose={() => setIsQuickMatchOpen(false)}
-        teams={teams}
-        onMatchSaved={refresh}
-        defaultDateKey={quickMatchDateKey}
+      {/* Modale Registrazione Partita / Vittoria Rapida (attiva solo se in una casa) */}
+      {hasHouse && (
+        <QuickMatchModal
+          isOpen={isQuickMatchOpen}
+          onClose={() => setIsQuickMatchOpen(false)}
+          teams={teams}
+          onMatchSaved={refresh}
+          defaultDateKey={quickMatchDateKey}
+        />
+      )}
+
+      {/* Modale Profilo Utente & Nickname */}
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => {
+          setIsProfileOpen(false);
+          refresh();
+        }}
       />
 
-      {/* Barra Inferiore Mobile */}
-      <BottomNav
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenQuickMatch={handleOpenStandardQuickMatch}
-      />
+      {/* Barra Inferiore Mobile (visibile solo se c'è una casa attiva) */}
+      {hasHouse && (
+        <BottomNav
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onOpenQuickMatch={handleOpenStandardQuickMatch}
+        />
+      )}
     </div>
   );
 }

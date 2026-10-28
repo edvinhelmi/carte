@@ -97,31 +97,15 @@ export const StorageService = {
   init() {
     try {
       HouseService.init();
-      const activeHouseId = HouseService.getActiveHouseId();
       const playersKey = getActiveResourceKey('players');
       const teamsKey = getActiveResourceKey('teams');
       const matchesKey = getActiveResourceKey('matches');
       const sessionsKey = getActiveResourceKey('sessions');
 
-      if (activeHouseId === 'casa_principale') {
-        if (!getStoredItem(playersKey)) {
-          setStoredItem(playersKey, JSON.stringify(DEMO_PLAYERS.map((p) => ({ ...p, houseId: activeHouseId }))));
-        }
-        if (!getStoredItem(teamsKey)) {
-          setStoredItem(teamsKey, JSON.stringify(DEMO_TEAMS.map((t) => ({ ...t, houseId: activeHouseId }))));
-        }
-        if (!getStoredItem(matchesKey)) {
-          setStoredItem(matchesKey, JSON.stringify(generateDemoMatches().map((m) => ({ ...m, houseId: activeHouseId }))));
-        }
-        if (!getStoredItem(sessionsKey)) {
-          setStoredItem(sessionsKey, JSON.stringify(generateDemoSessions()));
-        }
-      } else {
-        if (!getStoredItem(playersKey)) setStoredItem(playersKey, JSON.stringify([]));
-        if (!getStoredItem(teamsKey)) setStoredItem(teamsKey, JSON.stringify([]));
-        if (!getStoredItem(matchesKey)) setStoredItem(matchesKey, JSON.stringify([]));
-        if (!getStoredItem(sessionsKey)) setStoredItem(sessionsKey, JSON.stringify([]));
-      }
+      if (!getStoredItem(playersKey)) setStoredItem(playersKey, JSON.stringify([]));
+      if (!getStoredItem(teamsKey)) setStoredItem(teamsKey, JSON.stringify([]));
+      if (!getStoredItem(matchesKey)) setStoredItem(matchesKey, JSON.stringify([]));
+      if (!getStoredItem(sessionsKey)) setStoredItem(sessionsKey, JSON.stringify([]));
     } catch (e) {
       console.error('Storage init error:', e);
     }
@@ -151,9 +135,9 @@ export const StorageService = {
       const key = getActiveResourceKey('players');
       const data = getStoredItem(key);
       if (data) return JSON.parse(data);
-      return HouseService.getActiveHouseId() === 'casa_principale' ? DEMO_PLAYERS : [];
+      return [];
     } catch {
-      return HouseService.getActiveHouseId() === 'casa_principale' ? DEMO_PLAYERS : [];
+      return [];
     }
   },
 
@@ -203,9 +187,9 @@ export const StorageService = {
       const key = getActiveResourceKey('teams');
       const data = getStoredItem(key);
       if (data) return JSON.parse(data);
-      return HouseService.getActiveHouseId() === 'casa_principale' ? DEMO_TEAMS : [];
+      return [];
     } catch {
-      return HouseService.getActiveHouseId() === 'casa_principale' ? DEMO_TEAMS : [];
+      return [];
     }
   },
 
@@ -310,9 +294,9 @@ export const StorageService = {
       this.init();
       const key = getActiveResourceKey('sessions');
       const data = getStoredItem(key);
-      return data ? JSON.parse(data) : generateDemoSessions();
+      return data ? JSON.parse(data) : [];
     } catch {
-      return generateDemoSessions();
+      return [];
     }
   },
 
@@ -337,7 +321,7 @@ export const StorageService = {
 
     const newSession: TournamentSession = {
       id: `tour_${Date.now()}`,
-      houseId: HouseService.getActiveHouseId(),
+      houseId: HouseService.getActiveHouseId() || 'casa_none',
       dateKey: formatDateKey(),
       startedAt: new Date().toISOString(),
       mode,
@@ -596,17 +580,11 @@ export const StorageService = {
 
   resetToDemo() {
     const activeHouseId = HouseService.getActiveHouseId();
-    if (activeHouseId === 'casa_principale') {
-      setStoredItem(getActiveResourceKey('players'), JSON.stringify(DEMO_PLAYERS.map(p => ({ ...p, houseId: activeHouseId }))));
-      setStoredItem(getActiveResourceKey('teams'), JSON.stringify(DEMO_TEAMS.map(t => ({ ...t, houseId: activeHouseId }))));
-      setStoredItem(getActiveResourceKey('matches'), JSON.stringify(generateDemoMatches().map(m => ({ ...m, houseId: activeHouseId }))));
-      setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(generateDemoSessions()));
-    } else {
-      setStoredItem(getActiveResourceKey('players'), JSON.stringify([]));
-      setStoredItem(getActiveResourceKey('teams'), JSON.stringify([]));
-      setStoredItem(getActiveResourceKey('matches'), JSON.stringify([]));
-      setStoredItem(getActiveResourceKey('sessions'), JSON.stringify([]));
-    }
+    if (!activeHouseId) return;
+    setStoredItem(getActiveResourceKey('players'), JSON.stringify(DEMO_PLAYERS.map(p => ({ ...p, houseId: activeHouseId }))));
+    setStoredItem(getActiveResourceKey('teams'), JSON.stringify(DEMO_TEAMS.map(t => ({ ...t, houseId: activeHouseId }))));
+    setStoredItem(getActiveResourceKey('matches'), JSON.stringify(generateDemoMatches().map(m => ({ ...m, houseId: activeHouseId }))));
+    setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(generateDemoSessions()));
     this.broadcastStateChange();
   },
 

@@ -1,8 +1,12 @@
-import type { House, KnownHouse } from '../types/house.ts';
+import type { House, KnownHouse, HouseMember } from '../types/house.ts';
 import type { Player, CardSuit, Match, TournamentSession } from '../types/game.ts';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient.ts';
-
-import { getStoredItem as getStorageItem, setStoredItem as setStorageItem, removeStoredItem as removeStorageItem } from './storagePrimitives.ts';
+import { AuthService } from './authService.ts';
+import {
+  getStoredItem as getStorageItem,
+  setStoredItem as setStorageItem,
+  removeStoredItem as removeStorageItem,
+} from './storagePrimitives.ts';
 
 export const HOUSE_STORAGE_KEYS = {
   ACTIVE_ID: 'carte_active_house_id_v2',
@@ -34,9 +38,9 @@ export function generateHouseId(): string {
 
 export function getHouseResourceKey(
   houseId: string,
-  resource: 'players' | 'teams' | 'matches' | 'sessions' | 'meta'
+  resource: 'players' | 'teams' | 'matches' | 'sessions' | 'meta' | 'members'
 ): string {
-  const safeId = houseId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_') || 'casa_principale';
+  const safeId = houseId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_') || 'casa_none';
   return `carte_house_${safeId}_${resource}`;
 }
 
@@ -55,74 +59,53 @@ export const HouseService = {
       }
     }
 
-    // Se non ci sono case registrate, effettua la migrazione dei dati legacy o crea casa_principale
-    if (!Array.isArray(known) || known.length === 0) {
-      const metaKey = getHouseResourceKey(DEFAULT_HOUSE.id, 'meta');
-      const existingMeta = getStorageItem(metaKey);
-
-      const baseHouse: House = existingMeta ? JSON.parse(existingMeta) : DEFAULT_HOUSE;
-
-      // Migrazione dati legacy se presenti
-      const legacyPlayers = getStorageItem(HOUSE_STORAGE_KEYS.LEGACY_PLAYERS);
-      const targetPlayersKey = getHouseResourceKey(baseHouse.id, 'players');
-      if (legacyPlayers && !getStorageItem(targetPlayersKey)) {
-        try {
-          const players: Player[] = JSON.parse(legacyPlayers);
-          const tagged = players.map((p) => ({ ...p, houseId: baseHouse.id }));
-          setStorageItem(targetPlayersKey, JSON.stringify(tagged));
-        } catch {
-          setStorageItem(targetPlayersKey, legacyPlayers);
-        }
-      }
-
-      const legacyTeams = getStorageItem(HOUSE_STORAGE_KEYS.LEGACY_TEAMS);
-      const targetTeamsKey = getHouseResourceKey(baseHouse.id, 'teams');
-      if (legacyTeams && !getStorageItem(targetTeamsKey)) {
-        setStorageItem(targetTeamsKey, legacyTeams);
-      }
-
-      const legacyMatches = getStorageItem(HOUSE_STORAGE_KEYS.LEGACY_MATCHES);
-      const targetMatchesKey = getHouseResourceKey(baseHouse.id, 'matches');
-      if (legacyMatches && !getStorageItem(targetMatchesKey)) {
-        setStorageItem(targetMatchesKey, legacyMatches);
-      }
-
-      const legacySessions = getStorageItem(HOUSE_STORAGE_KEYS.LEGACY_SESSIONS);
-      const targetSessionsKey = getHouseResourceKey(baseHouse.id, 'sessions');
-      if (legacySessions && !getStorageItem(targetSessionsKey)) {
-        setStorageItem(targetSessionsKey, legacySessions);
-      }
-
-      setStorageItem(metaKey, JSON.stringify(baseHouse));
-
-      known = [
-        {
-          id: baseHouse.id,
-          name: baseHouse.name,
-          inviteCode: baseHouse.inviteCode,
-          joinedAt: baseHouse.createdAt,
-          lastActiveAt: new Date().toISOString(),
-        },
-      ];
+    if (!Array.isArray(known)) {
+      known = [];
       setStorageItem(HOUSE_STORAGE_KEYS.KNOWN_HOUSES, JSON.stringify(known));
-      setStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID, baseHouse.id);
     }
 
-    // Assicura che ci sia una casa attiva valida
-    let activeId = getStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
-    if (!activeId || !known.some((k) => k.id === activeId)) {
-      activeId = known[0]?.id || DEFAULT_HOUSE.id;
-      setStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID, activeId);
+    // Rimuovi 'casa_principale' residuo del vecchio sistema demo se presente
+    const hadCasaPrincipale = known.some((k) => k.id === 'casa_principale');
+    if (hadCasaPrincipale) {
+      known = known.filter((k) => k.id !== 'casa_principale');
+      setStorageItem(HOUSE_STORAGE_KEYS.KNOWN_HOUSES, JSON.stringify(known));
+      if (getStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID) === 'casa_principale') {
+        removeStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
+      }
     }
+
+    // Se non ci sono case registrate, non creiamo alcuna casa di default (Schermata Vuota)
+    if (known.length === 0) {
+      removeStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
+      return;
+    }
+
+    // Assicura che ci sia una casa attiva valida tra quelle note
+    const activeId = getStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
+    if (!activeId || !known.some((k) => k.id === activeId)) {
+      setStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID, known[0].id);
+    }
+  },
+
+  hasActiveHouse(): boolean {
+    return Boolean(this.getActiveHouseId());
   },
 
   getActiveHouseId(): string {
     this.init();
-    return getStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID) || DEFAULT_HOUSE.id;
+    const activeId = getStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
+    if (!activeId) return '';
+    const known = this.getKnownHouses();
+    if (known.some((k) => k.id === activeId)) {
+      return activeId;
+    }
+    return known[0]?.id || '';
   },
 
-  getActiveHouse(): House {
+  getActiveHouse(): House | null {
     const activeId = this.getActiveHouseId();
+    if (!activeId) return null;
+
     const metaKey = getHouseResourceKey(activeId, 'meta');
     const metaRaw = getStorageItem(metaKey);
     if (metaRaw) {
@@ -145,15 +128,15 @@ export const HouseService = {
       };
     }
 
-    return DEFAULT_HOUSE;
+    return null;
   },
 
   getKnownHouses(): KnownHouse[] {
-    this.init();
     const raw = getStorageItem(HOUSE_STORAGE_KEYS.KNOWN_HOUSES);
     if (!raw) return [];
     try {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -161,7 +144,11 @@ export const HouseService = {
 
   setActiveHouse(houseId: string): void {
     const cleanId = houseId.trim();
-    if (!cleanId) return;
+    if (!cleanId) {
+      removeStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
+      this.notifyUpdate();
+      return;
+    }
 
     setStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID, cleanId);
 
@@ -175,6 +162,154 @@ export const HouseService = {
 
     this.notifyUpdate();
     this.setupCloudSync(cleanId);
+  },
+
+  // Membri della Casa
+  getHouseMembers(houseId: string): HouseMember[] {
+    if (!houseId) return [];
+    const key = getHouseResourceKey(houseId, 'members');
+    const raw = getStorageItem(key);
+    if (!raw) return [];
+    try {
+      const list = JSON.parse(raw);
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Sincronizza il membro della casa nella tabella dei giocatori (Player) di quella casa
+  syncMemberToPlayer(member: HouseMember): void {
+    if (!member.houseId || !member.userId) return;
+    const playersKey = getHouseResourceKey(member.houseId, 'players');
+    const raw = getStorageItem(playersKey);
+    let players: Player[] = [];
+    if (raw) {
+      try {
+        players = JSON.parse(raw);
+        if (!Array.isArray(players)) players = [];
+      } catch {
+        players = [];
+      }
+    }
+
+    const playerId = `p_mem_${member.userId}`;
+    const suitOrder: CardSuit[] = ['denari', 'coppe', 'spade', 'bastoni'];
+    const existingIndex = players.findIndex(
+      (p) => p.id === playerId || p.name.toLowerCase() === member.displayName.toLowerCase()
+    );
+
+    const effectiveName = member.displayName;
+    const effectiveNickname = member.nickname;
+
+    if (existingIndex >= 0) {
+      players[existingIndex] = {
+        ...players[existingIndex],
+        id: playerId,
+        name: effectiveName,
+        nickname: effectiveNickname || undefined,
+      };
+    } else {
+      players.push({
+        id: playerId,
+        houseId: member.houseId,
+        name: effectiveName,
+        nickname: effectiveNickname || undefined,
+        avatarSuit: suitOrder[players.length % suitOrder.length],
+        createdAt: member.joinedAt || new Date().toISOString(),
+      });
+    }
+
+    setStorageItem(playersKey, JSON.stringify(players));
+  },
+
+  async saveHouseMember(member: HouseMember): Promise<void> {
+    if (!member.houseId || !member.userId) return;
+    const members = this.getHouseMembers(member.houseId);
+    const index = members.findIndex((m) => m.userId === member.userId);
+    if (index >= 0) {
+      members[index] = { ...members[index], ...member };
+    } else {
+      members.push(member);
+    }
+    setStorageItem(getHouseResourceKey(member.houseId, 'members'), JSON.stringify(members));
+
+    // Sincronizza anche la presenza del giocatore nella lista players della casa
+    this.syncMemberToPlayer(member);
+
+    // Se l'utente ha un account Supabase (non guest), effettua l'upsert su cloud
+    if (isSupabaseConfigured() && member.userId && !member.userId.startsWith('guest_')) {
+      const client = getSupabaseClient();
+      if (client) {
+        try {
+          await client.from('house_members').upsert({
+            house_id: member.houseId,
+            user_id: member.userId,
+            nickname: member.nickname || null,
+            role: member.role || 'member',
+            joined_at: member.joinedAt || new Date().toISOString(),
+          });
+
+          await client.from('players').upsert({
+            id: `p_mem_${member.userId}`,
+            house_id: member.houseId,
+            name: member.displayName,
+            nickname: member.nickname || null,
+            avatar_suit: 'denari',
+            created_at: member.joinedAt || new Date().toISOString(),
+          });
+        } catch (e) {
+          console.warn('Errore sincronizzazione membro su Supabase:', e);
+        }
+      }
+    }
+  },
+
+  // Nomi suggeriti per torneo e partite, derivati dai membri reali e giocatori registrati della casa
+  getSuggestedPlayerNames(houseId?: string): string[] {
+    const id = houseId || this.getActiveHouseId();
+    if (!id) return [];
+
+    const names: string[] = [];
+    const addName = (rawName?: string) => {
+      const clean = rawName?.trim();
+      if (!clean) return;
+      if (!names.some((n) => n.toLowerCase() === clean.toLowerCase())) {
+        names.push(clean);
+      }
+    };
+
+    const currentUser = AuthService.getCurrentUser();
+    if (currentUser?.displayName) {
+      addName(AuthService.getEffectiveNickname(id));
+    }
+
+    // 1. Membri effettivi della casa (soprannome della casa oppure nickname globale)
+    const members = this.getHouseMembers(id);
+    for (const m of members) {
+      if (m.userId === currentUser.id) {
+        addName(AuthService.getEffectiveNickname(id));
+      } else {
+        if (m.nickname) addName(m.nickname);
+        addName(m.displayName);
+      }
+    }
+
+    // 2. Eventuali giocatori registrati nella casa
+    const playersRaw = getStorageItem(getHouseResourceKey(id, 'players'));
+    if (playersRaw) {
+      try {
+        const players: Player[] = JSON.parse(playersRaw);
+        for (const p of players) {
+          if (p.nickname) addName(p.nickname);
+          addName(p.name);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    return names;
   },
 
   createHouse(name: string, initialPlayerNames: string[] = []): House {
@@ -192,10 +327,24 @@ export const HouseService = {
       updatedAt: now,
     };
 
-    // Salva metadati
+    // Salva metadati casa
     setStorageItem(getHouseResourceKey(id, 'meta'), JSON.stringify(house));
 
-    // Crea giocatori iniziali se specificati
+    // Aggiungi utente creatore come primo membro della casa
+    const currentUser = AuthService.getCurrentUser();
+    const userNick = AuthService.getHouseNickname(id);
+    const creatorMember: HouseMember = {
+      houseId: id,
+      userId: currentUser.id,
+      displayName: currentUser.displayName,
+      nickname: userNick,
+      avatarUrl: currentUser.avatarUrl,
+      role: 'owner',
+      joinedAt: now,
+    };
+    this.saveHouseMember(creatorMember);
+
+    // Crea giocatori iniziali se specificati dall'utente
     const suits: CardSuit[] = ['coppe', 'denari', 'spade', 'bastoni'];
     const players: Player[] = initialPlayerNames
       .map((n) => n.trim())
@@ -226,7 +375,7 @@ export const HouseService = {
     setStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID, id);
 
     // Sync cloud immediato se Supabase è attivo
-    this.pushHouseToCloud(house, players);
+    this.pushHouseToCloud(house, players, [creatorMember]);
 
     this.notifyUpdate();
     this.setupCloudSync(id);
@@ -249,6 +398,25 @@ export const HouseService = {
     );
 
     if (localMatch) {
+      const currentUser = AuthService.getCurrentUser();
+      const existingMember = this.getHouseMembers(localMatch.id).find((m) => m.userId === currentUser.id);
+      if (!existingMember) {
+        await this.saveHouseMember({
+          houseId: localMatch.id,
+          userId: currentUser.id,
+          displayName: currentUser.displayName,
+          nickname: AuthService.getHouseNickname(localMatch.id),
+          avatarUrl: currentUser.avatarUrl,
+          role: 'member',
+          joinedAt: new Date().toISOString(),
+        });
+      } else {
+        existingMember.displayName = currentUser.displayName;
+        existingMember.avatarUrl = currentUser.avatarUrl;
+        const currentHouseNick = AuthService.getHouseNickname(localMatch.id);
+        if (currentHouseNick) existingMember.nickname = currentHouseNick;
+        await this.saveHouseMember(existingMember);
+      }
       this.setActiveHouse(localMatch.id);
       return {
         success: true,
@@ -299,7 +467,19 @@ export const HouseService = {
             setStorageItem(HOUSE_STORAGE_KEYS.KNOWN_HOUSES, JSON.stringify(updatedKnown));
             setStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID, fetchedHouse.id);
 
-            // Scarica tutti i dati della casa dal cloud
+            // Aggiungi utente come membro
+            const currentUser = AuthService.getCurrentUser();
+            await this.saveHouseMember({
+              houseId: fetchedHouse.id,
+              userId: currentUser.id,
+              displayName: currentUser.displayName,
+              nickname: AuthService.getHouseNickname(fetchedHouse.id),
+              avatarUrl: currentUser.avatarUrl,
+              role: 'member',
+              joinedAt: new Date().toISOString(),
+            });
+
+            // Scarica tutti i dati della casa e i membri dal cloud
             await this.pullHouseDataFromCloud(fetchedHouse.id);
 
             this.notifyUpdate();
@@ -332,6 +512,18 @@ export const HouseService = {
       });
       setStorageItem(HOUSE_STORAGE_KEYS.KNOWN_HOUSES, JSON.stringify(updatedKnown));
       setStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID, fallbackHouse.id);
+
+      const currentUser = AuthService.getCurrentUser();
+      await this.saveHouseMember({
+        houseId: fallbackHouse.id,
+        userId: currentUser.id,
+        displayName: currentUser.displayName,
+        nickname: AuthService.getHouseNickname(fallbackHouse.id),
+        avatarUrl: currentUser.avatarUrl,
+        role: 'member',
+        joinedAt: new Date().toISOString(),
+      });
+
       this.notifyUpdate();
       return { success: true, house: fallbackHouse };
     }
@@ -376,14 +568,19 @@ export const HouseService = {
     const known = this.getKnownHouses().filter((k) => k.id !== houseId);
     setStorageItem(HOUSE_STORAGE_KEYS.KNOWN_HOUSES, JSON.stringify(known));
 
-    // Se stiamo eliminando la casa attiva, passa alla prima disponibile o a quella di default
+    // Se stiamo eliminando la casa attiva, passa alla prima disponibile o a nessuna
     if (this.getActiveHouseId() === houseId) {
-      const nextId = known[0]?.id || DEFAULT_HOUSE.id;
-      setStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID, nextId);
+      const nextId = known[0]?.id || '';
+      if (nextId) {
+        setStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID, nextId);
+      } else {
+        removeStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
+      }
     }
 
     // Rimuovi dati locali della casa
     removeStorageItem(getHouseResourceKey(houseId, 'meta'));
+    removeStorageItem(getHouseResourceKey(houseId, 'members'));
     removeStorageItem(getHouseResourceKey(houseId, 'players'));
     removeStorageItem(getHouseResourceKey(houseId, 'teams'));
     removeStorageItem(getHouseResourceKey(houseId, 'matches'));
@@ -409,7 +606,7 @@ export const HouseService = {
   },
 
   // Sincronizzazione Cloud Supabase
-  async pushHouseToCloud(house: House, initialPlayers: Player[] = []): Promise<void> {
+  async pushHouseToCloud(house: House, initialPlayers: Player[] = [], members: HouseMember[] = []): Promise<void> {
     if (!isSupabaseConfigured()) return;
     const client = getSupabaseClient();
     if (!client) return;
@@ -422,6 +619,20 @@ export const HouseService = {
         created_at: house.createdAt,
         updated_at: house.updatedAt,
       });
+
+      if (members.length > 0) {
+        for (const m of members) {
+          if (m.userId && !m.userId.startsWith('guest_')) {
+            await client.from('house_members').upsert({
+              house_id: house.id,
+              user_id: m.userId,
+              nickname: m.nickname || null,
+              role: m.role || 'member',
+              joined_at: m.joinedAt || new Date().toISOString(),
+            });
+          }
+        }
+      }
 
       if (initialPlayers.length > 0) {
         const payload = initialPlayers.map((p) => ({
@@ -445,6 +656,56 @@ export const HouseService = {
     if (!client) return;
 
     try {
+      // 0. Membri della Casa
+      const { data: membersData } = await client
+        .from('house_members')
+        .select('house_id, user_id, nickname, role, joined_at, profiles(display_name, avatar_url)')
+        .eq('house_id', houseId);
+
+      if (Array.isArray(membersData)) {
+        interface CloudMemberRecord {
+          house_id: string;
+          user_id: string;
+          nickname?: string | null;
+          role?: 'owner' | 'member';
+          joined_at: string;
+          profiles?: { display_name?: string; avatar_url?: string } | null;
+        }
+        const mappedMembers: HouseMember[] = (membersData as CloudMemberRecord[]).map((m) => {
+          const profile = m.profiles;
+          return {
+            houseId: m.house_id,
+            userId: m.user_id,
+            displayName: profile?.display_name || 'Membro',
+            nickname: m.nickname || undefined,
+            avatarUrl: profile?.avatar_url || undefined,
+            role: m.role || 'member',
+            joinedAt: m.joined_at,
+          };
+        });
+
+        // Preserva eventuali membri locali non ancora sincronizzati sul cloud o guest
+        const existingLocal = this.getHouseMembers(houseId);
+        for (const localM of existingLocal) {
+          const cloudIndex = mappedMembers.findIndex((m) => m.userId === localM.userId);
+          if (cloudIndex >= 0) {
+            // Se in locale c'è un soprannome più recente impostato dall'utente, mantienilo
+            if (localM.nickname && !mappedMembers[cloudIndex].nickname) {
+              mappedMembers[cloudIndex].nickname = localM.nickname;
+            }
+          } else {
+            mappedMembers.push(localM);
+          }
+        }
+
+        setStorageItem(getHouseResourceKey(houseId, 'members'), JSON.stringify(mappedMembers));
+
+        // Sincronizza anche ciascun membro nei players della casa
+        for (const m of mappedMembers) {
+          this.syncMemberToPlayer(m);
+        }
+      }
+
       // 1. Players
       const { data: players } = await client.from('players').select('*').eq('house_id', houseId);
       if (Array.isArray(players) && players.length > 0) {
@@ -527,17 +788,43 @@ export const HouseService = {
     }
 
     try {
+      const onCloudChange = () => {
+        this.pullHouseDataFromCloud(houseId).then(() => {
+          this.notifyUpdate();
+        });
+      };
+
       activeRealtimeChannel = client
         .channel(`realtime_house_${houseId}`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', filter: `house_id=eq.${houseId}` },
-          () => {
-            // Sincronizza i dati e notifica la UI
-            this.pullHouseDataFromCloud(houseId).then(() => {
-              this.notifyUpdate();
-            });
-          }
+          { event: '*', schema: 'public', table: 'house_members', filter: `house_id=eq.${houseId}` },
+          onCloudChange
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'players', filter: `house_id=eq.${houseId}` },
+          onCloudChange
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'teams', filter: `house_id=eq.${houseId}` },
+          onCloudChange
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'matches', filter: `house_id=eq.${houseId}` },
+          onCloudChange
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'tournament_sessions', filter: `house_id=eq.${houseId}` },
+          onCloudChange
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles' },
+          onCloudChange
         )
         .subscribe();
     } catch (e) {

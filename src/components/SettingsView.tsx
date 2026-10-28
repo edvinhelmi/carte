@@ -12,6 +12,7 @@ import {
   Home,
   QrCode,
   Cloud,
+  Globe,
 } from 'lucide-react';
 import { StorageService } from '@/lib/storage';
 import { RealtimeSyncService } from '@/lib/realtimeSync';
@@ -25,12 +26,25 @@ interface SettingsViewProps {
 
 export function SettingsView({ onDataUpdated }: SettingsViewProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeHouse] = useState(() => HouseService.getActiveHouse());
+  const [activeHouse, setActiveHouse] = useState(() => HouseService.getActiveHouse());
   const [showShareModal, setShowShareModal] = useState(false);
   const [roomInput, setRoomInput] = useState(() => RealtimeSyncService.getRoom());
   const [roomSaved, setRoomSaved] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [showGoogleGuide, setShowGoogleGuide] = useState(false);
   const hasCloud = isSupabaseConfigured();
+
+  React.useEffect(() => {
+    const handleSync = () => {
+      setActiveHouse(HouseService.getActiveHouse());
+    };
+    window.addEventListener('carte_house_change', handleSync);
+    window.addEventListener('carte_storage_update', handleSync);
+    return () => {
+      window.removeEventListener('carte_house_change', handleSync);
+      window.removeEventListener('carte_storage_update', handleSync);
+    };
+  }, []);
 
   // Scarica Backup JSON
   const handleExport = () => {
@@ -72,7 +86,7 @@ export function SettingsView({ onDataUpdated }: SettingsViewProps) {
 
   // Ricarica Dati Demo
   const handleResetDemo = () => {
-    if (confirm('Vuoi ripristinare i dati di prova (giocatori, squadre e partite demo)?')) {
+    if (confirm('Vuoi ripristinare i dati di prova (giocatori, squadre e partite demo) in questa casa?')) {
       StorageService.resetToDemo();
       onDataUpdated();
       alert('Dati demo ricaricati!');
@@ -83,7 +97,7 @@ export function SettingsView({ onDataUpdated }: SettingsViewProps) {
   const handleClearAll = () => {
     if (
       confirm(
-        'Attenzione: cancellerai tutti i dati di partite, squadre e giocatori salvati in questo browser. Procedere?'
+        'Attenzione: cancellerai tutti i dati di partite, squadre e giocatori salvati in questo browser per la casa corrente. Procedere?'
       )
     ) {
       StorageService.clearAll();
@@ -128,41 +142,117 @@ export function SettingsView({ onDataUpdated }: SettingsViewProps) {
       </div>
 
       {/* SEZIONE 0: CASA ATTIVA E CONDIVISIONE */}
+      {activeHouse && (
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
+              <Home className="w-4 h-4 text-[var(--accent)]" />
+              <span>Casa Attiva: {activeHouse.name}</span>
+            </h2>
+            <span className="font-mono text-xs font-bold text-[var(--accent)] px-2.5 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)]">
+              {activeHouse.inviteCode}
+            </span>
+          </div>
+
+          <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+            I suggerimenti dei giocatori e lo storico partite sono isolati per questa casa. Puoi condividere l&apos;accesso immediato con amici o coinquilini tramite QR Code o Link diretto.
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => setShowShareModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] text-xs font-bold btn-tactile cursor-pointer shadow-sm"
+            >
+              <QrCode className="w-4 h-4" />
+              <span>Mostra QR Code &amp; Link Casa</span>
+            </button>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs text-[var(--text-muted)]">
+              <Cloud className="w-3.5 h-3.5 text-sky-400" />
+              <span>
+                {hasCloud ? 'Supabase Cloud: Connesso' : 'Persistenza: Local-First (Offline)'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SEZIONE 1: GUIDA INTERNET GOOGLE AUTH & SUPABASE */}
       <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
-            <Home className="w-4 h-4 text-[var(--accent)]" />
-            <span>Casa Attiva: {activeHouse.name}</span>
+            <Globe className="w-4 h-4 text-[var(--accent)]" />
+            <span>Accesso con Google &amp; Supabase (Istruzioni Setup)</span>
           </h2>
-          <span className="font-mono text-xs font-bold text-[var(--accent)] px-2.5 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)]">
-            {activeHouse.inviteCode}
-          </span>
+          <button
+            type="button"
+            onClick={() => setShowGoogleGuide((prev) => !prev)}
+            className="touch-target px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--accent)] btn-tactile cursor-pointer"
+          >
+            {showGoogleGuide ? 'Nascondi Guida' : 'Mostra Istruzioni'}
+          </button>
         </div>
 
         <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-          I suggerimenti dei giocatori e lo storico partite sono isolati per questa casa. Puoi condividere l&apos;accesso immediato con amici o coinquilini tramite QR Code o Link diretto.
+          Per consentire l&apos;accesso con un click tramite account Google autenticato su Supabase, è necessario creare un Client ID su Google Cloud e incollarlo su Supabase.
         </p>
 
-        <div className="flex flex-wrap items-center gap-3 pt-1">
-          <button
-            type="button"
-            onClick={() => setShowShareModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] text-xs font-bold btn-tactile cursor-pointer shadow-sm"
-          >
-            <QrCode className="w-4 h-4" />
-            <span>Mostra QR Code &amp; Link Casa</span>
-          </button>
+        {showGoogleGuide && (
+          <div className="space-y-4 pt-2 text-xs text-[var(--text)] border-t border-[var(--divider)]">
+            <div className="p-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] space-y-2">
+              <h3 className="font-heading font-bold text-sm text-[var(--accent)] flex items-center gap-2">
+                <span>Passo 1: Google Cloud Console</span>
+              </h3>
+              <ol className="list-decimal list-inside space-y-1.5 text-[var(--text-muted)] leading-relaxed">
+                <li>
+                  Apri la console <strong className="text-[var(--text)]">Google Cloud Console</strong> e crea un nuovo progetto (es. <em>Briscola Club</em>).
+                </li>
+                <li>
+                  Vai su <strong className="text-[var(--text)]">APIs &amp; Services &rarr; OAuth consent screen</strong>. Scegli <em>External</em>, inserisci il nome app e la tua email.
+                </li>
+                <li>
+                  Vai su <strong className="text-[var(--text)]">Credentials &rarr; Create Credentials &rarr; OAuth Client ID</strong>. Scegli tipo <em>&quot;Web application&quot;</em>.
+                </li>
+                <li>
+                  Sotto <strong className="text-[var(--text)]">&quot;Authorized redirect URIs&quot;</strong>, inserisci l&apos;URL di callback di Supabase:
+                  <code className="block mt-1 p-2 rounded-lg bg-[var(--canvas)] text-amber-300 font-mono text-[11px] select-all">
+                    https://&lt;TUO-PROJECT-REF&gt;.supabase.co/auth/v1/callback
+                  </code>
+                </li>
+                <li>
+                  Copia il <strong className="text-[var(--text)]">Client ID</strong> e il <strong className="text-[var(--text)]">Client Secret</strong> generati.
+                </li>
+              </ol>
+            </div>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs text-[var(--text-muted)]">
-            <Cloud className="w-3.5 h-3.5 text-sky-400" />
-            <span>
-              {hasCloud ? 'Supabase Cloud: Connesso' : 'Persistenza: Local-First (Offline)'}
-            </span>
+            <div className="p-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] space-y-2">
+              <h3 className="font-heading font-bold text-sm text-[var(--accent)] flex items-center gap-2">
+                <span>Passo 2: Supabase Dashboard</span>
+              </h3>
+              <ol className="list-decimal list-inside space-y-1.5 text-[var(--text-muted)] leading-relaxed">
+                <li>
+                  Vai sulla tua dashboard Supabase in <strong className="text-[var(--text)]">Authentication &rarr; Providers &rarr; Google</strong>.
+                </li>
+                <li>
+                  Attiva lo switch <strong className="text-[var(--text)]">&quot;Enable Google provider&quot;</strong>.
+                </li>
+                <li>
+                  Incolla il <strong className="text-[var(--text)]">Client ID</strong> e il <strong className="text-[var(--text)]">Client Secret</strong> copiati al Passo 1 e premi Salva.
+                </li>
+                <li>
+                  In <strong className="text-[var(--text)]">Authentication &rarr; URL Configuration</strong>, aggiungi il dominio del tuo sito (es. <em>http://localhost:3000</em> o l&apos;URL Vercel).
+                </li>
+                <li>
+                  Nell&apos;<strong className="text-[var(--text)]">SQL Editor</strong>, incolla ed esegui lo script contenuto in <code className="text-amber-300 font-mono">supabase/schema.sql</code> per creare le tabelle profili e membri.
+                </li>
+              </ol>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* SEZIONE 1: LIVE CLOUD SYNC & ROOM CODE */}
+      {/* SEZIONE 2: LIVE CLOUD SYNC & ROOM CODE */}
       <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
@@ -213,7 +303,7 @@ export function SettingsView({ onDataUpdated }: SettingsViewProps) {
         </form>
       </div>
 
-      {/* SEZIONE 2: BACKUP E RIPRISTINO */}
+      {/* SEZIONE 3: BACKUP E RIPRISTINO */}
       <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
         <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
           <Download className="w-4 h-4 text-[var(--accent)]" />
@@ -251,7 +341,7 @@ export function SettingsView({ onDataUpdated }: SettingsViewProps) {
         </div>
       </div>
 
-      {/* SEZIONE 3: GUIDA PWA / TELEFONO */}
+      {/* SEZIONE 4: GUIDA PWA / TELEFONO */}
       <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
         <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
           <Smartphone className="w-4 h-4 text-[var(--accent)]" />
@@ -275,7 +365,7 @@ export function SettingsView({ onDataUpdated }: SettingsViewProps) {
         </div>
       </div>
 
-      {/* SEZIONE 4: MANUTENZIONE DATI */}
+      {/* SEZIONE 5: MANUTENZIONE DATI */}
       <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
         <h2 className="font-heading font-bold text-base text-[var(--text)]">Manutenzione Dati</h2>
         <div className="flex flex-wrap items-center gap-3">
@@ -299,11 +389,13 @@ export function SettingsView({ onDataUpdated }: SettingsViewProps) {
         </div>
       </div>
 
-      <ShareHouseModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        house={activeHouse}
-      />
+      {activeHouse && (
+        <ShareHouseModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          house={activeHouse}
+        />
+      )}
     </div>
   );
 }

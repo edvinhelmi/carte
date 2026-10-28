@@ -1,6 +1,10 @@
-import React from 'react';
-import { Trophy, Calendar as CalendarIcon, Users, Settings, Swords, Plus } from 'lucide-react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Trophy, Calendar as CalendarIcon, Users, Settings, Swords, Plus, User } from 'lucide-react';
 import { HouseSwitcher } from './HouseSwitcher';
+import { AuthService } from '@/lib/authService';
+import type { UserProfile } from '@/types/house';
 
 export type TabType = 'torneo' | 'calendar' | 'leaderboard' | 'teams' | 'settings';
 
@@ -8,9 +12,29 @@ interface HeaderProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   onOpenQuickMatch?: () => void;
+  onOpenProfile?: () => void;
+  hasActiveHouse?: boolean;
 }
 
-export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProps) {
+export function Header({
+  activeTab,
+  setActiveTab,
+  onOpenQuickMatch,
+  onOpenProfile,
+  hasActiveHouse = true,
+}: HeaderProps) {
+  const [currentUser, setCurrentUser] = useState<UserProfile>(() => AuthService.getCurrentUser());
+
+  useEffect(() => {
+    const handleAuthChange = () => {
+      setCurrentUser(AuthService.getCurrentUser());
+    };
+    window.addEventListener('carte_auth_change', handleAuthChange);
+    return () => {
+      window.removeEventListener('carte_auth_change', handleAuthChange);
+    };
+  }, []);
+
   const navItems = [
     { id: 'torneo' as TabType, label: 'Torneo Serata', icon: Swords },
     { id: 'calendar' as TabType, label: 'Calendario', icon: CalendarIcon },
@@ -38,43 +62,45 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
             </span>
           </button>
 
-          {/* Selettore Casa Attiva */}
-          <HouseSwitcher />
+          {/* Selettore Casa Attiva (visibile solo quando si è dentro una casa) */}
+          {hasActiveHouse && <HouseSwitcher />}
         </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-1 bg-[var(--surface)] p-1 rounded-xl border border-[var(--divider)]">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveTab(item.id)}
-                className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer ${
-                  isActive
-                    ? 'bg-[var(--surface-alt)] text-[var(--text)] border border-[var(--control-border)] shadow-sm'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] border border-transparent'
-                }`}
-              >
-                <Icon
-                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                    isActive ? 'text-[var(--accent)] scale-110' : 'text-[var(--text-muted)]'
+        {/* Desktop Navigation (visibile solo se c'è una casa attiva) */}
+        {hasActiveHouse && (
+          <nav className="hidden md:flex items-center gap-1 bg-[var(--surface)] p-1 rounded-xl border border-[var(--divider)]">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveTab(item.id)}
+                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer ${
+                    isActive
+                      ? 'bg-[var(--surface-alt)] text-[var(--text)] border border-[var(--control-border)] shadow-sm'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] border border-transparent'
                   }`}
-                />
-                <span>{item.label}</span>
-                {isActive && (
-                  <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-[var(--accent)] rounded-full" />
-                )}
-              </button>
-            );
-          })}
-        </nav>
+                >
+                  <Icon
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      isActive ? 'text-[var(--accent)] scale-110' : 'text-[var(--text-muted)]'
+                    }`}
+                  />
+                  <span>{item.label}</span>
+                  {isActive && (
+                    <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-[var(--accent)] rounded-full" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        )}
 
-        {/* Quick Actions */}
+        {/* Quick Actions & Profile */}
         <div className="flex items-center gap-2 shrink-0">
-          {onOpenQuickMatch && (
+          {hasActiveHouse && onOpenQuickMatch && (
             <button
               type="button"
               onClick={onOpenQuickMatch}
@@ -87,18 +113,47 @@ export function Header({ activeTab, setActiveTab, onOpenQuickMatch }: HeaderProp
           )}
 
           {/* Desktop Live Tournament Button */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('torneo')}
-            className={`hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold btn-tactile cursor-pointer shadow-sm min-h-[44px] ${
-              activeTab === 'torneo'
-                ? 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] shadow-[0_2px_14px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/40'
-                : 'bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--control-border)] text-[var(--text)]'
-            }`}
-          >
-            <Swords className="w-3.5 h-3.5 transition-transform duration-200 hover:rotate-12" />
-            <span>Tabellone Live</span>
-          </button>
+          {hasActiveHouse && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('torneo')}
+              className={`hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold btn-tactile cursor-pointer shadow-sm min-h-[44px] ${
+                activeTab === 'torneo'
+                  ? 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] shadow-[0_2px_14px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/40'
+                  : 'bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--control-border)] text-[var(--text)]'
+              }`}
+            >
+              <Swords className="w-3.5 h-3.5 transition-transform duration-200 hover:rotate-12" />
+              <span>Tabellone Live</span>
+            </button>
+          )}
+
+          {/* Profile Trigger Button */}
+          {onOpenProfile && (
+            <button
+              type="button"
+              onClick={onOpenProfile}
+              aria-label="Apri profilo utente"
+              title={`Profilo: ${currentUser.displayName}`}
+              className="touch-target inline-flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-[var(--text)] btn-tactile cursor-pointer min-h-[44px] group"
+            >
+              {currentUser.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={currentUser.avatarUrl}
+                  alt={currentUser.displayName}
+                  className="w-6 h-6 rounded-full object-cover ring-1 ring-[var(--accent)]/50 shrink-0"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-[var(--surface-alt)] flex items-center justify-center text-[var(--accent)] shrink-0">
+                  <User className="w-3.5 h-3.5" />
+                </div>
+              )}
+              <span className="text-xs font-bold truncate max-w-[90px] sm:max-w-[120px] hidden min-[400px]:inline">
+                {currentUser.displayName}
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </header>

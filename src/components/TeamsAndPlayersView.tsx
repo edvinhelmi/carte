@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, User, Plus, Trash2, Shield, X, ChevronDown } from 'lucide-react';
+import { Users, User, Plus, Trash2, Shield, X, ChevronDown, Crown } from 'lucide-react';
 import { Player, Team, CardSuit } from '@/types/game';
 import { StorageService } from '@/lib/storage';
+import { HouseService } from '@/lib/houseService';
+import type { HouseMember } from '@/types/house';
 import { SuitIcon } from './SuitIcon';
 
 const emptySubscribe = () => () => {};
@@ -15,6 +17,49 @@ interface TeamsAndPlayersViewProps {
 
 export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndPlayersViewProps) {
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+
+  const [, setActiveHouseId] = useState<string>(() => HouseService.getActiveHouseId());
+  const [houseMembers, setHouseMembers] = useState<HouseMember[]>(() => {
+    const id = HouseService.getActiveHouseId();
+    return id ? HouseService.getHouseMembers(id) : [];
+  });
+
+  useEffect(() => {
+    const handleSync = () => {
+      const id = HouseService.getActiveHouseId();
+      setActiveHouseId(id);
+      setHouseMembers(id ? HouseService.getHouseMembers(id) : []);
+    };
+    window.addEventListener('carte_auth_change', handleSync);
+    window.addEventListener('carte_house_change', handleSync);
+    window.addEventListener('carte_storage_update', handleSync);
+    return () => {
+      window.removeEventListener('carte_auth_change', handleSync);
+      window.removeEventListener('carte_house_change', handleSync);
+      window.removeEventListener('carte_storage_update', handleSync);
+    };
+  }, []);
+
+  // Giocatori selezionabili (combina players registrati con tutti i membri della casa)
+  const selectablePlayers = React.useMemo(() => {
+    const list = [...players];
+    const knownNames = new Set(players.map((p) => (p.nickname || p.name).toLowerCase()));
+    for (const m of houseMembers) {
+      const effName = m.nickname || m.displayName;
+      if (!knownNames.has(effName.toLowerCase())) {
+        knownNames.add(effName.toLowerCase());
+        list.push({
+          id: `p_mem_${m.userId}`,
+          houseId: m.houseId,
+          name: effName,
+          nickname: m.nickname,
+          avatarSuit: 'denari',
+          createdAt: m.joinedAt,
+        });
+      }
+    }
+    return list;
+  }, [players, houseMembers]);
 
   // Gestione stato form Giocatore
   const [showPlayerModal, setShowPlayerModal] = useState(false);
@@ -85,8 +130,17 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
     }
 
     const playerIds = [selectedPlayer1];
+    const p1Obj = selectablePlayers.find((p) => p.id === selectedPlayer1);
+    if (p1Obj && !players.some((p) => p.id === p1Obj.id)) {
+      StorageService.savePlayer(p1Obj);
+    }
+
     if (selectedPlayer2 && selectedPlayer2 !== selectedPlayer1) {
       playerIds.push(selectedPlayer2);
+      const p2Obj = selectablePlayers.find((p) => p.id === selectedPlayer2);
+      if (p2Obj && !players.some((p) => p.id === p2Obj.id)) {
+        StorageService.savePlayer(p2Obj);
+      }
     }
 
     const newTeam: Team = {
@@ -125,6 +179,59 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
           Configura gli amici e i familiari che giocano e componi le coppie per la Briscola.
         </p>
       </div>
+
+      {/* SEZIONE 0: MEMBRI DELLA CASA (UTENTI CONNESSI) */}
+      {houseMembers.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Crown className="w-4 h-4 text-[var(--accent)]" />
+            <h2 className="font-heading text-lg font-bold text-[var(--text)]">
+              Membri della Casa ({houseMembers.length})
+            </h2>
+          </div>
+          <p className="text-xs text-[var(--text-muted)]">
+            Persone che partecipano a questa casa. I loro nomi e soprannomi sono suggeriti automaticamente nei tornei.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {houseMembers.map((m) => (
+              <div
+                key={m.userId}
+                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-4 flex items-center gap-3 shadow-sm"
+              >
+                {m.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={m.avatarUrl}
+                    alt={m.displayName}
+                    className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--accent)]/40 shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center text-[var(--accent)] font-bold text-xs shrink-0">
+                    {m.displayName.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-heading font-bold text-sm text-[var(--text)] truncate">
+                      {m.nickname || m.displayName}
+                    </span>
+                    {m.role === 'owner' && (
+                      <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 shrink-0">
+                        Owner
+                      </span>
+                    )}
+                  </div>
+                  {m.nickname && (
+                    <p className="text-[11px] text-[var(--text-muted)] truncate">
+                      Nome globale: {m.displayName}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* SEZIONE 1: SQUADRE (TEAMS) */}
       <div className="space-y-4">
@@ -423,7 +530,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                           className="w-full appearance-none bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl pl-3.5 pr-8 py-2.5 text-xs sm:text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] cursor-pointer truncate"
                         >
                           <option value="">Seleziona...</option>
-                          {players.map((p) => (
+                          {selectablePlayers.map((p) => (
                             <option key={p.id} value={p.id}>
                               {p.name}
                             </option>
@@ -444,7 +551,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                           className="w-full appearance-none bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl pl-3.5 pr-8 py-2.5 text-xs sm:text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] cursor-pointer truncate"
                         >
                           <option value="">Nessuno (1v1)</option>
-                          {players.map((p) => (
+                          {selectablePlayers.map((p) => (
                             <option key={p.id} value={p.id} disabled={p.id === selectedPlayer1}>
                               {p.name}
                             </option>

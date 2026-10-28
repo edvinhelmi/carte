@@ -110,19 +110,31 @@ export function TorneoSerataView({
 
   const [copied, setCopied] = useState(false);
 
-  // Suggerimenti basati esclusivamente sui membri registrati nella Casa attiva
+  // Suggerimenti basati sui membri reali e giocatori registrati nella Casa attiva
+  const [suggestionVersion, setSuggestionVersion] = useState(0);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setSuggestionVersion((v) => v + 1);
+    };
+    window.addEventListener('carte_auth_change', handleUpdate);
+    window.addEventListener('carte_house_change', handleUpdate);
+    window.addEventListener('carte_storage_update', handleUpdate);
+    return () => {
+      window.removeEventListener('carte_auth_change', handleUpdate);
+      window.removeEventListener('carte_house_change', handleUpdate);
+      window.removeEventListener('carte_storage_update', handleUpdate);
+    };
+  }, []);
+
   const availablePlayerNames = useMemo(() => {
-    const list: string[] = [];
-    for (const p of players) {
-      if (p.name && !list.some((n) => n.toLowerCase() === p.name.toLowerCase())) {
-        list.push(p.name);
-      }
-    }
-    if (list.length === 0 && HouseService.getActiveHouseId() === 'casa_principale') {
-      return ['Marghe', 'Irins', 'Simon', 'Edd', 'Luca'];
-    }
-    return list;
-  }, [players]);
+    void suggestionVersion;
+    const activeHouseId = HouseService.getActiveHouseId();
+    if (!activeHouseId) return [];
+    const fromHouse = HouseService.getSuggestedPlayerNames(activeHouseId);
+    const fromProps = players.map((p) => p.nickname || p.name).filter(Boolean);
+    return Array.from(new Set([...fromHouse, ...fromProps]));
+  }, [players, suggestionVersion]);
 
   const handleShareLink = () => {
     if (typeof window === 'undefined') return;

@@ -12,7 +12,7 @@ const emptySubscribe = () => () => {};
 
 export function HouseSwitcher() {
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
-  const [activeHouse, setActiveHouse] = useState<House>(() => HouseService.getActiveHouse());
+  const [activeHouse, setActiveHouse] = useState<House | null>(() => HouseService.getActiveHouse());
   const [knownHouses, setKnownHouses] = useState<KnownHouse[]>(() => HouseService.getKnownHouses());
   const [isOpen, setIsOpen] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -69,6 +69,8 @@ export function HouseSwitcher() {
     setIsOpen(false);
   };
 
+  const houseName = activeHouse?.name || 'Nessuna Casa';
+
   return (
     <>
       <div className="relative inline-block" ref={menuRef}>
@@ -78,10 +80,10 @@ export function HouseSwitcher() {
           className="touch-target inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--accent)]/40 text-[var(--text)] transition-colors cursor-pointer group select-none max-w-[120px] min-[380px]:max-w-[170px] sm:max-w-[240px]"
           aria-haspopup="true"
           aria-expanded={isOpen}
-          title={`Casa attiva: ${activeHouse.name}`}
+          title={activeHouse ? `Casa attiva: ${activeHouse.name}` : 'Nessuna casa attiva'}
         >
-          <Home className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
-          <span className="text-xs font-bold truncate tracking-tight">{activeHouse.name}</span>
+          <Home className={`w-3.5 h-3.5 ${activeHouse ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} shrink-0`} />
+          <span className="text-xs font-bold truncate tracking-tight">{houseName}</span>
           <ChevronDown
             className={`w-3.5 h-3.5 text-[var(--text-muted)] shrink-0 transition-transform duration-200 ${
               isOpen ? 'rotate-180' : ''
@@ -103,47 +105,55 @@ export function HouseSwitcher() {
             </div>
 
             {/* Lista Case note */}
-            <div className="max-h-52 overflow-y-auto space-y-0.5">
-              {knownHouses.map((house) => {
-                const isCurrent = house.id === activeHouse.id;
-                return (
-                  <button
-                    key={house.id}
-                    type="button"
-                    onClick={() => handleSelectHouse(house.id)}
-                    className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer ${
-                      isCurrent
-                        ? 'bg-[var(--surface-alt)] text-[var(--text)] font-bold'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]/60'
-                    }`}
-                  >
-                    <div className="truncate pr-2">
-                      <span className="block truncate">{house.name}</span>
-                      <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                        {house.inviteCode}
-                      </span>
-                    </div>
-                    {isCurrent && <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
+            {knownHouses.length > 0 ? (
+              <div className="max-h-52 overflow-y-auto space-y-0.5">
+                {knownHouses.map((house) => {
+                  const isCurrent = activeHouse ? house.id === activeHouse.id : false;
+                  return (
+                    <button
+                      key={house.id}
+                      type="button"
+                      onClick={() => handleSelectHouse(house.id)}
+                      className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer ${
+                        isCurrent
+                          ? 'bg-[var(--surface-alt)] text-[var(--text)] font-bold'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]/60'
+                      }`}
+                    >
+                      <div className="truncate pr-2">
+                        <span className="block truncate">{house.name}</span>
+                        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                          {house.inviteCode}
+                        </span>
+                      </div>
+                      {isCurrent && <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="px-3 py-3 text-center text-xs text-[var(--text-muted)]">
+                Non hai ancora nessuna casa.
+              </div>
+            )}
 
             <div className="my-1 border-t border-[var(--divider)]" />
 
             {/* Azioni */}
             <div className="space-y-0.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsOpen(false);
-                  setShowShareModal(true);
-                }}
-                className="w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
-              >
-                <QrCode className="w-3.5 h-3.5 text-[var(--accent)]" />
-                <span>Condividi con QR / Link</span>
-              </button>
+              {activeHouse && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setShowShareModal(true);
+                  }}
+                  className="w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+                >
+                  <QrCode className="w-3.5 h-3.5 text-[var(--accent)]" />
+                  <span>Condividi con QR / Link</span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -182,47 +192,55 @@ export function HouseSwitcher() {
             </div>
 
             {/* Lista Case note */}
-            <div className="max-h-52 overflow-y-auto space-y-0.5">
-              {knownHouses.map((house) => {
-                const isCurrent = house.id === activeHouse.id;
-                return (
-                  <button
-                    key={house.id}
-                    type="button"
-                    onClick={() => handleSelectHouse(house.id)}
-                    className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer ${
-                      isCurrent
-                        ? 'bg-[var(--surface-alt)] text-[var(--text)] font-bold'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]/60'
-                    }`}
-                  >
-                    <div className="truncate pr-2">
-                      <span className="block truncate">{house.name}</span>
-                      <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                        {house.inviteCode}
-                      </span>
-                    </div>
-                    {isCurrent && <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
+            {knownHouses.length > 0 ? (
+              <div className="max-h-52 overflow-y-auto space-y-0.5">
+                {knownHouses.map((house) => {
+                  const isCurrent = activeHouse ? house.id === activeHouse.id : false;
+                  return (
+                    <button
+                      key={house.id}
+                      type="button"
+                      onClick={() => handleSelectHouse(house.id)}
+                      className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer ${
+                        isCurrent
+                          ? 'bg-[var(--surface-alt)] text-[var(--text)] font-bold'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]/60'
+                      }`}
+                    >
+                      <div className="truncate pr-2">
+                        <span className="block truncate">{house.name}</span>
+                        <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                          {house.inviteCode}
+                        </span>
+                      </div>
+                      {isCurrent && <Check className="w-4 h-4 text-[var(--accent)] shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="px-3 py-3 text-center text-xs text-[var(--text-muted)]">
+                Non hai ancora nessuna casa.
+              </div>
+            )}
 
             <div className="my-1 border-t border-[var(--divider)]" />
 
             {/* Azioni */}
             <div className="space-y-0.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsOpen(false);
-                  setShowShareModal(true);
-                }}
-                className="w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
-              >
-                <QrCode className="w-3.5 h-3.5 text-[var(--accent)]" />
-                <span>Condividi con QR / Link</span>
-              </button>
+              {activeHouse && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setShowShareModal(true);
+                  }}
+                  className="w-full min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-[var(--text)] hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+                >
+                  <QrCode className="w-3.5 h-3.5 text-[var(--accent)]" />
+                  <span>Condividi con QR / Link</span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -241,11 +259,13 @@ export function HouseSwitcher() {
         document.body
       )}
 
-      <ShareHouseModal
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        house={activeHouse}
-      />
+      {activeHouse && (
+        <ShareHouseModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          house={activeHouse}
+        />
+      )}
 
       <CreateOrJoinHouseModal
         isOpen={showCreateModal}
