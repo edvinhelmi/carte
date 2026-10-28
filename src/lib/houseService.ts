@@ -45,6 +45,7 @@ export function getHouseResourceKey(
 }
 
 let activeRealtimeChannel: ReturnType<NonNullable<ReturnType<typeof getSupabaseClient>>['channel']> | null = null;
+let syncHousesPromise: Promise<void> | null = null;
 
 export const HouseService = {
   init(): void {
@@ -129,6 +130,43 @@ export const HouseService = {
     }
 
     return null;
+  },
+
+  getHouse(houseId: string): House | null {
+    if (!houseId) return null;
+    const metaKey = getHouseResourceKey(houseId, 'meta');
+    const metaRaw = getStorageItem(metaKey);
+    if (metaRaw) {
+      try {
+        return JSON.parse(metaRaw);
+      } catch {
+        // fallback
+      }
+    }
+    const known = this.getKnownHouses();
+    const found = known.find((k) => k.id === houseId);
+    if (found) {
+      return {
+        id: found.id,
+        name: found.name,
+        inviteCode: found.inviteCode,
+        createdAt: found.joinedAt,
+        updatedAt: found.lastActiveAt,
+      };
+    }
+    return null;
+  },
+
+  getHousePlayers(houseId: string): Player[] {
+    if (!houseId) return [];
+    const raw = getStorageItem(getHouseResourceKey(houseId, 'players'));
+    if (!raw) return [];
+    try {
+      const list = JSON.parse(raw);
+      return Array.isArray(list) ? list : [];
+    } catch {
+      return [];
+    }
   },
 
   getKnownHouses(): KnownHouse[] {
@@ -774,6 +812,125 @@ export const HouseService = {
     } catch (err) {
       console.warn('Errore pull house data from cloud:', err);
     }
+  },
+
+  async syncUserHousesFromCloud(userId: string): Promise<void> {
+    if (!isSupabaseConfigured() || !userId || userId.startsWith('guest_')) return;
+    if (syncHousesPromise) return syncHousesPromise;
+
+    syncHousesPromise = (async () => {
+      const client = getSupabaseClient();
+      if (!client) return;
+
+      try {
+        // 1. Cerca tutte le associazioni casa per questo utente da Supabase
+        const { data: memberRecords, error: memberErr } = await client
+          .from('house_members')
+          .select('house_id, role, nickname, joined_at')
+          .eq('user_id', userId);
+
+        if (memberErr) {
+          console.warn('Errore lettura house_members da Supabase:', memberErr);
+          // La tabella potrebbe non essere ancora stata creata dall'utente nel SQL Editor
+          return;
+        }
+
+        const known = this.getKnownHouses();
+        let hasChanges = false;
+
+        if (Array.isArray(memberRecords) && memberRecords.length > 0) {
+          const cloudHouseIds = memberRecords.map((m) => m.house_id);
+          const { data: cloudHouses, error: houseErr } = await client
+            .from('houses')
+            .select('*')
+            .in('id', cloudHouseIds);
+
+          if (!houseErr && Array.isArray(cloudHouses)) {
+            for (const ch of cloudHouses) {
+              const memberMeta = memberRecords.find((m) => m.house_id === ch.id);
+              const houseObj: House = {
+                id: ch.id,
+                name: ch.name,
+                inviteCode: ch.invite_code,
+                createdAt: ch.created_at,
+                updatedAt: ch.updated_at,
+              };
+
+              // Salva metadati locali
+              setStorageItem(getHouseResourceKey(ch.id, 'meta'), JSON.stringify(houseObj));
+
+              // Aggiorna o inserisci in known_houses
+              const existingIdx = known.findIndex((k) => k.id === ch.id);
+              if (existingIdx >= 0) {
+                known[existingIdx].name = ch.name;
+                known[existingIdx].inviteCode = ch.invite_code;
+              } else {
+                known.push({
+                  id: ch.id,
+                  name: ch.name,
+                  inviteCode: ch.invite_code,
+                  joinedAt: memberMeta?.joined_at || ch.created_at,
+                  lastActiveAt: new Date().toISOString(),
+                });
+                hasChanges = true;
+              }
+
+              // Scarica i dati completi della casa dal cloud (giocatori, squadre, partite, tornei, membri)
+              await this.pullHouseDataFromCloud(ch.id);
+            }
+          }
+        }
+
+        // 2. Controllo inverso (upload): se su questo dispositivo ci sono case locali create da questo utente
+        // che non sono ancora su Supabase (ad esempio create prima che l'utente eseguisse lo script SQL), caricale ora
+        for (const k of known) {
+          const members = this.getHouseMembers(k.id);
+          const userIsMember = members.some((m) => m.userId === userId);
+          const houseMeta = this.getHouse(k.id);
+          if (houseMeta && (userIsMember || members.length === 0)) {
+            if (!userIsMember) {
+              const currentProfile = AuthService.getCurrentUser();
+              const myMember: HouseMember = {
+                houseId: k.id,
+                userId,
+                displayName: currentProfile.displayName,
+                nickname: AuthService.getHouseNickname(k.id),
+                role: 'owner',
+                joinedAt: new Date().toISOString(),
+              };
+              members.push(myMember);
+              setStorageItem(getHouseResourceKey(k.id, 'members'), JSON.stringify(members));
+            }
+            const players = this.getHousePlayers(k.id);
+            await this.pushHouseToCloud(houseMeta, players, members);
+          }
+        }
+
+        // Salva known_houses aggiornate
+        setStorageItem(HOUSE_STORAGE_KEYS.KNOWN_HOUSES, JSON.stringify(known));
+
+        // Se non c'è una casa attiva impostata e abbiamo trovato case, attiva la prima
+        const currentActive = this.getActiveHouseId();
+        if (!currentActive && known.length > 0) {
+          setStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID, known[0].id);
+          hasChanges = true;
+        }
+
+        if (hasChanges || known.length > 0) {
+          this.notifyUpdate();
+          const activeId = this.getActiveHouseId();
+          if (activeId) {
+            this.setupCloudSync(activeId);
+          }
+        }
+      } catch (err) {
+        console.warn('Eccezione durante syncUserHousesFromCloud:', err);
+      } finally {
+        syncHousesPromise = null;
+      }
+    })();
+
+    return syncHousesPromise;
   },
 
   setupCloudSync(houseId: string): void {

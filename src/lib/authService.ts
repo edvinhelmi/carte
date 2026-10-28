@@ -161,6 +161,13 @@ export const AuthService = {
       // ignore
     }
 
+    // Sincronizza le case dell'utente dal cloud (permette accesso e persistenza multi-device)
+    try {
+      await HouseService.syncUserHousesFromCloud(user.id);
+    } catch {
+      // ignore
+    }
+
     this.notifyAuthChange();
   },
 

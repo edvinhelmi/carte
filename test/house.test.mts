@@ -292,4 +292,17 @@ describe('HouseService & Multi-Casa Storage System', () => {
     assert.equal(finalMembers[0].role, 'owner'); // Owner role preserved
     assert.ok(!finalMembers.some((m) => m.userId === guestId));
   });
+
+  it('provides getHouse and getHousePlayers helpers for cross-device synchronization', () => {
+    const house = HouseService.createHouse('Casa Lago', ['Ale', 'Sara']);
+    const fetched = HouseService.getHouse(house.id);
+    assert.ok(fetched);
+    assert.equal(fetched.name, 'Casa Lago');
+    assert.equal(fetched.inviteCode, house.inviteCode);
+
+    const players = HouseService.getHousePlayers(house.id);
+    assert.equal(players.length, 2);
+    assert.equal(players[0].name, 'Ale');
+    assert.equal(players[1].name, 'Sara');
+  });
 });
