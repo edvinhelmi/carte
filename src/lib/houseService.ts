@@ -1,5 +1,5 @@
 import type { House, KnownHouse, HouseMember } from '../types/house.ts';
-import type { Player, CardSuit, Match, TournamentSession } from '../types/game.ts';
+import type { Player, CardSuit, Match, TournamentSession, Team } from '../types/game.ts';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient.ts';
 import { AuthService } from './authService.ts';
 import {
@@ -897,13 +897,45 @@ export const HouseService = {
           avatarSuit: p.avatar_suit as CardSuit,
           createdAt: p.created_at,
         }));
-        setStorageItem(getHouseResourceKey(houseId, 'players'), JSON.stringify(mappedPlayers));
+        const localPlayersRaw = getStorageItem(getHouseResourceKey(houseId, 'players'));
+        let localPlayers: Player[] = [];
+        if (localPlayersRaw) {
+          try {
+            localPlayers = JSON.parse(localPlayersRaw);
+            if (!Array.isArray(localPlayers)) localPlayers = [];
+          } catch {
+            localPlayers = [];
+          }
+        }
+        const mergedPlayers = [...mappedPlayers];
+        for (const locP of localPlayers) {
+          if (!mergedPlayers.some((p) => p.id === locP.id)) {
+            mergedPlayers.push(locP);
+          }
+        }
+        setStorageItem(getHouseResourceKey(houseId, 'players'), JSON.stringify(mergedPlayers));
       }
 
       // 2. Teams
       const { data: teams } = await client.from('teams').select('*').eq('house_id', houseId);
       if (Array.isArray(teams)) {
-        setStorageItem(getHouseResourceKey(houseId, 'teams'), JSON.stringify(teams));
+        const localTeamsRaw = getStorageItem(getHouseResourceKey(houseId, 'teams'));
+        let localTeams: Team[] = [];
+        if (localTeamsRaw) {
+          try {
+            localTeams = JSON.parse(localTeamsRaw);
+            if (!Array.isArray(localTeams)) localTeams = [];
+          } catch {
+            localTeams = [];
+          }
+        }
+        const mergedTeams = [...teams];
+        for (const locT of localTeams) {
+          if (!mergedTeams.some((t) => t.id === locT.id)) {
+            mergedTeams.push(locT);
+          }
+        }
+        setStorageItem(getHouseResourceKey(houseId, 'teams'), JSON.stringify(mergedTeams));
       }
 
       // 3. Matches
@@ -922,7 +954,23 @@ export const HouseService = {
           scoreTeam2: m.score_team2 ?? m.scoreTeam2,
           notes: m.notes ?? undefined,
         }));
-        setStorageItem(getHouseResourceKey(houseId, 'matches'), JSON.stringify(mappedMatches));
+        const localMatchesRaw = getStorageItem(getHouseResourceKey(houseId, 'matches'));
+        let localMatches: Match[] = [];
+        if (localMatchesRaw) {
+          try {
+            localMatches = JSON.parse(localMatchesRaw);
+            if (!Array.isArray(localMatches)) localMatches = [];
+          } catch {
+            localMatches = [];
+          }
+        }
+        const mergedMatches = [...mappedMatches];
+        for (const locM of localMatches) {
+          if (!mergedMatches.some((m) => m.id === locM.id)) {
+            mergedMatches.unshift(locM);
+          }
+        }
+        setStorageItem(getHouseResourceKey(houseId, 'matches'), JSON.stringify(mergedMatches));
       }
 
       // 4. Tournament Sessions
@@ -949,7 +997,40 @@ export const HouseService = {
           winnerTeam: s.winner_team || s.winnerTeam,
           winnerPlayerName: s.winner_player_name || s.winnerPlayerName,
         }));
-        setStorageItem(getHouseResourceKey(houseId, 'sessions'), JSON.stringify(mappedSessions));
+
+        // Preserva tassativamente le sessioni in corso create o modificate localmente
+        const localSessionsRaw = getStorageItem(getHouseResourceKey(houseId, 'sessions'));
+        let localSessions: TournamentSession[] = [];
+        if (localSessionsRaw) {
+          try {
+            localSessions = JSON.parse(localSessionsRaw);
+            if (!Array.isArray(localSessions)) localSessions = [];
+          } catch {
+            localSessions = [];
+          }
+        }
+
+        const mergedSessions: TournamentSession[] = [...mappedSessions];
+        for (const locS of localSessions) {
+          const cloudIndex = mergedSessions.findIndex((s) => s.id === locS.id);
+          if (cloudIndex >= 0) {
+            // Se in locale è in_progress, mantienila sempre attiva finché l'utente non la conclude
+            if (locS.status === 'in_progress') {
+              mergedSessions[cloudIndex] = {
+                ...mergedSessions[cloudIndex],
+                ...locS,
+                team1Wins: Math.max(locS.team1Wins, mergedSessions[cloudIndex].team1Wins),
+                team2Wins: Math.max(locS.team2Wins, mergedSessions[cloudIndex].team2Wins),
+                team3Wins: Math.max(locS.team3Wins || 0, mergedSessions[cloudIndex].team3Wins || 0),
+                status: 'in_progress',
+              };
+            }
+          } else {
+            mergedSessions.unshift(locS);
+          }
+        }
+
+        setStorageItem(getHouseResourceKey(houseId, 'sessions'), JSON.stringify(mergedSessions));
       }
     } catch (err) {
       console.warn('Errore pull house data from cloud:', err);

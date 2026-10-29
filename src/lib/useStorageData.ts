@@ -63,12 +63,16 @@ function subscribe(callback: () => void) {
   };
 }
 
+const triggerRefresh = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('carte_storage_update'));
+  }
+};
+
 export function useStorageData() {
   const data = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   return {
     ...data,
-    refresh: () => {
-      window.dispatchEvent(new Event('carte_storage_update'));
-    },
+    refresh: triggerRefresh,
   };
 }

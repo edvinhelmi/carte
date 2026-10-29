@@ -96,7 +96,8 @@ export default function Home() {
         refresh();
       });
     }
-  }, [hasHouse, refresh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHouse]);
 
   // TasteCode Motion: initialize reveal lifecycle for active tab
   useEffect(() => {

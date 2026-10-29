@@ -357,11 +357,17 @@ export const StorageService = {
     players5Names?: string[]
   ): TournamentSession {
     const sessions = this.getTournamentSessions();
+    for (const s of sessions) {
+      if (s.status === 'in_progress') {
+        s.status = 'completed';
+        if (!s.endedAt) s.endedAt = new Date().toISOString();
+      }
+    }
     const cleanT1 = (typeof team1Name === 'string' ? team1Name.trim() : '') || (mode === '2vs2' ? 'Squadra 1' : 'Giocatore 1');
     const cleanT2 = (typeof team2Name === 'string' ? team2Name.trim() : '') || (mode === '2vs2' ? 'Squadra 2' : 'Giocatore 2');
 
     const newSession: TournamentSession = {
-      id: `tour_${Date.now()}`,
+      id: `tour_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       houseId: HouseService.getActiveHouseId() || 'casa_none',
       dateKey: formatDateKey(),
       startedAt: new Date().toISOString(),

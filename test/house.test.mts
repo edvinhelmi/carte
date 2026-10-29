@@ -2,6 +2,7 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { HouseService, HOUSE_STORAGE_KEYS } from '../src/lib/houseService.ts';
 import { StorageService } from '../src/lib/storage.ts';
+import { RealtimeSyncService } from '../src/lib/realtimeSync.ts';
 import { AuthService } from '../src/lib/authService.ts';
 import { calculatePlayerStats } from '../src/lib/stats.ts';
 import { removeStoredItem, setStoredItem } from '../src/lib/storagePrimitives.ts';
@@ -355,5 +356,73 @@ describe('HouseService & Multi-Casa Storage System', () => {
     assert.ok(HouseService.getHouseMembers(house.id).some((m) => m.userId === 'temp_user'));
     HouseService.deleteHouseMember(house.id, 'temp_user');
     assert.ok(!HouseService.getHouseMembers(house.id).some((m) => m.userId === 'temp_user'));
+  });
+
+  it('guarantees active in-progress tournament sessions are never overwritten by remote sync', () => {
+    const house = HouseService.createHouse('Casa Tornei', ['P1', 'P2']);
+    
+    // Start active tournament session
+    const activeSession = StorageService.startTournamentSession(
+      'Squadra A',
+      ['P1'],
+      'Squadra B',
+      ['P2'],
+      '2vs2'
+    );
+    assert.equal(activeSession.status, 'in_progress');
+    assert.equal(StorageService.getActiveTournamentSession()?.id, activeSession.id);
+
+    // Increment win count locally
+    StorageService.incrementTournamentWin(activeSession.id, 1);
+    assert.equal(StorageService.getActiveTournamentSession()?.team1Wins, 1);
+
+    // Simulate remote sync arriving from cloud with only completed sessions
+    RealtimeSyncService.applyRemoteFullSync({
+      type: 'FULL_SYNC',
+      matches: [],
+      sessions: [
+        {
+          id: 'old_session_1',
+          houseId: house.id,
+          dateKey: '2026-10-28',
+          startedAt: new Date().toISOString(),
+          endedAt: new Date().toISOString(),
+          mode: '2vs2',
+          team1Name: 'Vecchia 1',
+          team1Players: ['P1'],
+          team2Name: 'Vecchia 2',
+          team2Players: ['P2'],
+          team1Wins: 3,
+          team2Wins: 1,
+          status: 'completed',
+          winnerTeam: 1,
+        },
+      ],
+      teams: [],
+      players: [],
+      houseId: house.id,
+      senderId: 'other_client',
+      timestamp: Date.now(),
+    });
+
+    // The active in_progress session must still be intact and active!
+    const currentActive = StorageService.getActiveTournamentSession();
+    assert.ok(currentActive, 'Active session must not be null');
+    assert.equal(currentActive.id, activeSession.id);
+    assert.equal(currentActive.status, 'in_progress');
+    assert.equal(currentActive.team1Wins, 1);
+
+    // Starting a new session closes the old one and keeps only the new one in_progress
+    const secondSession = StorageService.startTournamentSession(
+      'Squadra C',
+      ['P1'],
+      'Squadra D',
+      ['P2'],
+      '2vs2'
+    );
+    assert.equal(StorageService.getActiveTournamentSession()?.id, secondSession.id);
+    const allSessions = StorageService.getTournamentSessions();
+    const prevSession = allSessions.find((s) => s.id === activeSession.id);
+    assert.equal(prevSession?.status, 'completed');
   });
 });
