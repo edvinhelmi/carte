@@ -213,7 +213,15 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
                   Apri la console <strong className="text-[var(--text)]">Google Cloud Console</strong> e crea un nuovo progetto (es. <em>Briscola Club</em>).
                 </li>
                 <li>
-                  Vai su <strong className="text-[var(--text)]">APIs &amp; Services &rarr; OAuth consent screen</strong>. Scegli <em>External</em>, inserisci il nome app e la tua email.
+                  Vai su <strong className="text-[var(--text)]">APIs &amp; Services &rarr; OAuth consent screen</strong> (Schermata consenso OAuth):
+                  <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-[var(--text-subtle)]">
+                    <li>Tipo utente: <strong className="text-[var(--text)]">External</strong>.</li>
+                    <li><strong className="text-amber-300">Nome applicazione (App name):</strong> Scrivi <strong className="text-[var(--text)]">Briscola Club</strong> (è questo che Google mostra in grande all&apos;utente!).</li>
+                    <li><strong className="text-[var(--text)]">Email di supporto utente:</strong> seleziona la tua email.</li>
+                    <li><strong className="text-[var(--text)]">Domini autorizzati:</strong> aggiungi <code className="text-amber-300 font-mono">supabase.co</code> e il dominio del tuo sito (es. <code className="text-amber-300 font-mono">vercel.app</code>).</li>
+                    <li><strong className="text-[var(--text)]">Privacy &amp; Termini:</strong> inserisci <code className="text-amber-300 font-mono">/privacy</code> e <code className="text-amber-300 font-mono">/terms</code> del tuo sito.</li>
+                    <li>Premi <strong className="text-[var(--text)]">Salva e continua</strong> e imposta lo stato su <strong className="text-[var(--text)]">Publish App</strong> (non serve verifica per i permessi base di login).</li>
+                  </ul>
                 </li>
                 <li>
                   Vai su <strong className="text-[var(--text)]">Credentials &rarr; Create Credentials &rarr; OAuth Client ID</strong>. Scegli tipo <em>&quot;Web application&quot;</em>.
