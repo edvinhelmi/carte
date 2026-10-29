@@ -45,6 +45,16 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
     };
   }, []);
 
+  // Aggiorna dal cloud i membri e i dati della casa ogni volta che si apre la vista
+  useEffect(() => {
+    const id = HouseService.getActiveHouseId();
+    if (id) {
+      HouseService.pullHouseDataFromCloud(id).then(() => {
+        setHouseMembers(HouseService.getHouseMembers(id));
+      });
+    }
+  }, [activeHouseId]);
+
   // Separa i giocatori amici da quelli della casa
   const friendPlayers = useMemo(() => {
     const memberNameSet = new Set(

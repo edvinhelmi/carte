@@ -123,6 +123,8 @@ export const StorageService = {
         sessions: this.getTournamentSessions(),
         teams: this.getTeams(),
         players: this.getPlayers(),
+        members: activeHouseId ? HouseService.getHouseMembers(activeHouseId) : [],
+        houseId: activeHouseId || undefined,
       });
     } catch {
       // ignore

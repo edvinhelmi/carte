@@ -250,13 +250,19 @@ export const HouseService = {
         let updated = false;
         for (const p of players) {
           if (!p || p.isFriend) continue;
-          if (p.id && p.id.startsWith('p_mem_')) continue;
           const pNameClean = typeof p.name === 'string' ? p.name.trim().toLowerCase() : '';
           const pNickClean = typeof p.nickname === 'string' ? p.nickname.trim().toLowerCase() : pNameClean;
           if (!pNameClean && !pNickClean) continue;
 
+          const pUserId = (p.id && typeof p.id === 'string' && p.id.startsWith('p_mem_'))
+            ? p.id.replace('p_mem_', '')
+            : (p.id && typeof p.id === 'string' && p.id.startsWith('mem_'))
+              ? p.id
+              : `mem_${p.id || Date.now()}`;
+
           const isAlreadyMember = list.some((m) => {
             if (!m) return false;
+            if (m.userId === pUserId) return true;
             const mDisp = typeof m.displayName === 'string' ? m.displayName.trim().toLowerCase() : '';
             const mNick = typeof m.nickname === 'string' ? m.nickname.trim().toLowerCase() : '';
             return (
@@ -269,7 +275,7 @@ export const HouseService = {
             const fallbackName = (p.name && typeof p.name === 'string') ? p.name : (p.nickname || 'Membro');
             list.push({
               houseId,
-              userId: `mem_${p.id || Date.now()}`,
+              userId: pUserId,
               displayName: fallbackName,
               nickname: p.nickname || fallbackName,
               role: 'member',

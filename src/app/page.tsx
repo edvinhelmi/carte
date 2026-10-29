@@ -87,6 +87,17 @@ export default function Home() {
     };
   }, []);
 
+  // Sincronizzazione automatica casa con Supabase all'avvio e listener realtime per membri e partite
+  useEffect(() => {
+    const activeId = HouseService.getActiveHouseId();
+    if (activeId) {
+      HouseService.setupCloudSync(activeId);
+      HouseService.pullHouseDataFromCloud(activeId).then(() => {
+        refresh();
+      });
+    }
+  }, [hasHouse, refresh]);
+
   // TasteCode Motion: initialize reveal lifecycle for active tab
   useEffect(() => {
     if (!mounted) return;

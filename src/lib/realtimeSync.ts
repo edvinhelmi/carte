@@ -1,7 +1,13 @@
 import type { TournamentSession, Match, Team, Player } from '@/types/game';
+import type { HouseMember } from '@/types/house';
 
 const DEFAULT_ROOM = 'carte_briscola_live_casa';
 const NTFY_BASE_URL = 'https://ntfy.sh';
+
+function getActiveHouseId(): string {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem('carte_active_house_id') || '';
+}
 
 export interface FullSyncPayload {
   type: 'FULL_SYNC';
@@ -9,6 +15,8 @@ export interface FullSyncPayload {
   sessions: TournamentSession[];
   teams: Team[];
   players: Player[];
+  members?: HouseMember[];
+  houseId?: string;
   senderId: string;
   timestamp: number;
 }
@@ -119,6 +127,42 @@ export const RealtimeSyncService = {
   applyRemoteFullSync(payload: FullSyncPayload) {
     if (typeof window === 'undefined') return;
     try {
+      const activeHouseId = payload.houseId || getActiveHouseId();
+
+      // Sincronizzazione con chiavi isolate della casa
+      if (activeHouseId) {
+        if (Array.isArray(payload.matches)) {
+          localStorage.setItem(`carte_house_${activeHouseId}_matches`, JSON.stringify(payload.matches));
+        }
+        if (Array.isArray(payload.sessions)) {
+          localStorage.setItem(`carte_house_${activeHouseId}_sessions`, JSON.stringify(payload.sessions));
+        }
+        if (Array.isArray(payload.teams)) {
+          localStorage.setItem(`carte_house_${activeHouseId}_teams`, JSON.stringify(payload.teams));
+        }
+        if (Array.isArray(payload.players)) {
+          localStorage.setItem(`carte_house_${activeHouseId}_players`, JSON.stringify(payload.players));
+        }
+        if (Array.isArray(payload.members) && payload.members.length > 0) {
+          const membersKey = `carte_house_${activeHouseId}_members`;
+          let existing: HouseMember[] = [];
+          try {
+            const raw = localStorage.getItem(membersKey);
+            if (raw) existing = JSON.parse(raw);
+          } catch {
+            existing = [];
+          }
+          const combined = [...existing];
+          for (const m of payload.members) {
+            if (!combined.some((c) => c.userId === m.userId)) {
+              combined.push(m);
+            }
+          }
+          localStorage.setItem(membersKey, JSON.stringify(combined));
+        }
+      }
+
+      // Compatibilità retroattiva per chiavi globali
       if (Array.isArray(payload.matches)) {
         localStorage.setItem('carte_briscola_matches_v4', JSON.stringify(payload.matches));
       }
@@ -131,7 +175,9 @@ export const RealtimeSyncService = {
       if (Array.isArray(payload.players)) {
         localStorage.setItem('carte_briscola_players_v4', JSON.stringify(payload.players));
       }
+
       window.dispatchEvent(new Event('carte_storage_update'));
+      window.dispatchEvent(new Event('carte_house_change'));
     } catch (e) {
       console.warn('Errore applicazione sync remoto:', e);
     }
@@ -143,6 +189,8 @@ export const RealtimeSyncService = {
     sessions: TournamentSession[];
     teams: Team[];
     players: Player[];
+    members?: HouseMember[];
+    houseId?: string;
   }) {
     if (typeof window === 'undefined') return;
 
@@ -153,6 +201,8 @@ export const RealtimeSyncService = {
       sessions: state.sessions,
       teams: state.teams,
       players: state.players,
+      members: state.members,
+      houseId: state.houseId,
       senderId: CLIENT_ID,
       timestamp: Date.now(),
     };
