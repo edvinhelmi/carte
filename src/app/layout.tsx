@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   description:
     "Segnapunti e tracker per le partite a Briscola in casa. Statistiche per squadra e giocatore, calendario giornaliero e testa a testa.",
   manifest: "/manifest.json",
+  verification: {
+    google: "FHzkKPuV1Qj53eu7F1HmVu5WHESRNAy8l6d6u_GaT_c",
+  },
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
