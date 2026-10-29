@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Trophy, Calendar as CalendarIcon, Users, Settings, Swords, Plus, User } from 'lucide-react';
+import { Trophy, Calendar as CalendarIcon, Users, Settings, Swords, User } from 'lucide-react';
 import { HouseSwitcher } from './HouseSwitcher';
 import { AuthService } from '@/lib/authService';
 import type { UserProfile } from '@/types/house';
@@ -11,7 +11,6 @@ export type TabType = 'torneo' | 'calendar' | 'leaderboard' | 'teams' | 'setting
 interface HeaderProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
-  onOpenQuickMatch?: () => void;
   onOpenProfile?: () => void;
   hasActiveHouse?: boolean;
 }
@@ -19,7 +18,6 @@ interface HeaderProps {
 export function Header({
   activeTab,
   setActiveTab,
-  onOpenQuickMatch,
   onOpenProfile,
   hasActiveHouse = true,
 }: HeaderProps) {
@@ -116,19 +114,6 @@ export function Header({
 
         {/* Quick Actions & Profile */}
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          {hasActiveHouse && onOpenQuickMatch && (
-            <button
-              type="button"
-              onClick={onOpenQuickMatch}
-              aria-label="Registra vittoria rapida"
-              title="Registra vittoria rapida"
-              className="hidden sm:inline-flex touch-target group items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] hover:shadow-[0_2px_12px_rgba(245,158,11,0.12)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer min-h-[44px] min-w-[44px]"
-            >
-              <Plus className="w-4 h-4 text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
-              <span>Vittoria</span>
-            </button>
-          )}
-
           {/* Desktop Live Tournament Button */}
           {hasActiveHouse && (
             <button

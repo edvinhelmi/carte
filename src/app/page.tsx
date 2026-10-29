@@ -152,7 +152,6 @@ export default function Home() {
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenQuickMatch={handleOpenStandardQuickMatch}
         onOpenProfile={() => setIsProfileOpen(true)}
         hasActiveHouse={hasHouse}
       />
