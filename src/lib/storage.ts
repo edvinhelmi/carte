@@ -191,8 +191,8 @@ export const StorageService = {
     // Se il nome appartiene già a un membro della casa, non serve aggiungerlo come amico esterno
     const isMember = members.some(
       (m) =>
-        m.displayName.toLowerCase() === cleanName.toLowerCase() ||
-        (m.nickname && m.nickname.toLowerCase() === cleanName.toLowerCase())
+        (typeof m?.displayName === 'string' && m.displayName.trim().toLowerCase() === cleanName.toLowerCase()) ||
+        (typeof m?.nickname === 'string' && m.nickname.trim().toLowerCase() === cleanName.toLowerCase())
     );
     if (isMember) return null;
 
@@ -200,8 +200,8 @@ export const StorageService = {
     const players = this.getPlayers();
     const existing = players.find(
       (p) =>
-        p.name.toLowerCase() === cleanName.toLowerCase() ||
-        (p.nickname && p.nickname.toLowerCase() === cleanName.toLowerCase())
+        (typeof p?.name === 'string' && p.name.trim().toLowerCase() === cleanName.toLowerCase()) ||
+        (typeof p?.nickname === 'string' && p.nickname.trim().toLowerCase() === cleanName.toLowerCase())
     );
     if (existing) return existing;
 

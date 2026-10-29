@@ -18,6 +18,7 @@ import { ProfileModal } from '@/components/ProfileModal';
 import { CookieBanner } from '@/components/CookieBanner';
 import { LegalModal, type LegalTab } from '@/components/LegalModal';
 import { Footer } from '@/components/Footer';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Trophy, ArrowUp } from 'lucide-react';
 
 const emptySubscribe = () => () => {};
@@ -164,46 +165,56 @@ export default function Home() {
         ) : (
           <div key={activeTab} className="view-transition">
             {activeTab === 'torneo' && (
-              <TorneoSerataView
-                sessions={tournamentSessions}
-                activeSession={activeSession}
-                teams={teams}
-                players={players}
-                onDataUpdated={refresh}
-              />
+              <ErrorBoundary fallbackTitle="Impossibile caricare il torneo">
+                <TorneoSerataView
+                  sessions={tournamentSessions}
+                  activeSession={activeSession}
+                  teams={teams}
+                  players={players}
+                  onDataUpdated={refresh}
+                />
+              </ErrorBoundary>
             )}
 
             {activeTab === 'calendar' && (
-              <CalendarView
-                matches={matches}
-                teams={teams}
-                tournamentSessions={tournamentSessions}
-                onOpenQuickMatchWithDate={handleOpenQuickMatchWithDate}
-                onMatchesUpdated={refresh}
-              />
+              <ErrorBoundary fallbackTitle="Impossibile caricare il calendario">
+                <CalendarView
+                  matches={matches}
+                  teams={teams}
+                  tournamentSessions={tournamentSessions}
+                  onOpenQuickMatchWithDate={handleOpenQuickMatchWithDate}
+                  onMatchesUpdated={refresh}
+                />
+              </ErrorBoundary>
             )}
 
             {activeTab === 'leaderboard' && (
-              <LeaderboardView
-                teams={teams}
-                players={players}
-                matches={matches}
-                tournamentSessions={tournamentSessions}
-              />
+              <ErrorBoundary fallbackTitle="Impossibile caricare la classifica">
+                <LeaderboardView
+                  teams={teams}
+                  players={players}
+                  matches={matches}
+                  tournamentSessions={tournamentSessions}
+                />
+              </ErrorBoundary>
             )}
 
             {activeTab === 'teams' && (
-              <TeamsAndPlayersView players={players} teams={teams} onDataUpdated={refresh} />
+              <ErrorBoundary fallbackTitle="Impossibile caricare la gestione squadre">
+                <TeamsAndPlayersView players={players} teams={teams} onDataUpdated={refresh} />
+              </ErrorBoundary>
             )}
 
             {activeTab === 'settings' && (
-              <SettingsView
-                onDataUpdated={refresh}
-                onOpenLegal={(tab) => {
-                  setLegalModalTab(tab);
-                  setIsLegalModalOpen(true);
-                }}
-              />
+              <ErrorBoundary fallbackTitle="Impossibile caricare le impostazioni">
+                <SettingsView
+                  onDataUpdated={refresh}
+                  onOpenLegal={(tab) => {
+                    setLegalModalTab(tab);
+                    setIsLegalModalOpen(true);
+                  }}
+                />
+              </ErrorBoundary>
             )}
           </div>
         )}

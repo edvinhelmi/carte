@@ -143,7 +143,7 @@ export function LeaderboardView({
                 const isLeader = idx === 0 && stat.wins > 0;
                 return (
                   <div
-                    key={stat.team.id}
+                    key={stat.team?.id || `team-stat-${idx}`}
                     className={`rounded-2xl p-5 border interactive-card ${
                       isLeader
                         ? 'bg-[var(--surface)] border-[var(--accent)] shadow-md shadow-amber-500/10 ring-1 ring-[var(--accent)]/30'
@@ -158,7 +158,7 @@ export function LeaderboardView({
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="font-heading font-bold text-base text-[var(--text)]">
-                              {stat.team.name}
+                              {stat.team?.name || 'Squadra'}
                             </h3>
                             {stat.streak >= 2 && (
                               <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30 font-mono tabular-nums">
@@ -169,12 +169,14 @@ export function LeaderboardView({
                           </div>
                           <p className="text-xs text-[var(--text-muted)] mt-0.5">
                             {stat.players.length === 1 &&
+                            stat.players[0]?.name &&
+                            stat.team?.name &&
                             stat.team.name.toLowerCase() === stat.players[0].name.toLowerCase()
                               ? stat.players[0].nickname
                                 ? `"${stat.players[0].nickname}"`
                                 : 'Giocatore singolo'
                               : stat.players.length > 0
-                              ? stat.players.map((p) => p.name).join(' & ')
+                              ? stat.players.map((p) => p?.name || 'Giocatore').join(' & ')
                               : 'Partecipante torneo'}
                           </p>
                         </div>
@@ -435,6 +437,7 @@ export function LeaderboardView({
                   <div className="space-y-2">
                     {h2hStats.lastMatches.map((m) => {
                       const winner = m.winnerTeamId === h2hStats.team1.id ? h2hStats.team1 : h2hStats.team2;
+                      const winnerName = winner?.name || 'Vincitore';
                       return (
                         <div
                           key={m.id}
@@ -443,7 +446,7 @@ export function LeaderboardView({
                           <span className="text-[var(--text-subtle)] font-mono tabular-nums">{m.dateKey}</span>
                           <span className="font-medium text-[var(--text)]">
                             Vincitore:{' '}
-                            <span className="text-[var(--accent-text)] font-bold">{winner.name}</span>
+                            <span className="text-[var(--accent-text)] font-bold">{winnerName}</span>
                           </span>
                           {m.scoreTeam1 !== undefined && m.scoreTeam2 !== undefined && (
                             <span className="font-mono tabular-nums text-[var(--text-muted)]">

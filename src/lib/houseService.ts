@@ -249,19 +249,29 @@ export const HouseService = {
         const players: Player[] = JSON.parse(playersRaw);
         let updated = false;
         for (const p of players) {
-          if (p.isFriend) continue;
-          if (p.id.startsWith('p_mem_')) continue;
-          const isAlreadyMember = list.some(
-            (m) =>
-              m.displayName.toLowerCase() === p.name.toLowerCase() ||
-              (m.nickname && m.nickname.toLowerCase() === (p.nickname || p.name).toLowerCase())
-          );
+          if (!p || p.isFriend) continue;
+          if (p.id && p.id.startsWith('p_mem_')) continue;
+          const pNameClean = typeof p.name === 'string' ? p.name.trim().toLowerCase() : '';
+          const pNickClean = typeof p.nickname === 'string' ? p.nickname.trim().toLowerCase() : pNameClean;
+          if (!pNameClean && !pNickClean) continue;
+
+          const isAlreadyMember = list.some((m) => {
+            if (!m) return false;
+            const mDisp = typeof m.displayName === 'string' ? m.displayName.trim().toLowerCase() : '';
+            const mNick = typeof m.nickname === 'string' ? m.nickname.trim().toLowerCase() : '';
+            return (
+              (mDisp && pNameClean && mDisp === pNameClean) ||
+              (mNick && pNickClean && mNick === pNickClean) ||
+              (mNick && pNameClean && mNick === pNameClean)
+            );
+          });
           if (!isAlreadyMember) {
+            const fallbackName = (p.name && typeof p.name === 'string') ? p.name : (p.nickname || 'Membro');
             list.push({
               houseId,
-              userId: `mem_${p.id}`,
-              displayName: p.name,
-              nickname: p.nickname || p.name,
+              userId: `mem_${p.id || Date.now()}`,
+              displayName: fallbackName,
+              nickname: p.nickname || fallbackName,
               role: 'member',
               joinedAt: p.createdAt || new Date().toISOString(),
             });
@@ -329,8 +339,12 @@ export const HouseService = {
 
     const playerId = `p_mem_${member.userId}`;
     const suitOrder: CardSuit[] = ['denari', 'coppe', 'spade', 'bastoni'];
+    const memberDisp = typeof member.displayName === 'string' ? member.displayName.trim().toLowerCase() : '';
     const existingIndex = players.findIndex(
-      (p) => p.id === playerId || p.name.toLowerCase() === member.displayName.toLowerCase()
+      (p) =>
+        p &&
+        (p.id === playerId ||
+          (p.name && memberDisp && p.name.trim().toLowerCase() === memberDisp))
     );
 
     const effectiveName = member.displayName;
@@ -418,11 +432,12 @@ export const HouseService = {
 
     // 1. Membri effettivi della casa: SOLO IL NICKNAME (se presente), altrimenti displayName. Mai entrambi!
     for (const m of members) {
-      if (m.userId === currentUser.id) {
+      if (!m) continue;
+      if (currentUser?.id && m.userId === currentUser.id) {
         addName(AuthService.getEffectiveNickname(id));
       } else {
-        const eff = m.nickname?.trim() ? m.nickname.trim() : m.displayName.trim();
-        addName(eff);
+        const raw = (m.nickname && m.nickname.trim()) || (m.displayName && m.displayName.trim()) || '';
+        if (raw) addName(raw);
       }
     }
 
@@ -432,16 +447,20 @@ export const HouseService = {
       try {
         const players: Player[] = JSON.parse(playersRaw);
         for (const p of players) {
-          if (p.id.startsWith('p_mem_')) continue;
-          const isMember = members.some(
-            (m) =>
-              m.displayName.toLowerCase() === p.name.toLowerCase() ||
-              (m.nickname && m.nickname.toLowerCase() === p.name.toLowerCase())
-          );
+          if (!p || (p.id && p.id.startsWith('p_mem_'))) continue;
+          const pNameLower = typeof p.name === 'string' ? p.name.trim().toLowerCase() : '';
+          if (!pNameLower) continue;
+
+          const isMember = members.some((m) => {
+            if (!m) return false;
+            const mDisp = typeof m.displayName === 'string' ? m.displayName.trim().toLowerCase() : '';
+            const mNick = typeof m.nickname === 'string' ? m.nickname.trim().toLowerCase() : '';
+            return (mDisp && mDisp === pNameLower) || (mNick && mNick === pNameLower);
+          });
           if (isMember) continue;
 
-          const friendEff = p.nickname?.trim() ? p.nickname.trim() : p.name.trim();
-          addName(friendEff);
+          const friendEff = (p.nickname && p.nickname.trim()) || (p.name && p.name.trim()) || '';
+          if (friendEff) addName(friendEff);
         }
       } catch {
         // ignore

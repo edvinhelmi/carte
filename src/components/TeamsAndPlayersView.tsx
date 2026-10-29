@@ -48,17 +48,20 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
   // Separa i giocatori amici da quelli della casa
   const friendPlayers = useMemo(() => {
     const memberNameSet = new Set(
-      houseMembers.flatMap((m) => [
-        m.displayName.toLowerCase().trim(),
-        m.nickname ? m.nickname.toLowerCase().trim() : '',
+      (houseMembers || []).flatMap((m) => [
+        typeof m?.displayName === 'string' ? m.displayName.trim().toLowerCase() : '',
+        typeof m?.nickname === 'string' ? m.nickname.trim().toLowerCase() : '',
       ]).filter(Boolean)
     );
 
-    return players.filter((p) => {
-      if (p.id.startsWith('p_mem_')) return false;
+    return (players || []).filter((p) => {
+      if (!p || !p.id) return false;
+      if (typeof p.id === 'string' && p.id.startsWith('p_mem_')) return false;
       if (p.isFriend) return true;
-      if (memberNameSet.has(p.name.toLowerCase().trim())) return false;
-      if (p.nickname && memberNameSet.has(p.nickname.toLowerCase().trim())) return false;
+      const pName = typeof p.name === 'string' ? p.name.trim().toLowerCase() : '';
+      if (pName && memberNameSet.has(pName)) return false;
+      const pNick = typeof p.nickname === 'string' ? p.nickname.trim().toLowerCase() : '';
+      if (pNick && memberNameSet.has(pNick)) return false;
       return true;
     });
   }, [players, houseMembers]);
@@ -69,12 +72,18 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
     const seenNames = new Set<string>();
 
     // 1. Membri della Casa
-    for (const m of houseMembers) {
-      const effName = m.nickname?.trim() ? m.nickname.trim() : m.displayName.trim();
-      if (!seenNames.has(effName.toLowerCase())) {
-        seenNames.add(effName.toLowerCase());
+    for (const m of (houseMembers || [])) {
+      if (!m) continue;
+      const effName = (typeof m.nickname === 'string' && m.nickname.trim())
+        ? m.nickname.trim()
+        : (typeof m.displayName === 'string' && m.displayName.trim())
+          ? m.displayName.trim()
+          : 'Membro';
+      const effKey = effName.toLowerCase();
+      if (!seenNames.has(effKey)) {
+        seenNames.add(effKey);
         list.push({
-          id: `p_mem_${m.userId}`,
+          id: `p_mem_${m.userId || 'unknown'}`,
           name: effName,
           isMember: true,
         });
@@ -82,10 +91,16 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
     }
 
     // 2. Giocatori Amici
-    for (const p of friendPlayers) {
-      const effName = p.nickname?.trim() ? p.nickname.trim() : p.name.trim();
-      if (!seenNames.has(effName.toLowerCase())) {
-        seenNames.add(effName.toLowerCase());
+    for (const p of (friendPlayers || [])) {
+      if (!p) continue;
+      const effName = (typeof p.nickname === 'string' && p.nickname.trim())
+        ? p.nickname.trim()
+        : (typeof p.name === 'string' && p.name.trim())
+          ? p.name.trim()
+          : 'Giocatore';
+      const effKey = effName.toLowerCase();
+      if (!seenNames.has(effKey)) {
+        seenNames.add(effKey);
         list.push({
           id: p.id,
           name: effName,
@@ -312,9 +327,18 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {houseMembers.map((m) => {
-              const isMe = m.userId === currentUser.id;
-              const effNick = m.nickname || m.displayName;
-              const hasDiffName = m.nickname && m.nickname !== m.displayName;
+              const isMe = Boolean(currentUser?.id && m.userId === currentUser.id);
+              const effNick = (typeof m.nickname === 'string' && m.nickname.trim())
+                ? m.nickname.trim()
+                : (typeof m.displayName === 'string' && m.displayName.trim())
+                  ? m.displayName.trim()
+                  : 'Membro';
+              const hasDiffName = Boolean(
+                m.nickname &&
+                m.displayName &&
+                m.nickname.trim().toLowerCase() !== m.displayName.trim().toLowerCase()
+              );
+              const avatarInitials = (m.displayName || m.nickname || 'ME').slice(0, 2).toUpperCase();
 
               return (
                 <div
@@ -326,12 +350,12 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={m.avatarUrl}
-                        alt={m.displayName}
+                        alt={m.displayName || 'Avatar'}
                         className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--accent)]/40 shrink-0"
                       />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center text-[var(--accent)] font-bold text-xs shrink-0">
-                        {m.displayName.slice(0, 2).toUpperCase()}
+                        {avatarInitials}
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
@@ -406,15 +430,20 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {teams.map((team) => {
-              const teamPlayerLabels = team.playerIds.map((id) => {
+              const playerIds = Array.isArray(team?.playerIds) ? team.playerIds : [];
+              const teamPlayerLabels = playerIds.map((id) => {
                 const sel = selectablePlayers.find((p) => p.id === id);
                 if (sel) return sel.name;
-                const pl = players.find((p) => p.id === id);
-                if (pl) return pl.nickname || pl.name;
-                const mem = houseMembers.find((m) => `p_mem_${m.userId}` === id);
-                if (mem) return mem.nickname || mem.displayName;
+                const pl = (players || []).find((p) => p.id === id);
+                if (pl) return (pl.nickname && pl.nickname.trim()) || pl.name || id;
+                const mem = (houseMembers || []).find((m) => `p_mem_${m.userId}` === id);
+                if (mem) return (mem.nickname && mem.nickname.trim()) || mem.displayName || id;
                 return id;
               });
+              const teamInitials = (typeof team?.name === 'string' && team.name.trim() ? team.name.trim() : 'SQ')
+                .slice(0, 2)
+                .toUpperCase();
+              const teamDisplayName = (typeof team?.name === 'string' && team.name.trim()) ? team.name.trim() : 'Squadra';
 
               return (
                 <div
@@ -425,9 +454,9 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center text-[var(--accent)] font-bold text-xs font-mono">
-                          {team.name.slice(0, 2).toUpperCase()}
+                          {teamInitials}
                         </div>
-                        <h3 className="font-heading font-bold text-base text-[var(--text)]">{team.name}</h3>
+                        <h3 className="font-heading font-bold text-base text-[var(--text)]">{teamDisplayName}</h3>
                       </div>
 
                       <button
@@ -462,7 +491,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-[var(--divider)] text-[11px] text-[var(--text-subtle)]">
-                    {team.playerIds.length === 2 ? 'Squadra da 2 (Coppia standard)' : 'Giocatore singolo (1v1)'}
+                    {playerIds.length === 2 ? 'Squadra da 2 (Coppia standard)' : 'Giocatore singolo (1v1)'}
                   </div>
                 </div>
               );
@@ -507,8 +536,16 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {friendPlayers.map((player) => {
-              const effName = player.nickname || player.name;
-              const hasDiff = player.nickname && player.nickname !== player.name;
+              const effName = (typeof player.nickname === 'string' && player.nickname.trim())
+                ? player.nickname.trim()
+                : (typeof player.name === 'string' && player.name.trim())
+                  ? player.name.trim()
+                  : 'Amico';
+              const hasDiff = Boolean(
+                player.nickname &&
+                player.name &&
+                player.nickname.trim().toLowerCase() !== player.name.trim().toLowerCase()
+              );
 
               return (
                 <div
