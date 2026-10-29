@@ -307,9 +307,41 @@ export function CalendarView({
                     {selectedDaySessions.map((session) => {
                       const isA5 = session.mode === 'a5';
                       const isThree = !isA5 && (session.mode === '1vs1vs1' || !!session.team3Name);
-                      const isT1Winner = session.winnerTeam === 1;
-                      const isT2Winner = session.winnerTeam === 2;
-                      const isT3Winner = session.winnerTeam === 3;
+                      const isT1Winner =
+                        Number(session.winnerTeam) === 1 ||
+                        session.winnerTeam === '1' ||
+                        (!session.winnerTeam && session.team1Wins > session.team2Wins && (!isThree || session.team1Wins > (session.team3Wins || 0)));
+                      const isT2Winner =
+                        Number(session.winnerTeam) === 2 ||
+                        session.winnerTeam === '2' ||
+                        (!session.winnerTeam && session.team2Wins > session.team1Wins && (!isThree || session.team2Wins > (session.team3Wins || 0)));
+                      const isT3Winner =
+                        Number(session.winnerTeam) === 3 ||
+                        session.winnerTeam === '3' ||
+                        (!session.winnerTeam && isThree && (session.team3Wins || 0) > session.team1Wins && (session.team3Wins || 0) > session.team2Wins);
+
+                      let winnerLabel = '';
+                      if (
+                        session.winnerPlayerName &&
+                        session.winnerPlayerName !== 'Pareggio' &&
+                        session.winnerPlayerName !== 'Nessuno (0 vittorie)'
+                      ) {
+                        winnerLabel = session.winnerPlayerName;
+                      } else if (isA5 && session.players5 && session.players5.length > 0) {
+                        const maxWins = Math.max(...session.players5.map((p) => p.wins || 0));
+                        if (maxWins > 0) {
+                          const winners = session.players5.filter((p) => (p.wins || 0) === maxWins);
+                          winnerLabel = winners.map((p) => p.name).join(' & ');
+                        }
+                      } else if (isThree) {
+                        if (isT1Winner) winnerLabel = session.team1Name;
+                        else if (isT2Winner) winnerLabel = session.team2Name;
+                        else if (isT3Winner) winnerLabel = session.team3Name || 'Giocatore 3';
+                      } else {
+                        if (isT1Winner) winnerLabel = session.team1Name;
+                        else if (isT2Winner) winnerLabel = session.team2Name;
+                      }
+
                       const totalGames = isA5 && session.players5
                         ? session.players5.reduce((sum, p) => sum + (p.wins || 0), 0)
                         : session.team1Wins + session.team2Wins + (session.team3Wins || 0);
@@ -319,9 +351,9 @@ export function CalendarView({
                           key={session.id}
                           className="p-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] shadow-sm space-y-3 interactive-card"
                         >
-                          <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-medium">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-bold">
+                          <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-medium gap-2">
+                            <div className="flex items-center gap-2 flex-wrap min-w-0">
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[var(--surface-alt)] text-[var(--text-muted)] border border-[var(--control-border)] font-bold">
                                 {session.mode === 'a5'
                                   ? 'A 5 (Chiamata)'
                                   : session.mode === '1vs1vs1'
@@ -335,12 +367,18 @@ export function CalendarView({
                                   ? `${totalGames} ${totalGames === 1 ? 'vittoria' : 'vittorie'}`
                                   : `${totalGames} ${totalGames === 1 ? 'partita' : 'partite'}`}
                               </span>
+                              {winnerLabel && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--accent-text)] bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full shadow-sm">
+                                  <Trophy className="w-3 h-3 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                  <span className="truncate max-w-[130px] sm:max-w-[180px]">Vinto da {winnerLabel}</span>
+                                </span>
+                              )}
                             </div>
                             <button
                               type="button"
                               onClick={() => handleDeleteTournamentSession(session.id)}
                               aria-label="Elimina torneo"
-                              className="touch-target p-1 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+                              className="touch-target p-1 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-alt)] transition-colors cursor-pointer shrink-0"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -349,9 +387,10 @@ export function CalendarView({
                           {isA5 && session.players5 && session.players5.length > 0 ? (
                             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-0.5">
                               {session.players5.map((p, pIdx) => {
+                                const maxWins = Math.max(...session.players5!.map((x) => x.wins || 0));
                                 const isWinner = session.winnerPlayerName
                                   ? session.winnerPlayerName.split(' & ').includes(p.name)
-                                  : (typeof session.winnerTeam === 'number' && session.winnerTeam === pIdx + 1);
+                                  : (Number(session.winnerTeam) === pIdx + 1 || (maxWins > 0 && p.wins === maxWins));
                                 return (
                                   <div
                                     key={p.name + pIdx}
@@ -473,58 +512,80 @@ export function CalendarView({
                               </div>
                             </div>
                           ) : (
-                            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 pt-1">
-                              {/* Team 1 (Left) */}
-                              <div className="text-left min-w-0">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  {isT1Winner && (
-                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 pt-1">
+                              {/* Team 1 (Left Box) */}
+                              <div
+                                className={`p-3 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
+                                  isT1Winner
+                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+                                }`}
+                              >
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    {isT1Winner && (
+                                      <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                    )}
+                                    <span
+                                      className={`text-xs sm:text-sm font-bold truncate ${
+                                        isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                                      }`}
+                                    >
+                                      {session.team1Name}
+                                    </span>
+                                  </div>
+                                  {session.team1Players && session.team1Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
+                                    <span className="text-[11px] text-[var(--text-muted)] truncate block mt-0.5">
+                                      {session.team1Players.join(' & ')}
+                                    </span>
                                   )}
-                                  <span
-                                    className={`text-sm sm:text-base font-bold truncate ${
-                                      isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
-                                    }`}
-                                  >
-                                    {session.team1Name}
-                                  </span>
                                 </div>
-                                {session.team1Players && session.team1Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
-                                  <span className="text-[11px] text-[var(--text-subtle)] truncate block mt-0.5">
-                                    {session.team1Players.join(' & ')}
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Punteggio Scoreboard (Center) */}
-                              <div className="px-3.5 py-1.5 rounded-xl bg-[var(--surface-alt)] border border-[var(--control-border)] text-base sm:text-lg font-mono font-black tabular-nums shadow-inner shrink-0">
-                                <span className={isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'}>
+                                <span
+                                  className={`text-lg sm:text-xl font-mono font-black tabular-nums shrink-0 ${
+                                    isT1Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
+                                  }`}
+                                >
                                   {session.team1Wins}
                                 </span>
-                                <span className="text-[var(--text-subtle)] mx-1.5">-</span>
-                                <span className={isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'}>
-                                  {session.team2Wins}
-                                </span>
                               </div>
 
-                              {/* Team 2 (Right) */}
-                              <div className="text-right min-w-0">
-                                <div className="flex items-center justify-end gap-1.5 min-w-0">
-                                  <span
-                                    className={`text-sm sm:text-base font-bold truncate ${
-                                      isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
-                                    }`}
-                                  >
-                                    {session.team2Name}
-                                  </span>
-                                  {isT2Winner && (
-                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                              {/* VS Divider */}
+                              <span className="text-xs font-mono font-bold text-[var(--text-subtle)] px-1 shrink-0">VS</span>
+
+                              {/* Team 2 (Right Box) */}
+                              <div
+                                className={`p-3 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
+                                  isT2Winner
+                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+                                }`}
+                              >
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    {isT2Winner && (
+                                      <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                    )}
+                                    <span
+                                      className={`text-xs sm:text-sm font-bold truncate ${
+                                        isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                                      }`}
+                                    >
+                                      {session.team2Name}
+                                    </span>
+                                  </div>
+                                  {session.team2Players && session.team2Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
+                                    <span className="text-[11px] text-[var(--text-muted)] truncate block mt-0.5">
+                                      {session.team2Players.join(' & ')}
+                                    </span>
                                   )}
                                 </div>
-                                {session.team2Players && session.team2Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
-                                  <span className="text-[11px] text-[var(--text-subtle)] truncate block mt-0.5">
-                                    {session.team2Players.join(' & ')}
-                                  </span>
-                                )}
+                                <span
+                                  className={`text-lg sm:text-xl font-mono font-black tabular-nums shrink-0 ${
+                                    isT2Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
+                                  }`}
+                                >
+                                  {session.team2Wins}
+                                </span>
                               </div>
                             </div>
                           )}
@@ -578,8 +639,13 @@ export function CalendarView({
                       {dailySummary.matches.map((m) => {
                         const t1 = teamMap.get(m.team1Id);
                         const t2 = teamMap.get(m.team2Id);
-                        const isT1Winner = m.winnerTeamId === m.team1Id;
-                        const isT2Winner = m.winnerTeamId === m.team2Id;
+                        const isT1Winner =
+                          m.winnerTeamId === m.team1Id ||
+                          (m.scoreTeam1 !== undefined && m.scoreTeam2 !== undefined && m.scoreTeam1 > m.scoreTeam2);
+                        const isT2Winner =
+                          m.winnerTeamId === m.team2Id ||
+                          (m.scoreTeam1 !== undefined && m.scoreTeam2 !== undefined && m.scoreTeam2 > m.scoreTeam1);
+                        const winnerName = isT1Winner ? (t1?.name || 'Squadra 1') : isT2Winner ? (t2?.name || 'Squadra 2') : '';
 
                         const matchTime = new Date(m.timestamp).toLocaleTimeString('it-IT', {
                           hour: '2-digit',
@@ -591,10 +657,16 @@ export function CalendarView({
                             key={m.id}
                             className="p-3.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] hover:border-[var(--control-border)] interactive-card space-y-2.5"
                           >
-                            <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-mono">
-                              <div className="flex items-center gap-1.5 min-w-0">
+                            <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-mono gap-2">
+                              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                                 <Clock className="w-3.5 h-3.5 shrink-0" />
                                 <span className="tabular-nums">{matchTime}</span>
+                                {winnerName && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--accent-text)] bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full shadow-sm font-sans">
+                                    <Trophy className="w-3 h-3 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                    <span className="truncate max-w-[130px] sm:max-w-[180px]">Vinto da {winnerName}</span>
+                                  </span>
+                                )}
                                 {m.notes && (
                                   <span className="text-[11px] text-[var(--text-muted)] truncate max-w-[160px] pl-1 font-sans">
                                     • {m.notes}
@@ -605,55 +677,73 @@ export function CalendarView({
                                 type="button"
                                 onClick={() => handleDeleteMatch(m.id)}
                                 aria-label="Elimina partita"
-                                className="touch-target p-1 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+                                className="touch-target p-1 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-alt)] transition-colors cursor-pointer shrink-0"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
 
-                            {/* Scoreboard: Left Team | Score Center | Right Team */}
-                            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 pt-0.5">
-                              {/* Team 1 (Left) */}
-                              <div className="text-left min-w-0">
+                            {/* Scoreboard: Due box squadra strutturati con evidenziazione vincitore */}
+                            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 pt-0.5">
+                              {/* Team 1 (Left Box) */}
+                              <div
+                                className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
+                                  isT1Winner
+                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+                                }`}
+                              >
                                 <div className="flex items-center gap-1.5 min-w-0">
                                   {isT1Winner && (
                                     <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
                                   )}
                                   <span
-                                    className={`text-sm sm:text-base font-bold truncate ${
-                                      isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                                    className={`text-xs sm:text-sm font-bold truncate ${
+                                      isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
                                     }`}
                                   >
                                     {t1?.name || 'Squadra 1'}
                                   </span>
                                 </div>
-                              </div>
-
-                              {/* Punteggio Scoreboard (Center) */}
-                              <div className="px-3 py-1 rounded-xl bg-[var(--surface-alt)] border border-[var(--control-border)] font-mono font-black text-sm sm:text-base tabular-nums shadow-inner shrink-0">
-                                <span className={isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'}>
+                                <span
+                                  className={`text-base sm:text-lg font-mono font-black tabular-nums shrink-0 ${
+                                    isT1Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
+                                  }`}
+                                >
                                   {m.scoreTeam1 !== undefined ? m.scoreTeam1 : (isT1Winner ? '1' : '0')}
                                 </span>
-                                <span className="text-[var(--text-subtle)] mx-1.5">-</span>
-                                <span className={isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'}>
-                                  {m.scoreTeam2 !== undefined ? m.scoreTeam2 : (isT2Winner ? '1' : '0')}
-                                </span>
                               </div>
 
-                              {/* Team 2 (Right) */}
-                              <div className="text-right min-w-0">
-                                <div className="flex items-center justify-end gap-1.5 min-w-0">
+                              {/* VS divider */}
+                              <span className="text-xs font-mono font-bold text-[var(--text-subtle)] px-1 shrink-0">VS</span>
+
+                              {/* Team 2 (Right Box) */}
+                              <div
+                                className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
+                                  isT2Winner
+                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  {isT2Winner && (
+                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                                  )}
                                   <span
-                                    className={`text-sm sm:text-base font-bold truncate ${
-                                      isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                                    className={`text-xs sm:text-sm font-bold truncate ${
+                                      isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
                                     }`}
                                   >
                                     {t2?.name || 'Squadra 2'}
                                   </span>
-                                  {isT2Winner && (
-                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
-                                  )}
                                 </div>
+                                <span
+                                  className={`text-base sm:text-lg font-mono font-black tabular-nums shrink-0 ${
+                                    isT2Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
+                                  }`}
+                                >
+                                  {m.scoreTeam2 !== undefined ? m.scoreTeam2 : (isT2Winner ? '1' : '0')}
+                                </span>
                               </div>
                             </div>
                           </div>

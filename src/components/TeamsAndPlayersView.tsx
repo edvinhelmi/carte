@@ -1,11 +1,15 @@
-import React, { useState, useEffect, useSyncExternalStore } from 'react';
+'use client';
+
+import React, { useState, useEffect, useSyncExternalStore, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, User, Plus, Trash2, Shield, X, ChevronDown, Crown } from 'lucide-react';
+import { Users, User, Plus, Trash2, Shield, X, ChevronDown, Crown, QrCode, UserPlus } from 'lucide-react';
 import { Player, Team, CardSuit } from '@/types/game';
 import { StorageService } from '@/lib/storage';
 import { HouseService } from '@/lib/houseService';
+import { AuthService } from '@/lib/authService';
 import type { HouseMember } from '@/types/house';
 import { SuitIcon } from './SuitIcon';
+import { ShareHouseModal } from './ShareHouseModal';
 
 const emptySubscribe = () => () => {};
 
@@ -18,11 +22,12 @@ interface TeamsAndPlayersViewProps {
 export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndPlayersViewProps) {
   const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
 
-  const [, setActiveHouseId] = useState<string>(() => HouseService.getActiveHouseId());
+  const [activeHouseId, setActiveHouseId] = useState<string>(() => HouseService.getActiveHouseId());
   const [houseMembers, setHouseMembers] = useState<HouseMember[]>(() => {
     const id = HouseService.getActiveHouseId();
     return id ? HouseService.getHouseMembers(id) : [];
   });
+  const [currentUser] = useState(() => AuthService.getCurrentUser());
 
   useEffect(() => {
     const handleSync = () => {
@@ -40,47 +45,85 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
     };
   }, []);
 
-  // Giocatori selezionabili (combina players registrati con tutti i membri della casa)
-  const selectablePlayers = React.useMemo(() => {
-    const list = [...players];
-    const knownNames = new Set(players.map((p) => (p.nickname || p.name).toLowerCase()));
+  // Separa i giocatori amici da quelli della casa
+  const friendPlayers = useMemo(() => {
+    const memberNameSet = new Set(
+      houseMembers.flatMap((m) => [
+        m.displayName.toLowerCase().trim(),
+        m.nickname ? m.nickname.toLowerCase().trim() : '',
+      ]).filter(Boolean)
+    );
+
+    return players.filter((p) => {
+      if (p.id.startsWith('p_mem_')) return false;
+      if (p.isFriend) return true;
+      if (memberNameSet.has(p.name.toLowerCase().trim())) return false;
+      if (p.nickname && memberNameSet.has(p.nickname.toLowerCase().trim())) return false;
+      return true;
+    });
+  }, [players, houseMembers]);
+
+  // Giocatori selezionabili per comporre una squadra: SOLO NICKNAME
+  const selectablePlayers = useMemo(() => {
+    const list: { id: string; name: string; isMember: boolean }[] = [];
+    const seenNames = new Set<string>();
+
+    // 1. Membri della Casa
     for (const m of houseMembers) {
-      const effName = m.nickname || m.displayName;
-      if (!knownNames.has(effName.toLowerCase())) {
-        knownNames.add(effName.toLowerCase());
+      const effName = m.nickname?.trim() ? m.nickname.trim() : m.displayName.trim();
+      if (!seenNames.has(effName.toLowerCase())) {
+        seenNames.add(effName.toLowerCase());
         list.push({
           id: `p_mem_${m.userId}`,
-          houseId: m.houseId,
           name: effName,
-          nickname: m.nickname,
-          avatarSuit: 'denari',
-          createdAt: m.joinedAt,
+          isMember: true,
         });
       }
     }
+
+    // 2. Giocatori Amici
+    for (const p of friendPlayers) {
+      const effName = p.nickname?.trim() ? p.nickname.trim() : p.name.trim();
+      if (!seenNames.has(effName.toLowerCase())) {
+        seenNames.add(effName.toLowerCase());
+        list.push({
+          id: p.id,
+          name: effName,
+          isMember: false,
+        });
+      }
+    }
+
     return list;
-  }, [players, houseMembers]);
+  }, [houseMembers, friendPlayers]);
 
-  // Gestione stato form Giocatore
-  const [showPlayerModal, setShowPlayerModal] = useState(false);
-  const [playerName, setPlayerName] = useState('');
-  const [playerNickname, setPlayerNickname] = useState('');
-  const [playerSuit, setPlayerSuit] = useState<CardSuit>('denari');
+  // Gestione modali
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberNickname, setNewMemberNickname] = useState('');
 
-  // Gestione stato form Squadra
+  const [showFriendModal, setShowFriendModal] = useState(false);
+  const [friendName, setFriendName] = useState('');
+  const [friendNickname, setFriendNickname] = useState('');
+  const [friendSuit, setFriendSuit] = useState<CardSuit>('denari');
+
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [teamName, setTeamName] = useState('');
   const [selectedPlayer1, setSelectedPlayer1] = useState('');
   const [selectedPlayer2, setSelectedPlayer2] = useState('');
 
+  const [showShareModal, setShowShareModal] = useState(false);
+
   useEffect(() => {
-    if (!showPlayerModal && !showTeamModal) return;
+    if (!showMemberModal && !showFriendModal && !showTeamModal && !showShareModal) return;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setShowPlayerModal(false);
+        setShowMemberModal(false);
+        setShowFriendModal(false);
         setShowTeamModal(false);
+        setShowShareModal(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -88,39 +131,72 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
       document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [showPlayerModal, showTeamModal]);
+  }, [showMemberModal, showFriendModal, showTeamModal, showShareModal]);
 
-  const playerMap = new Map(players.map((p) => [p.id, p]));
+  const activeHouse = HouseService.getActiveHouse();
 
-  // Salvataggio nuovo giocatore
-  const handleSavePlayer = (e: React.FormEvent) => {
+  // Salvataggio nuovo membro della casa
+  const handleSaveMember = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!playerName.trim()) return;
+    const cleanName = newMemberName.trim();
+    if (!cleanName || !activeHouseId) return;
 
-    const newPlayer: Player = {
-      id: 'p_' + Date.now(),
-      name: playerName.trim(),
-      nickname: playerNickname.trim() || undefined,
-      avatarSuit: playerSuit,
-      createdAt: new Date().toISOString(),
+    const newMember: HouseMember = {
+      houseId: activeHouseId,
+      userId: `mem_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      displayName: cleanName,
+      nickname: newMemberNickname.trim() || cleanName,
+      role: 'member',
+      joinedAt: new Date().toISOString(),
     };
 
-    StorageService.savePlayer(newPlayer);
-    setPlayerName('');
-    setPlayerNickname('');
-    setShowPlayerModal(false);
+    HouseService.saveHouseMember(newMember);
+    setNewMemberName('');
+    setNewMemberNickname('');
+    setShowMemberModal(false);
     onDataUpdated();
   };
 
-  // Eliminazione giocatore
-  const handleDeletePlayer = (playerId: string) => {
-    if (confirm('Sei sicuro di voler eliminare questo giocatore?')) {
+  // Eliminazione membro della casa
+  const handleDeleteMember = (userId: string, memberName: string) => {
+    if (confirm(`Rimuovere "${memberName}" dai membri della casa?`)) {
+      HouseService.deleteHouseMember(activeHouseId, userId);
+      onDataUpdated();
+    }
+  };
+
+  // Salvataggio nuovo giocatore amico
+  const handleSaveFriend = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanName = friendName.trim();
+    if (!cleanName) return;
+
+    const newFriend: Player = {
+      id: `p_friend_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      houseId: activeHouseId || undefined,
+      name: cleanName,
+      nickname: friendNickname.trim() || undefined,
+      avatarSuit: friendSuit,
+      createdAt: new Date().toISOString(),
+      isFriend: true,
+    };
+
+    StorageService.savePlayer(newFriend);
+    setFriendName('');
+    setFriendNickname('');
+    setShowFriendModal(false);
+    onDataUpdated();
+  };
+
+  // Eliminazione giocatore amico
+  const handleDeleteFriend = (playerId: string) => {
+    if (confirm('Eliminare questo giocatore amico?')) {
       StorageService.deletePlayer(playerId);
       onDataUpdated();
     }
   };
 
-  // Salvataggio nuova squadra predefinita
+  // Salvataggio squadra
   const handleSaveTeam = (e: React.FormEvent) => {
     e.preventDefault();
     if (!teamName.trim()) return;
@@ -131,20 +207,33 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
 
     const playerIds = [selectedPlayer1];
     const p1Obj = selectablePlayers.find((p) => p.id === selectedPlayer1);
-    if (p1Obj && !players.some((p) => p.id === p1Obj.id)) {
-      StorageService.savePlayer(p1Obj);
+    if (p1Obj && selectedPlayer1.startsWith('p_mem_') && !players.some((p) => p.id === selectedPlayer1)) {
+      StorageService.savePlayer({
+        id: selectedPlayer1,
+        houseId: activeHouseId || undefined,
+        name: p1Obj.name,
+        avatarSuit: 'denari',
+        createdAt: new Date().toISOString(),
+      });
     }
 
     if (selectedPlayer2 && selectedPlayer2 !== selectedPlayer1) {
       playerIds.push(selectedPlayer2);
       const p2Obj = selectablePlayers.find((p) => p.id === selectedPlayer2);
-      if (p2Obj && !players.some((p) => p.id === p2Obj.id)) {
-        StorageService.savePlayer(p2Obj);
+      if (p2Obj && selectedPlayer2.startsWith('p_mem_') && !players.some((p) => p.id === selectedPlayer2)) {
+        StorageService.savePlayer({
+          id: selectedPlayer2,
+          houseId: activeHouseId || undefined,
+          name: p2Obj.name,
+          avatarSuit: 'coppe',
+          createdAt: new Date().toISOString(),
+        });
       }
     }
 
     const newTeam: Team = {
       id: 't_' + Date.now(),
+      houseId: activeHouseId || undefined,
       name: teamName.trim(),
       playerIds,
       color: '#10b981',
@@ -169,72 +258,130 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
 
   return (
     <div className="space-y-8" data-reveal="rise">
-      {/* Intestazione */}
+      {/* Intestazione Pagina */}
       <div>
         <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight flex items-center gap-2.5">
           <Users className="w-6 h-6 text-[var(--accent)]" />
-          <span>Squadre &amp; Giocatori di Casa</span>
+          <span>Membri &amp; Squadre di Casa</span>
         </h1>
         <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1">
-          Configura gli amici e i familiari che giocano e componi le coppie per la Briscola.
+          Gestisci le persone che vivono in casa, i giocatori amici e le squadre registrate per la Briscola.
         </p>
       </div>
 
-      {/* SEZIONE 0: MEMBRI DELLA CASA (UTENTI CONNESSI) */}
-      {houseMembers.length > 0 && (
-        <div className="space-y-3">
+      {/* SEZIONE 1: MEMBRI DELLA CASA */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Crown className="w-4 h-4 text-[var(--accent)]" />
+            <Crown className="w-5 h-5 text-[var(--accent)]" />
             <h2 className="font-heading text-lg font-bold text-[var(--text)]">
               Membri della Casa ({houseMembers.length})
             </h2>
           </div>
-          <p className="text-xs text-[var(--text-muted)]">
-            Persone che partecipano a questa casa. I loro nomi e soprannomi sono suggeriti automaticamente nei tornei.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {houseMembers.map((m) => (
-              <div
-                key={m.userId}
-                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-4 flex items-center gap-3 shadow-sm"
+          <div className="flex items-center gap-2">
+            {activeHouse && (
+              <button
+                type="button"
+                onClick={() => setShowShareModal(true)}
+                className="touch-target inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+                title="Condividi codice invito o QR"
               >
-                {m.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={m.avatarUrl}
-                    alt={m.displayName}
-                    className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--accent)]/40 shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center text-[var(--accent)] font-bold text-xs shrink-0">
-                    {m.displayName.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-heading font-bold text-sm text-[var(--text)] truncate">
-                      {m.nickname || m.displayName}
-                    </span>
-                    {m.role === 'owner' && (
-                      <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 shrink-0">
-                        Owner
-                      </span>
-                    )}
-                  </div>
-                  {m.nickname && (
-                    <p className="text-[11px] text-[var(--text-muted)] truncate">
-                      Nome globale: {m.displayName}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
+                <QrCode className="w-3.5 h-3.5 text-[var(--accent)]" />
+                <span className="hidden sm:inline">Invita</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowMemberModal(true)}
+              className="touch-target inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 text-[var(--accent)]" />
+              <span>Aggiungi Membro</span>
+            </button>
           </div>
         </div>
-      )}
 
-      {/* SEZIONE 1: SQUADRE (TEAMS) */}
-      <div className="space-y-4">
+        <p className="text-xs text-[var(--text-muted)]">
+          Persone che vivono in casa o ne fanno parte stabilmente. Il loro soprannome viene suggerito automaticamente per le partite.
+        </p>
+
+        {houseMembers.length === 0 ? (
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 text-center text-xs text-[var(--text-muted)]">
+            Nessun membro trovato. Aggiungi il primo coinquilino o invita altri con il codice QR!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {houseMembers.map((m) => {
+              const isMe = m.userId === currentUser.id;
+              const effNick = m.nickname || m.displayName;
+              const hasDiffName = m.nickname && m.nickname !== m.displayName;
+
+              return (
+                <div
+                  key={m.userId}
+                  className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 flex items-center justify-between gap-3 shadow-sm transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {m.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={m.avatarUrl}
+                        alt={m.displayName}
+                        className="w-10 h-10 rounded-full object-cover ring-1 ring-[var(--accent)]/40 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center text-[var(--accent)] font-bold text-xs shrink-0">
+                        {m.displayName.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-heading font-bold text-sm text-[var(--text)] truncate">
+                          {effNick}
+                        </span>
+                        {isMe && (
+                          <span className="text-[10px] font-semibold text-[var(--text-subtle)] bg-[var(--surface-raised)] px-1.5 py-0.2 rounded-full border border-[var(--divider)] shrink-0">
+                            Tu
+                          </span>
+                        )}
+                        {m.role === 'owner' ? (
+                          <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20 shrink-0">
+                            Proprietario
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-medium text-[var(--text-muted)] bg-[var(--surface-alt)] px-1.5 py-0.5 rounded-full shrink-0">
+                            Membro
+                          </span>
+                        )}
+                      </div>
+                      {hasDiffName && (
+                        <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
+                          Nome: {m.displayName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {!isMe && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteMember(m.userId, effNick)}
+                      aria-label={`Rimuovi ${effNick}`}
+                      title={`Rimuovi ${effNick}`}
+                      className="touch-target p-1.5 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-raised)] transition-colors cursor-pointer shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* SEZIONE 2: SQUADRE REGISTRATE */}
+      <div className="space-y-4 pt-4 border-t border-[var(--divider)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-[var(--accent)]" />
@@ -245,152 +392,188 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
           <button
             type="button"
             onClick={() => setShowTeamModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+            className="touch-target inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-[var(--accent)]" />
             <span>Nuova Squadra</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {teams.map((team) => {
-            const teamPlayers = team.playerIds
-              .map((id) => playerMap.get(id))
-              .filter(Boolean) as Player[];
-            return (
-              <div
-                key={team.id}
-                className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-5 interactive-card flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center text-[var(--accent)] font-bold text-xs font-mono">
-                        {team.name.slice(0, 2).toUpperCase()}
+        {teams.length === 0 ? (
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 text-center text-xs text-[var(--text-muted)]">
+            Nessuna squadra registrata. Crea una nuova coppia di gioco con il pulsante &quot;Nuova Squadra&quot;!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {teams.map((team) => {
+              const teamPlayerLabels = team.playerIds.map((id) => {
+                const sel = selectablePlayers.find((p) => p.id === id);
+                if (sel) return sel.name;
+                const pl = players.find((p) => p.id === id);
+                if (pl) return pl.nickname || pl.name;
+                const mem = houseMembers.find((m) => `p_mem_${m.userId}` === id);
+                if (mem) return mem.nickname || mem.displayName;
+                return id;
+              });
+
+              return (
+                <div
+                  key={team.id}
+                  className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-5 interactive-card flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center text-[var(--accent)] font-bold text-xs font-mono">
+                          {team.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <h3 className="font-heading font-bold text-base text-[var(--text)]">{team.name}</h3>
                       </div>
-                      <h3 className="font-heading font-bold text-base text-[var(--text)]">{team.name}</h3>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTeam(team.id)}
+                        aria-label="Elimina squadra"
+                        className="touch-target p-1.5 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteTeam(team.id)}
-                      aria-label="Elimina squadra"
-                      className="touch-target p-1.5 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="mt-3.5 space-y-1.5">
-                    <span className="text-[11px] font-semibold text-[var(--text-subtle)] block">
-                      Formazione:
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {teamPlayers.length > 0 ? (
-                        teamPlayers.map((p) => (
-                          <span
-                            key={p.id}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--divider)]"
-                          >
-                            <SuitIcon suit={p.avatarSuit} className="w-3.5 h-3.5 text-[var(--accent)]" />
-                            <span>{p.name}</span>
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-xs text-[var(--text-muted)]">Nessun giocatore</span>
-                      )}
+                    <div className="mt-3.5 space-y-1.5">
+                      <span className="text-[11px] font-semibold text-[var(--text-subtle)] block">
+                        Formazione:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {teamPlayerLabels.length > 0 ? (
+                          teamPlayerLabels.map((name, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--divider)]"
+                            >
+                              <span>{name}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-[var(--text-muted)]">Nessun giocatore</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-4 pt-3 border-t border-[var(--divider)] text-[11px] text-[var(--text-subtle)]">
-                  {teamPlayers.length === 2 ? 'Squadra da 2 (Coppia standard)' : 'Giocatore singolo (1v1)'}
+                  <div className="mt-4 pt-3 border-t border-[var(--divider)] text-[11px] text-[var(--text-subtle)]">
+                    {team.playerIds.length === 2 ? 'Squadra da 2 (Coppia standard)' : 'Giocatore singolo (1v1)'}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* SEZIONE 2: GIOCATORI (PLAYERS) */}
+      {/* SEZIONE 3: GIOCATORI AMICI (ESTERNI ALLA CASA) */}
       <div className="space-y-4 pt-4 border-t border-[var(--divider)]">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <User className="w-5 h-5 text-[var(--accent)]" />
+            <UserPlus className="w-5 h-5 text-[var(--accent)]" />
             <h2 className="font-heading text-lg font-bold text-[var(--text)]">
-              Singoli Giocatori ({players.length})
+              Giocatori Amici ({friendPlayers.length})
             </h2>
           </div>
           <button
             type="button"
-            onClick={() => setShowPlayerModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+            onClick={() => setShowFriendModal(true)}
+            className="touch-target inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-[var(--accent)]" />
-            <span>Nuovo Giocatore</span>
+            <span>Nuovo Amico</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {players.map((player) => (
-            <div
-              key={player.id}
-              className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-3.5 flex items-center justify-between interactive-card group"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shrink-0 group-hover:border-[var(--accent)]/50 transition-colors">
-                  <SuitIcon suit={player.avatarSuit} className="w-4 h-4 text-[var(--accent)] icon-hover-tilt" />
-                </div>
-                <div className="min-w-0">
-                  <span className="font-semibold text-sm text-[var(--text)] block truncate">
-                    {player.name}
-                  </span>
-                  {player.nickname && (
-                    <span className="text-[11px] text-[var(--text-muted)] block truncate italic">
-                      &quot;{player.nickname}&quot;
-                    </span>
-                  )}
-                </div>
-              </div>
+        <p className="text-xs text-[var(--text-muted)]">
+          Amici e ospiti che giocano con noi ma non sono della casa. Compaiono qui automaticamente quando inserisci un loro nome nelle squadre dei tornei, oppure puoi aggiungerli a mano.
+        </p>
 
-              <button
-                type="button"
-                onClick={() => handleDeletePlayer(player.id)}
-                aria-label="Elimina giocatore"
-                className="touch-target p-1.5 rounded-md text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-raised)] transition-colors shrink-0 cursor-pointer ml-1"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
+        {friendPlayers.length === 0 ? (
+          <div className="bg-[var(--surface)] rounded-2xl border border-dashed border-[var(--control-border)] p-6 text-center">
+            <User className="w-8 h-8 text-[var(--text-subtle)] mx-auto mb-2 opacity-60" />
+            <p className="text-xs font-semibold text-[var(--text)]">
+              Nessun giocatore amico registrato per ora
+            </p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-1 max-w-sm mx-auto">
+              Quando inserisci il nome di un amico o ospite nelle squadre dei tornei, comparirà qui automaticamente!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {friendPlayers.map((player) => {
+              const effName = player.nickname || player.name;
+              const hasDiff = player.nickname && player.nickname !== player.name;
+
+              return (
+                <div
+                  key={player.id}
+                  className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-3.5 flex items-center justify-between interactive-card group"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shrink-0 group-hover:border-[var(--accent)]/50 transition-colors">
+                      <SuitIcon suit={player.avatarSuit} className="w-4 h-4 text-[var(--accent)] icon-hover-tilt" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="font-semibold text-sm text-[var(--text)] block truncate">
+                        {effName}
+                      </span>
+                      {hasDiff && (
+                        <span className="text-[10px] text-[var(--text-muted)] block truncate">
+                          {player.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteFriend(player.id)}
+                    aria-label={`Elimina amico ${effName}`}
+                    title={`Elimina amico ${effName}`}
+                    className="touch-target p-1.5 rounded-md text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-raised)] transition-colors shrink-0 cursor-pointer ml-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* MODAL AGGIUNGI GIOCATORE */}
-      {showPlayerModal && mounted && createPortal(
+      {/* MODAL 1: AGGIUNGI MEMBRO DELLA CASA */}
+      {showMemberModal && mounted && createPortal(
         <div
           className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in"
           style={{ overscrollBehavior: 'contain' }}
-          onClick={() => setShowPlayerModal(false)}
+          onClick={() => setShowMemberModal(false)}
           role="dialog"
           aria-modal="true"
         >
-          <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6">
+          <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6 modal-safe-container">
             <div
               className="relative z-10 w-full max-w-sm my-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Pinned Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)] bg-[var(--surface-raised)] shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)] shrink-0">
-                    <User className="w-4 h-4" />
+                    <Crown className="w-4 h-4" />
                   </div>
-                  <h3 className="font-heading font-bold text-base text-[var(--text)]">Nuovo Giocatore</h3>
+                  <div>
+                    <h3 className="font-heading font-bold text-base text-[var(--text)]">Aggiungi Membro Casa</h3>
+                    <p className="text-[11px] text-[var(--text-muted)]">Chi vive o gioca stabilmente in casa</p>
+                  </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowPlayerModal(false)}
+                  onClick={() => setShowMemberModal(false)}
                   className="touch-target p-2 text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
                   aria-label="Chiudi"
                 >
@@ -398,17 +581,103 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                 </button>
               </div>
 
-              {/* Scrollable Form Body */}
               <div className="p-5 overflow-y-auto space-y-4 flex-1 min-h-0">
-                <form onSubmit={handleSavePlayer} className="space-y-4">
+                <form onSubmit={handleSaveMember} className="space-y-4">
                   <div>
                     <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Nome:</label>
                     <input
                       type="text"
                       required
-                      placeholder="Es. Luca"
-                      value={playerName}
-                      onChange={(e) => setPlayerName(e.target.value)}
+                      placeholder="Es. Marco, Giulia..."
+                      value={newMemberName}
+                      onChange={(e) => setNewMemberName(e.target.value)}
+                      className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">
+                      Soprannome in casa (opzionale):
+                    </label>
+                    <p className="text-[11px] text-[var(--text-muted)] mb-1">
+                      Se impostato, comparirà solo questo nei suggerimenti per le partite.
+                    </p>
+                    <input
+                      type="text"
+                      placeholder="Es. Il Maestro, Teo..."
+                      value={newMemberNickname}
+                      onChange={(e) => setNewMemberNickname(e.target.value)}
+                      className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--divider)]">
+                    <button
+                      type="button"
+                      onClick={() => setShowMemberModal(false)}
+                      className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] cursor-pointer"
+                    >
+                      Annulla
+                    </button>
+                    <button
+                      type="submit"
+                      className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-bold text-xs btn-tactile cursor-pointer shadow-sm"
+                    >
+                      Salva Membro
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* MODAL 2: AGGIUNGI GIOCATORE AMICO */}
+      {showFriendModal && mounted && createPortal(
+        <div
+          className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in"
+          style={{ overscrollBehavior: 'contain' }}
+          onClick={() => setShowFriendModal(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6 modal-safe-container">
+            <div
+              className="relative z-10 w-full max-w-sm my-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)] bg-[var(--surface-raised)] shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)] shrink-0">
+                    <UserPlus className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-base text-[var(--text)]">Nuovo Giocatore Amico</h3>
+                    <p className="text-[11px] text-[var(--text-muted)]">Amici o ospiti che non sono della casa</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowFriendModal(false)}
+                  className="touch-target p-2 text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
+                  aria-label="Chiudi"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-5 overflow-y-auto space-y-4 flex-1 min-h-0">
+                <form onSubmit={handleSaveFriend} className="space-y-4">
+                  <div>
+                    <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Nome:</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Es. Luca, Zio Pino..."
+                      value={friendName}
+                      onChange={(e) => setFriendName(e.target.value)}
                       className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                     />
                   </div>
@@ -419,9 +688,9 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                     </label>
                     <input
                       type="text"
-                      placeholder="Es. Il Re delle Coppe"
-                      value={playerNickname}
-                      onChange={(e) => setPlayerNickname(e.target.value)}
+                      placeholder="Es. Il Cecchino..."
+                      value={friendNickname}
+                      onChange={(e) => setFriendNickname(e.target.value)}
                       className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
                     />
                   </div>
@@ -435,9 +704,9 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                         <button
                           key={s}
                           type="button"
-                          onClick={() => setPlayerSuit(s)}
+                          onClick={() => setFriendSuit(s)}
                           className={`min-h-[52px] p-2 rounded-xl flex flex-col items-center justify-center border btn-tactile cursor-pointer ${
-                            playerSuit === s
+                            friendSuit === s
                               ? 'bg-[var(--accent-muted)] border-[var(--accent)] text-[var(--accent-text)]'
                               : 'bg-[var(--surface-alt)] border-[var(--divider)] text-[var(--text-muted)] hover:text-[var(--text)]'
                           }`}
@@ -452,7 +721,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                   <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--divider)]">
                     <button
                       type="button"
-                      onClick={() => setShowPlayerModal(false)}
+                      onClick={() => setShowFriendModal(false)}
                       className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] cursor-pointer"
                     >
                       Annulla
@@ -461,7 +730,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                       type="submit"
                       className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-bold text-xs btn-tactile cursor-pointer shadow-sm"
                     >
-                      Salva Giocatore
+                      Salva Amico
                     </button>
                   </div>
                 </form>
@@ -472,7 +741,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
         document.body
       )}
 
-      {/* MODAL CREA SQUADRA */}
+      {/* MODAL 3: CREA SQUADRA */}
       {showTeamModal && mounted && createPortal(
         <div
           className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in"
@@ -481,12 +750,11 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
           role="dialog"
           aria-modal="true"
         >
-          <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6">
+          <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6 modal-safe-container">
             <div
               className="relative z-10 w-full max-w-md my-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Pinned Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)] bg-[var(--surface-raised)] shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)] shrink-0">
@@ -504,7 +772,6 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                 </button>
               </div>
 
-              {/* Scrollable Form Body */}
               <div className="p-5 overflow-y-auto space-y-4 flex-1 min-h-0">
                 <form onSubmit={handleSaveTeam} className="space-y-4">
                   <div>
@@ -530,11 +797,26 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                           className="w-full appearance-none bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl pl-3.5 pr-8 py-2.5 text-xs sm:text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] cursor-pointer truncate"
                         >
                           <option value="">Seleziona...</option>
-                          {selectablePlayers.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name}
-                            </option>
-                          ))}
+                          <optgroup label="Membri della Casa">
+                            {selectablePlayers
+                              .filter((p) => p.isMember)
+                              .map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                          </optgroup>
+                          {selectablePlayers.some((p) => !p.isMember) && (
+                            <optgroup label="Giocatori Amici">
+                              {selectablePlayers
+                                .filter((p) => !p.isMember)
+                                .map((p) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.name}
+                                  </option>
+                                ))}
+                            </optgroup>
+                          )}
                         </select>
                         <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
                       </div>
@@ -551,11 +833,26 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                           className="w-full appearance-none bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl pl-3.5 pr-8 py-2.5 text-xs sm:text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)] cursor-pointer truncate"
                         >
                           <option value="">Nessuno (1v1)</option>
-                          {selectablePlayers.map((p) => (
-                            <option key={p.id} value={p.id} disabled={p.id === selectedPlayer1}>
-                              {p.name}
-                            </option>
-                          ))}
+                          <optgroup label="Membri della Casa">
+                            {selectablePlayers
+                              .filter((p) => p.isMember)
+                              .map((p) => (
+                                <option key={p.id} value={p.id} disabled={p.id === selectedPlayer1}>
+                                  {p.name}
+                                </option>
+                              ))}
+                          </optgroup>
+                          {selectablePlayers.some((p) => !p.isMember) && (
+                            <optgroup label="Giocatori Amici">
+                              {selectablePlayers
+                                .filter((p) => !p.isMember)
+                                .map((p) => (
+                                  <option key={p.id} value={p.id} disabled={p.id === selectedPlayer1}>
+                                    {p.name}
+                                  </option>
+                                ))}
+                            </optgroup>
+                          )}
                         </select>
                         <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 shrink-0" />
                       </div>
@@ -583,6 +880,15 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
           </div>
         </div>,
         document.body
+      )}
+
+      {/* MODAL 4: CONDIVIDI CASA / QR */}
+      {showShareModal && activeHouse && (
+        <ShareHouseModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          house={activeHouse}
+        />
       )}
     </div>
   );

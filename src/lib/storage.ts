@@ -1,4 +1,4 @@
-import type { Player, Team, Match, TournamentSession, TournamentMode } from '@/types/game';
+import type { Player, Team, Match, TournamentSession, TournamentMode, CardSuit } from '@/types/game';
 import { RealtimeSyncService } from './realtimeSync.ts';
 import { HouseService, getHouseResourceKey } from './houseService.ts';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient.ts';
@@ -179,6 +179,45 @@ export const StorageService = {
     }
 
     this.broadcastStateChange();
+  },
+
+  registerFriendPlayerIfNew(name: string): Player | null {
+    const cleanName = (typeof name === 'string' ? name.trim() : '');
+    if (!cleanName) return null;
+
+    const houseId = HouseService.getActiveHouseId();
+    const members = houseId ? HouseService.getHouseMembers(houseId) : [];
+
+    // Se il nome appartiene già a un membro della casa, non serve aggiungerlo come amico esterno
+    const isMember = members.some(
+      (m) =>
+        m.displayName.toLowerCase() === cleanName.toLowerCase() ||
+        (m.nickname && m.nickname.toLowerCase() === cleanName.toLowerCase())
+    );
+    if (isMember) return null;
+
+    // Se è già presente tra i giocatori registrati della casa, restituiscilo
+    const players = this.getPlayers();
+    const existing = players.find(
+      (p) =>
+        p.name.toLowerCase() === cleanName.toLowerCase() ||
+        (p.nickname && p.nickname.toLowerCase() === cleanName.toLowerCase())
+    );
+    if (existing) return existing;
+
+    // Crea un nuovo giocatore amico
+    const suits: CardSuit[] = ['coppe', 'denari', 'spade', 'bastoni'];
+    const newFriend: Player = {
+      id: `p_friend_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      houseId: houseId || undefined,
+      name: cleanName,
+      avatarSuit: suits[players.length % suits.length],
+      createdAt: new Date().toISOString(),
+      isFriend: true,
+    };
+
+    this.savePlayer(newFriend);
+    return newFriend;
   },
 
   getTeams(): Team[] {
@@ -362,6 +401,19 @@ export const StorageService = {
     sessions.unshift(newSession);
     setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
 
+    // Registra automaticamente come giocatori amici eventuali partecipanti non della casa
+    const participantNames: string[] = [
+      ...(Array.isArray(team1Players) ? team1Players : [cleanT1]),
+      ...(Array.isArray(team2Players) ? team2Players : [cleanT2]),
+      ...(team3Players ? team3Players : (team3Name ? [team3Name] : [])),
+      ...(Array.isArray(players5Names) ? players5Names : []),
+    ];
+    for (const pName of participantNames) {
+      if (typeof pName === 'string' && pName.trim()) {
+        this.registerFriendPlayerIfNew(pName.trim());
+      }
+    }
+
     if (isSupabaseConfigured()) {
       const client = getSupabaseClient();
       client?.from('tournament_sessions').upsert({
@@ -498,20 +550,27 @@ export const StorageService = {
       if (isThreeWay) {
         if (w1 > w2 && w1 > w3) {
           session.winnerTeam = 1;
+          session.winnerPlayerName = session.team1Name;
         } else if (w2 > w1 && w2 > w3) {
           session.winnerTeam = 2;
+          session.winnerPlayerName = session.team2Name;
         } else if (w3 > w1 && w3 > w2) {
           session.winnerTeam = 3;
+          session.winnerPlayerName = session.team3Name || 'Giocatore 3';
         } else {
           session.winnerTeam = 'pareggio';
+          session.winnerPlayerName = 'Pareggio';
         }
       } else {
         if (w1 > w2) {
           session.winnerTeam = 1;
+          session.winnerPlayerName = session.team1Name;
         } else if (w2 > w1) {
           session.winnerTeam = 2;
+          session.winnerPlayerName = session.team2Name;
         } else {
           session.winnerTeam = 'pareggio';
+          session.winnerPlayerName = 'Pareggio';
         }
       }
     }

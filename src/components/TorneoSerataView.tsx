@@ -131,10 +131,8 @@ export function TorneoSerataView({
     void suggestionVersion;
     const activeHouseId = HouseService.getActiveHouseId();
     if (!activeHouseId) return [];
-    const fromHouse = HouseService.getSuggestedPlayerNames(activeHouseId);
-    const fromProps = players.map((p) => p.nickname || p.name).filter(Boolean);
-    return Array.from(new Set([...fromHouse, ...fromProps]));
-  }, [players, suggestionVersion]);
+    return HouseService.getSuggestedPlayerNames(activeHouseId);
+  }, [suggestionVersion]);
 
   const handleShareLink = () => {
     if (typeof window === 'undefined') return;
@@ -464,50 +462,6 @@ export function TorneoSerataView({
                   const isLeader = maxWins > 0 && player.wins === maxWins;
                   const bumpState = [bumpTeam1, bumpTeam2, bumpTeam3, bumpTeam4, bumpTeam5][idx];
                   const setBump = [setBumpTeam1, setBumpTeam2, setBumpTeam3, setBumpTeam4, setBumpTeam5][idx];
-                  const bumpClass = [
-                    'animate-score-bump',
-                    'animate-score-bump-sky',
-                    'animate-score-bump-emerald',
-                    'animate-score-bump-purple',
-                    'animate-score-bump-rose',
-                  ][idx];
-                  const accentStyles = [
-                    {
-                      text: 'text-[var(--accent)]',
-                      border: 'border-[var(--accent)]',
-                      ring: 'ring-[var(--accent)]/30',
-                      btnBorder: 'hover:border-amber-500/40',
-                      leaderBg: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-                    },
-                    {
-                      text: 'text-sky-400',
-                      border: 'border-sky-400',
-                      ring: 'ring-sky-400/30',
-                      btnBorder: 'hover:border-sky-500/40',
-                      leaderBg: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
-                    },
-                    {
-                      text: 'text-emerald-400',
-                      border: 'border-emerald-400',
-                      ring: 'ring-emerald-400/30',
-                      btnBorder: 'hover:border-emerald-500/40',
-                      leaderBg: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-                    },
-                    {
-                      text: 'text-purple-400',
-                      border: 'border-purple-400',
-                      ring: 'ring-purple-400/30',
-                      btnBorder: 'hover:border-purple-500/40',
-                      leaderBg: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
-                    },
-                    {
-                      text: 'text-rose-400',
-                      border: 'border-rose-400',
-                      ring: 'ring-rose-400/30',
-                      btnBorder: 'hover:border-rose-500/40',
-                      leaderBg: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-                    },
-                  ][idx];
 
                   return (
                     <div
@@ -516,7 +470,7 @@ export function TorneoSerataView({
                         idx === 4 ? 'col-span-2 sm:col-span-1' : ''
                       } ${
                         isLeader
-                          ? `bg-[var(--surface)] border ${accentStyles.border} shadow-md shadow-black/40 ring-1 ${accentStyles.ring}`
+                          ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-xl shadow-amber-500/10 ring-1 ring-[var(--accent)]/40'
                           : 'bg-[var(--surface)] border border-[var(--divider)]'
                       }`}
                     >
@@ -526,12 +480,13 @@ export function TorneoSerataView({
                             #{idx + 1}
                           </span>
                           {isLeader && (
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${accentStyles.leaderBg}`}>
-                              <span>Leader</span> 🏆
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/15 text-amber-300 border-amber-500/30">
+                              <Trophy className="w-3 h-3 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                              <span>In testa</span>
                             </span>
                           )}
                         </div>
-                        <h2 className="font-heading text-lg sm:text-xl lg:text-2xl font-extrabold text-[var(--text)] tracking-tight truncate">
+                        <h2 className={`font-heading text-lg sm:text-xl lg:text-2xl font-extrabold tracking-tight truncate ${isLeader ? 'text-[var(--accent)]' : 'text-[var(--text)]'}`}>
                           {player.name}
                         </h2>
                       </div>
@@ -539,9 +494,9 @@ export function TorneoSerataView({
                       {/* Numero Vittorie Gigante */}
                       <div className="my-3 sm:my-5">
                         <span
-                          className={`text-5xl sm:text-6xl lg:text-7xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block ${
-                            bumpState ? bumpClass : ''
-                          }`}
+                          className={`text-5xl sm:text-6xl lg:text-7xl font-black font-mono tabular-nums tracking-tight select-none block ${
+                            isLeader ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                          } ${bumpState ? 'animate-score-bump' : ''}`}
                           onAnimationEnd={() => setBump(false)}
                         >
                           {player.wins}
@@ -556,9 +511,9 @@ export function TorneoSerataView({
                         <button
                           type="button"
                           onClick={() => handleAddWin(idx + 1)}
-                          className={`w-full py-3 sm:py-3.5 px-2 sm:px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] ${accentStyles.btnBorder} text-[var(--text)] font-extrabold text-xs sm:text-sm lg:text-base btn-tactile cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 group min-h-[48px]`}
+                          className="w-full py-3 sm:py-3.5 px-2 sm:px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-amber-500/40 text-[var(--text)] font-extrabold text-xs sm:text-sm lg:text-base btn-tactile cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 group min-h-[48px]"
                         >
-                          <Plus className={`w-4 h-4 stroke-[3] ${accentStyles.text} transition-transform duration-200 group-hover:rotate-90 shrink-0`} />
+                          <Plus className="w-4 h-4 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
                           <span className="truncate max-w-[140px] sm:max-w-[180px]">+1 {player.name}</span>
                         </button>
 
@@ -630,15 +585,21 @@ export function TorneoSerataView({
             <div
               className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-[border-color,box-shadow] duration-200 ${
                 isT1Leading
-                  ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-md shadow-amber-500/10 ring-1 ring-[var(--accent)]/30'
+                  ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-xl shadow-amber-500/10 ring-1 ring-[var(--accent)]/40'
                   : 'bg-[var(--surface)] border border-[var(--divider)]'
               }`}
             >
+              {isT1Leading && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--accent-border)] text-xs font-bold text-[var(--accent-text)] shadow-md">
+                  <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                  <span>In testa</span>
+                </div>
+              )}
               <div>
                 <span className="text-xs font-medium text-[var(--text-muted)] block mb-1">
                   {(activeSession.mode ?? '2vs2') === '2vs2' ? 'Squadra 1' : 'Giocatore 1'}
                 </span>
-                <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
+                <h2 className={`font-heading text-2xl sm:text-3xl font-extrabold tracking-tight ${isT1Leading ? 'text-[var(--accent)]' : 'text-[var(--text)]'}`}>
                   {activeSession.team1Name}
                 </h2>
                 {activeSession.team1Players && activeSession.team1Players.length > 0 && (activeSession.mode ?? '2vs2') === '2vs2' && (
@@ -651,9 +612,9 @@ export function TorneoSerataView({
               {/* Numero Vittorie Gigante */}
               <div className="my-6">
                 <span
-                  className={`text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block ${
-                    bumpTeam1 ? 'animate-score-bump' : ''
-                  }`}
+                  className={`text-7xl sm:text-8xl font-black font-mono tabular-nums tracking-tight select-none block ${
+                    isT1Leading ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                  } ${bumpTeam1 ? 'animate-score-bump' : ''}`}
                   onAnimationEnd={() => setBumpTeam1(false)}
                 >
                   {activeSession.team1Wins}
@@ -691,15 +652,21 @@ export function TorneoSerataView({
             <div
               className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-[border-color,box-shadow] duration-200 ${
                 isT2Leading
-                  ? 'bg-[var(--surface)] border border-sky-400 shadow-md shadow-sky-500/10 ring-1 ring-sky-400/30'
+                  ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-xl shadow-amber-500/10 ring-1 ring-[var(--accent)]/40'
                   : 'bg-[var(--surface)] border border-[var(--divider)]'
               }`}
             >
+              {isT2Leading && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--accent-border)] text-xs font-bold text-[var(--accent-text)] shadow-md">
+                  <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                  <span>In testa</span>
+                </div>
+              )}
               <div>
                 <span className="text-xs font-medium text-[var(--text-muted)] block mb-1">
                   {(activeSession.mode ?? '2vs2') === '2vs2' ? 'Squadra 2' : 'Giocatore 2'}
                 </span>
-                <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
+                <h2 className={`font-heading text-2xl sm:text-3xl font-extrabold tracking-tight ${isT2Leading ? 'text-[var(--accent)]' : 'text-[var(--text)]'}`}>
                   {activeSession.team2Name}
                 </h2>
                 {activeSession.team2Players && activeSession.team2Players.length > 0 && (activeSession.mode ?? '2vs2') === '2vs2' && (
@@ -712,9 +679,9 @@ export function TorneoSerataView({
               {/* Numero Vittorie Gigante */}
               <div className="my-6">
                 <span
-                  className={`text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block ${
-                    bumpTeam2 ? 'animate-score-bump-sky' : ''
-                  }`}
+                  className={`text-7xl sm:text-8xl font-black font-mono tabular-nums tracking-tight select-none block ${
+                    isT2Leading ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                  } ${bumpTeam2 ? 'animate-score-bump' : ''}`}
                   onAnimationEnd={() => setBumpTeam2(false)}
                 >
                   {activeSession.team2Wins}
@@ -729,9 +696,9 @@ export function TorneoSerataView({
                 <button
                   type="button"
                   onClick={() => handleAddWin(2)}
-                  className="w-full py-4 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-sky-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[52px]"
+                  className="w-full py-4 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-amber-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[52px]"
                 >
-                  <Plus className="w-5 h-5 stroke-[3] text-sky-400 transition-transform duration-200 group-hover:rotate-90 shrink-0" />
+                  <Plus className="w-5 h-5 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
                   <span className="truncate max-w-[240px]">+1 {activeSession.team2Name}</span>
                 </button>
 
@@ -753,15 +720,21 @@ export function TorneoSerataView({
               <div
                 className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-[border-color,box-shadow] duration-200 ${
                   isT3Leading
-                    ? 'bg-[var(--surface)] border border-emerald-400 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-400/30'
+                    ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-xl shadow-amber-500/10 ring-1 ring-[var(--accent)]/40'
                     : 'bg-[var(--surface)] border border-[var(--divider)]'
                 }`}
               >
+                {isT3Leading && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--accent-border)] text-xs font-bold text-[var(--accent-text)] shadow-md">
+                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                    <span>In testa</span>
+                  </div>
+                )}
                 <div>
                   <span className="text-xs font-medium text-[var(--text-muted)] block mb-1">
                     Giocatore 3
                   </span>
-                  <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
+                  <h2 className={`font-heading text-2xl sm:text-3xl font-extrabold tracking-tight ${isT3Leading ? 'text-[var(--accent)]' : 'text-[var(--text)]'}`}>
                     {activeSession.team3Name || 'Giocatore 3'}
                   </h2>
                 </div>
@@ -769,9 +742,9 @@ export function TorneoSerataView({
                 {/* Numero Vittorie Gigante */}
                 <div className="my-6">
                   <span
-                    className={`text-7xl sm:text-8xl font-black text-[var(--text)] font-mono tabular-nums tracking-tight select-none block ${
-                      bumpTeam3 ? 'animate-score-bump-emerald' : ''
-                    }`}
+                    className={`text-7xl sm:text-8xl font-black font-mono tabular-nums tracking-tight select-none block ${
+                      isT3Leading ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                    } ${bumpTeam3 ? 'animate-score-bump' : ''}`}
                     onAnimationEnd={() => setBumpTeam3(false)}
                   >
                     {activeSession.team3Wins || 0}
@@ -786,9 +759,9 @@ export function TorneoSerataView({
                   <button
                     type="button"
                     onClick={() => handleAddWin(3)}
-                    className="w-full py-4 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-emerald-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[52px]"
+                    className="w-full py-4 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-amber-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[52px]"
                   >
-                    <Plus className="w-5 h-5 stroke-[3] text-emerald-400 transition-transform duration-200 group-hover:rotate-90 shrink-0" />
+                    <Plus className="w-5 h-5 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
                     <span className="truncate max-w-[240px]">+1 {activeSession.team3Name || 'Giocatore 3'}</span>
                   </button>
 
@@ -1032,8 +1005,11 @@ export function TorneoSerataView({
                           if (e.key === 'Enter') {
                             e.preventDefault();
                             if (customPlayerInput1.trim()) {
-                              togglePlayer1(customPlayerInput1.trim());
+                              const name = customPlayerInput1.trim();
+                              StorageService.registerFriendPlayerIfNew(name);
+                              togglePlayer1(name);
                               setCustomPlayerInput1('');
+                              onDataUpdated();
                             }
                           }
                         }}
@@ -1043,8 +1019,11 @@ export function TorneoSerataView({
                         type="button"
                         onClick={() => {
                           if (customPlayerInput1.trim()) {
-                            togglePlayer1(customPlayerInput1.trim());
+                            const name = customPlayerInput1.trim();
+                            StorageService.registerFriendPlayerIfNew(name);
+                            togglePlayer1(name);
                             setCustomPlayerInput1('');
+                            onDataUpdated();
                           }
                         }}
                         className="px-3 py-1.5 bg-[var(--surface-alt)] border border-[var(--control-border)] text-[var(--text)] rounded-lg text-xs hover:bg-[var(--surface-hover)] btn-tactile cursor-pointer"
@@ -1151,8 +1130,11 @@ export function TorneoSerataView({
                           if (e.key === 'Enter') {
                             e.preventDefault();
                             if (customPlayerInput2.trim()) {
-                              togglePlayer2(customPlayerInput2.trim());
+                              const name = customPlayerInput2.trim();
+                              StorageService.registerFriendPlayerIfNew(name);
+                              togglePlayer2(name);
                               setCustomPlayerInput2('');
+                              onDataUpdated();
                             }
                           }
                         }}
@@ -1162,8 +1144,11 @@ export function TorneoSerataView({
                         type="button"
                         onClick={() => {
                           if (customPlayerInput2.trim()) {
-                            togglePlayer2(customPlayerInput2.trim());
+                            const name = customPlayerInput2.trim();
+                            StorageService.registerFriendPlayerIfNew(name);
+                            togglePlayer2(name);
                             setCustomPlayerInput2('');
+                            onDataUpdated();
                           }
                         }}
                         className="px-3 py-1.5 bg-[var(--surface-alt)] border border-[var(--control-border)] text-[var(--text)] rounded-lg text-xs hover:bg-[var(--surface-hover)] btn-tactile cursor-pointer"
@@ -1632,20 +1617,51 @@ export function TorneoSerataView({
             {pastSessions.map((session) => {
               const isA5 = session.mode === 'a5' && !!session.players5;
               const isThree = !isA5 && (session.mode === '1vs1vs1' || !!session.team3Name);
-              const isT1Winner = session.winnerTeam === 1;
-              const isT2Winner = session.winnerTeam === 2;
-              const isT3Winner = session.winnerTeam === 3;
+              const isT1Winner =
+                Number(session.winnerTeam) === 1 ||
+                session.winnerTeam === '1' ||
+                (!session.winnerTeam && session.team1Wins > session.team2Wins && (!isThree || session.team1Wins > (session.team3Wins || 0)));
+              const isT2Winner =
+                Number(session.winnerTeam) === 2 ||
+                session.winnerTeam === '2' ||
+                (!session.winnerTeam && session.team2Wins > session.team1Wins && (!isThree || session.team2Wins > (session.team3Wins || 0)));
+              const isT3Winner =
+                Number(session.winnerTeam) === 3 ||
+                session.winnerTeam === '3' ||
+                (!session.winnerTeam && isThree && (session.team3Wins || 0) > session.team1Wins && (session.team3Wins || 0) > session.team2Wins);
+
+              let winnerLabel = '';
+              if (
+                session.winnerPlayerName &&
+                session.winnerPlayerName !== 'Pareggio' &&
+                session.winnerPlayerName !== 'Nessuno (0 vittorie)'
+              ) {
+                winnerLabel = session.winnerPlayerName;
+              } else if (isA5 && session.players5 && session.players5.length > 0) {
+                const maxWins = Math.max(...session.players5.map((p) => p.wins || 0));
+                if (maxWins > 0) {
+                  const winners = session.players5.filter((p) => (p.wins || 0) === maxWins);
+                  winnerLabel = winners.map((p) => p.name).join(' & ');
+                }
+              } else if (isThree) {
+                if (isT1Winner) winnerLabel = session.team1Name;
+                else if (isT2Winner) winnerLabel = session.team2Name;
+                else if (isT3Winner) winnerLabel = session.team3Name || 'Giocatore 3';
+              } else {
+                if (isT1Winner) winnerLabel = session.team1Name;
+                else if (isT2Winner) winnerLabel = session.team2Name;
+              }
 
               return (
                 <div
                   key={session.id}
                   className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 interactive-card space-y-3"
                 >
-                  <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-medium">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-medium gap-2">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
                       <span className="font-mono tabular-nums">{session.dateKey}</span>
                       <span>•</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-bold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-raised)] text-[var(--text-muted)] border border-[var(--control-border)] font-bold">
                         {session.mode === 'a5'
                           ? 'A 5 (Chiamata)'
                           : session.mode === '1vs1vs1'
@@ -1654,6 +1670,12 @@ export function TorneoSerataView({
                           ? '1 vs 1'
                           : '2 vs 2'}
                       </span>
+                      {winnerLabel && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--accent-text)] bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full shadow-sm">
+                          <Trophy className="w-3 h-3 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                          <span className="truncate max-w-[130px] sm:max-w-[180px]">Vinto da {winnerLabel}</span>
+                        </span>
+                      )}
                     </div>
 
                     <button
@@ -1669,9 +1691,10 @@ export function TorneoSerataView({
                   {isA5 && session.players5 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-0.5">
                       {session.players5.map((p, idx) => {
+                        const maxWins = Math.max(...session.players5!.map((x) => x.wins || 0));
                         const isWinner = session.winnerPlayerName
                           ? session.winnerPlayerName.split(' & ').includes(p.name)
-                          : (typeof session.winnerTeam === 'number' && session.winnerTeam === idx + 1);
+                          : (Number(session.winnerTeam) === idx + 1 || (maxWins > 0 && p.wins === maxWins));
                         return (
                           <div
                             key={p.name + idx}
@@ -1793,48 +1816,80 @@ export function TorneoSerataView({
                       </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 pt-1">
-                      {/* Team 1 (Left) */}
-                      <div className="text-left min-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          {isT1Winner && (
-                            <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 pt-1">
+                      {/* Team 1 (Left Box) */}
+                      <div
+                        className={`p-3 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
+                          isT1Winner
+                            ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                            : 'bg-[var(--surface-raised)] border-[var(--divider)]'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {isT1Winner && (
+                              <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                            )}
+                            <span
+                              className={`text-xs sm:text-sm font-bold truncate ${
+                                isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                              }`}
+                            >
+                              {session.team1Name}
+                            </span>
+                          </div>
+                          {session.team1Players && session.team1Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
+                            <span className="text-[11px] text-[var(--text-muted)] truncate block mt-0.5">
+                              {session.team1Players.join(' & ')}
+                            </span>
                           )}
-                          <span
-                            className={`text-sm sm:text-base font-bold truncate ${
-                              isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
-                            }`}
-                          >
-                            {session.team1Name}
-                          </span>
                         </div>
-                      </div>
-
-                      {/* Punteggio Scoreboard (Center) */}
-                      <div className="px-3.5 py-1.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-base sm:text-lg font-mono font-black tabular-nums shadow-inner shrink-0">
-                        <span className={isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'}>
+                        <span
+                          className={`text-lg sm:text-xl font-mono font-black tabular-nums shrink-0 ${
+                            isT1Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
+                          }`}
+                        >
                           {session.team1Wins}
                         </span>
-                        <span className="text-[var(--text-subtle)] mx-1.5">-</span>
-                        <span className={isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'}>
-                          {session.team2Wins}
-                        </span>
                       </div>
 
-                      {/* Team 2 (Right) */}
-                      <div className="text-right min-w-0">
-                        <div className="flex items-center justify-end gap-1.5 min-w-0">
-                          <span
-                            className={`text-sm sm:text-base font-bold truncate ${
-                              isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
-                            }`}
-                          >
-                            {session.team2Name}
-                          </span>
-                          {isT2Winner && (
-                            <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                      {/* VS Divider */}
+                      <span className="text-xs font-mono font-bold text-[var(--text-subtle)] px-1 shrink-0">VS</span>
+
+                      {/* Team 2 (Right Box) */}
+                      <div
+                        className={`p-3 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
+                          isT2Winner
+                            ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                            : 'bg-[var(--surface-raised)] border-[var(--divider)]'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {isT2Winner && (
+                              <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                            )}
+                            <span
+                              className={`text-xs sm:text-sm font-bold truncate ${
+                                isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                              }`}
+                            >
+                              {session.team2Name}
+                            </span>
+                          </div>
+                          {session.team2Players && session.team2Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
+                            <span className="text-[11px] text-[var(--text-muted)] truncate block mt-0.5">
+                              {session.team2Players.join(' & ')}
+                            </span>
                           )}
                         </div>
+                        <span
+                          className={`text-lg sm:text-xl font-mono font-black tabular-nums shrink-0 ${
+                            isT2Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
+                          }`}
+                        >
+                          {session.team2Wins}
+                        </span>
                       </div>
                     </div>
                   )}

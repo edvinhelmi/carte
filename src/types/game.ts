@@ -9,6 +9,7 @@ export interface Player {
   nickname?: string;
   avatarSuit: CardSuit;
   createdAt: string;
+  isFriend?: boolean;
 }
 
 export interface Team {

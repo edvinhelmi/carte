@@ -44,10 +44,10 @@ export function Header({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-[var(--canvas)]/90 backdrop-blur-xl border-b border-[var(--divider)] px-3.5 sm:px-6 lg:px-8 py-2.5 sm:py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
-        {/* Brand / Logo & House Switcher */}
-        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+    <header className="sticky top-0 z-40 bg-[var(--canvas)]/90 backdrop-blur-xl border-b border-[var(--divider)] px-3.5 sm:px-6 lg:px-8 header-safe pb-2.5 sm:pb-3">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-4">
+        {/* Brand / Logo (and desktop HouseSwitcher) */}
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 md:min-w-0">
           <button
             type="button"
             onClick={() => setActiveTab('torneo')}
@@ -67,9 +67,20 @@ export function Header({
             </span>
           </button>
 
-          {/* Selettore Casa Attiva (visibile solo quando si è dentro una casa) */}
-          {hasActiveHouse && <HouseSwitcher />}
+          {/* Selettore Casa per Desktop */}
+          {hasActiveHouse && (
+            <div className="hidden md:block">
+              <HouseSwitcher />
+            </div>
+          )}
         </div>
+
+        {/* Selettore Casa Mobile Centrato e più grande */}
+        {hasActiveHouse && (
+          <div className="flex-1 flex justify-center items-center min-w-0 px-1 md:hidden">
+            <HouseSwitcher />
+          </div>
+        )}
 
         {/* Desktop Navigation (visibile solo se c'è una casa attiva) */}
         {hasActiveHouse && (
@@ -111,10 +122,10 @@ export function Header({
               onClick={onOpenQuickMatch}
               aria-label="Registra vittoria rapida"
               title="Registra vittoria rapida"
-              className="touch-target group inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] hover:shadow-[0_2px_12px_rgba(245,158,11,0.12)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer min-h-[44px] min-w-[44px]"
+              className="hidden sm:inline-flex touch-target group items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] hover:shadow-[0_2px_12px_rgba(245,158,11,0.12)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer min-h-[44px] min-w-[44px]"
             >
               <Plus className="w-4 h-4 text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
-              <span className="hidden sm:inline">Vittoria</span>
+              <span>Vittoria</span>
             </button>
           )}
 

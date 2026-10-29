@@ -73,19 +73,19 @@ export function HouseSwitcher() {
 
   return (
     <>
-      <div className="relative inline-block" ref={menuRef}>
+      <div className="relative inline-block max-w-full" ref={menuRef}>
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
-          className="touch-target inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--accent)]/40 text-[var(--text)] transition-colors cursor-pointer group select-none max-w-[105px] min-[360px]:max-w-[125px] min-[400px]:max-w-[160px] sm:max-w-[240px] min-h-[44px]"
+          className="touch-target inline-flex items-center justify-center gap-2 px-3 py-2 sm:px-3 sm:py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--accent)]/40 text-[var(--text)] transition-colors cursor-pointer group select-none max-w-[200px] min-[375px]:max-w-[230px] min-[410px]:max-w-[270px] sm:max-w-[240px] min-h-[44px]"
           aria-haspopup="true"
           aria-expanded={isOpen}
           title={activeHouse ? `Casa attiva: ${activeHouse.name}` : 'Nessuna casa attiva'}
         >
-          <Home className={`w-3.5 h-3.5 ${activeHouse ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} shrink-0`} />
-          <span className="text-xs font-bold truncate tracking-tight">{houseName}</span>
+          <Home className={`w-4 h-4 sm:w-3.5 sm:h-3.5 ${activeHouse ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} shrink-0`} />
+          <span className="text-sm sm:text-xs font-bold truncate tracking-tight">{houseName}</span>
           <ChevronDown
-            className={`w-3 h-3 text-[var(--text-muted)] shrink-0 transition-transform duration-200 ${
+            className={`w-3.5 h-3.5 sm:w-3 sm:h-3 text-[var(--text-muted)] shrink-0 transition-transform duration-200 ${
               isOpen ? 'rotate-180 text-[var(--accent)]' : ''
             }`}
           />
@@ -178,7 +178,7 @@ export function HouseSwitcher() {
           onClick={() => setIsOpen(false)}
         >
           <div
-            className="fixed left-3 right-3 top-16 max-w-sm mx-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 p-2 z-[91] animate-scale-in"
+            className="fixed left-3 right-3 top-[calc(env(safe-area-inset-top,0px)+3.75rem)] max-w-sm mx-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 p-2 z-[91] animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Intestazione */}

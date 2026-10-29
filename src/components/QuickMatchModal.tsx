@@ -105,7 +105,7 @@ export function QuickMatchModal({
       aria-modal="true"
       aria-labelledby="quick-match-title"
     >
-      <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6">
+      <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6 modal-safe-container">
         <div
           className="relative z-10 w-full max-w-lg my-auto rounded-2xl bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
           onClick={(e) => e.stopPropagation()}
@@ -238,12 +238,12 @@ export function QuickMatchModal({
                   type="button"
                   onClick={() => handleRegisterWin(team2?.id || '')}
                   disabled={!team2 || team1?.id === team2.id}
-                  className="group relative flex flex-col items-center justify-center p-4 rounded-xl border border-[var(--control-border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] hover:border-sky-400 hover:shadow-[0_0_16px_rgba(56,189,248,0.2)] btn-tactile text-center cursor-pointer shadow-sm"
+                  className="group relative flex flex-col items-center justify-center p-4 rounded-xl border border-[var(--accent-border)] bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] hover:border-[var(--accent)] hover:shadow-[0_0_16px_rgba(245,158,11,0.2)] btn-tactile text-center cursor-pointer shadow-sm"
                 >
-                  <div className="w-10 h-10 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/25 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:-rotate-6 transition-transform">
-                    <Trophy className="w-5 h-5 text-sky-400" />
+                  <div className="w-10 h-10 rounded-full bg-[var(--accent-muted)] text-[var(--accent)] border border-[var(--accent-border)] flex items-center justify-center mb-2 group-hover:scale-110 group-hover:-rotate-6 transition-transform">
+                    <Trophy className="w-5 h-5 text-[var(--accent)]" />
                   </div>
-                  <span className="text-xs text-sky-300 font-semibold mb-0.5">
+                  <span className="text-xs text-[var(--accent-text)] font-semibold mb-0.5">
                     Ha vinto
                   </span>
                   <span className="font-heading text-base font-extrabold text-[var(--text)] line-clamp-1">

@@ -133,9 +133,23 @@ h1, h2, h3, .font-heading {
   height: 100%;
 }
 
-/* Mobile Safe Area for Bottom Navigation */
+/* Mobile Safe Area for Navigation & Modals */
+.header-safe {
+  padding-top: calc(max(env(safe-area-inset-top, 0px), 0px) + 0.625rem);
+}
+@media (min-width: 640px) {
+  .header-safe {
+    padding-top: calc(max(env(safe-area-inset-top, 0px), 0px) + 0.75rem);
+  }
+}
+
 .bottom-nav-safe {
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
+
+.modal-safe-container {
+  padding-top: max(env(safe-area-inset-top, 0px), 0.875rem);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.875rem);
 }
 
 /* Custom Select Standard Reset */

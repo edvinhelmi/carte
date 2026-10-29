@@ -42,9 +42,9 @@ describe('HouseService & Multi-Casa Storage System', () => {
       ['Luca', 'Sara', 'Matteo']
     );
 
-    // Verify creator was registered as owner member
+    // Verify creator was registered as owner member along with initial house members
     const members = HouseService.getHouseMembers(newHouse.id);
-    assert.equal(members.length, 1);
+    assert.equal(members.length, 4);
     assert.equal(members[0].role, 'owner');
   });
 
@@ -226,7 +226,7 @@ describe('HouseService & Multi-Casa Storage System', () => {
 
     const updatedSuggestions = HouseService.getSuggestedPlayerNames(house.id);
     assert.ok(updatedSuggestions.includes('Il Mago'));
-    assert.ok(updatedSuggestions.includes('Bob'));
+    assert.ok(!updatedSuggestions.includes('Bob')); // Mostra solo il nickname, non il nome
   });
 
   it('attributes tournament wins correctly when player plays under a house nickname', () => {
@@ -304,5 +304,56 @@ describe('HouseService & Multi-Casa Storage System', () => {
     assert.equal(players.length, 2);
     assert.equal(players[0].name, 'Ale');
     assert.equal(players[1].name, 'Sara');
+  });
+
+  it('automatically registers external friend players when entered into tournament and suggests only nicknames', () => {
+    const house = HouseService.createHouse('Casa Amici', ['Davide']);
+
+    // House member with custom nickname
+    HouseService.saveHouseMember({
+      houseId: house.id,
+      userId: 'user_luca',
+      displayName: 'Gianluca Bianchi',
+      nickname: 'Il Maestro',
+      role: 'member',
+      joinedAt: new Date().toISOString(),
+    });
+
+    // Start a tournament with an external friend "Zio Pino"
+    StorageService.startTournamentSession(
+      'Squadra 1',
+      ['Il Maestro'],
+      'Squadra 2',
+      ['Zio Pino'],
+      '2vs2'
+    );
+
+    // "Zio Pino" should be automatically registered as friend player
+    const players = StorageService.getPlayers();
+    const zioPino = players.find((p) => p.name === 'Zio Pino');
+    assert.ok(zioPino);
+    assert.equal(zioPino.isFriend, true);
+
+    // Suggestions check: ONLY nickname for Gianluca ("Il Maestro", NOT "Gianluca Bianchi")
+    const suggestions = HouseService.getSuggestedPlayerNames(house.id);
+    assert.ok(suggestions.includes('Il Maestro'));
+    assert.ok(!suggestions.includes('Gianluca Bianchi'));
+    assert.ok(suggestions.includes('Zio Pino'));
+  });
+
+  it('allows deleting house members safely', () => {
+    const house = HouseService.createHouse('Casa Collina', []);
+    HouseService.saveHouseMember({
+      houseId: house.id,
+      userId: 'temp_user',
+      displayName: 'Ospite Provvisorio',
+      nickname: 'Ospite',
+      role: 'member',
+      joinedAt: new Date().toISOString(),
+    });
+
+    assert.ok(HouseService.getHouseMembers(house.id).some((m) => m.userId === 'temp_user'));
+    HouseService.deleteHouseMember(house.id, 'temp_user');
+    assert.ok(!HouseService.getHouseMembers(house.id).some((m) => m.userId === 'temp_user'));
   });
 });

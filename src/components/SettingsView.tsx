@@ -13,6 +13,9 @@ import {
   QrCode,
   Cloud,
   Globe,
+  ShieldCheck,
+  Cookie,
+  FileText,
 } from 'lucide-react';
 import { StorageService } from '@/lib/storage';
 import { RealtimeSyncService } from '@/lib/realtimeSync';
@@ -22,9 +25,10 @@ import { ShareHouseModal } from './ShareHouseModal';
 
 interface SettingsViewProps {
   onDataUpdated: () => void;
+  onOpenLegal?: (tab: 'privacy' | 'cookie' | 'terms') => void;
 }
 
-export function SettingsView({ onDataUpdated }: SettingsViewProps) {
+export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeHouse, setActiveHouse] = useState(() => HouseService.getActiveHouse());
   const [showShareModal, setShowShareModal] = useState(false);
@@ -385,6 +389,69 @@ export function SettingsView({ onDataUpdated }: SettingsViewProps) {
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Azzera Tutti i Dati</span>
+          </button>
+        </div>
+      </div>
+
+      {/* SEZIONE 6: PRIVACY, COOKIE & NOTE LEGALI */}
+      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-[var(--accent)]" />
+            <span>Privacy, Cookie &amp; Note Legali</span>
+          </h2>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            Conforme GDPR (UE 2016/679)
+          </span>
+        </div>
+
+        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+          Briscola Club rispetta la tua privacy e tutela i tuoi dati personali. Utilizziamo esclusivamente cookie e memoria locale strettamente tecnici per il segnapunti e la sincronizzazione. Nessun dato viene venduto o ceduto per finalità di marketing o profilazione.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-2.5 pt-1">
+          <button
+            type="button"
+            onClick={() => onOpenLegal?.('privacy')}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent)]" />
+            <span>Informativa Privacy</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onOpenLegal?.('cookie')}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+          >
+            <Cookie className="w-3.5 h-3.5 text-[var(--accent)]" />
+            <span>Cookie &amp; Storage</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onOpenLegal?.('terms')}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+          >
+            <FileText className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+            <span>Termini di Servizio</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                localStorage.removeItem('carte_cookie_consent');
+                window.dispatchEvent(new Event('carte_cookie_consent_change'));
+                alert('Preferenze cookie reimpostate. Il banner comparirà nuovamente.');
+              } catch {
+                // ignore
+              }
+            }}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text-subtle)] hover:text-[var(--text)] btn-tactile cursor-pointer sm:ml-auto"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Rivedi Consenso Cookie</span>
           </button>
         </div>
       </div>

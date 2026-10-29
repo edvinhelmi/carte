@@ -15,6 +15,9 @@ import { SettingsView } from '@/components/SettingsView';
 import { QuickMatchModal } from '@/components/QuickMatchModal';
 import { EmptyHouseState } from '@/components/EmptyHouseState';
 import { ProfileModal } from '@/components/ProfileModal';
+import { CookieBanner } from '@/components/CookieBanner';
+import { LegalModal, type LegalTab } from '@/components/LegalModal';
+import { Footer } from '@/components/Footer';
 import { Trophy, ArrowUp } from 'lucide-react';
 
 const emptySubscribe = () => () => {};
@@ -28,6 +31,8 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('torneo');
   const [joinNotification, setJoinNotification] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<LegalTab>('privacy');
   const [hasHouse, setHasHouse] = useState<boolean>(() => HouseService.hasActiveHouse());
 
   const { players, teams, matches, tournamentSessions, activeSession, refresh } =
@@ -141,7 +146,7 @@ export default function Home() {
 
       {/* Toast Notifica Casa */}
       {joinNotification && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-[var(--surface-raised)] border border-emerald-500/40 text-emerald-400 font-bold text-xs shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-2">
+        <div className="fixed top-[calc(env(safe-area-inset-top,0px)+3.75rem)] left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-[var(--surface-raised)] border border-emerald-500/40 text-emerald-400 font-bold text-xs shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-2">
           <span>🏠</span>
           <span>{joinNotification}</span>
         </div>
@@ -191,10 +196,41 @@ export default function Home() {
               <TeamsAndPlayersView players={players} teams={teams} onDataUpdated={refresh} />
             )}
 
-            {activeTab === 'settings' && <SettingsView onDataUpdated={refresh} />}
+            {activeTab === 'settings' && (
+              <SettingsView
+                onDataUpdated={refresh}
+                onOpenLegal={(tab) => {
+                  setLegalModalTab(tab);
+                  setIsLegalModalOpen(true);
+                }}
+              />
+            )}
           </div>
         )}
       </main>
+
+      {/* Footer con note legali, GDPR e preferenze cookie */}
+      <Footer
+        onOpenLegalModal={(tab) => {
+          setLegalModalTab(tab);
+          setIsLegalModalOpen(true);
+        }}
+      />
+
+      {/* Banner Cookie & Consenso GDPR Tecnico */}
+      <CookieBanner
+        onOpenLegalModal={(tab) => {
+          setLegalModalTab(tab);
+          setIsLegalModalOpen(true);
+        }}
+      />
+
+      {/* Modale Completa Privacy Policy, Cookie & Termini */}
+      <LegalModal
+        isOpen={isLegalModalOpen}
+        onClose={() => setIsLegalModalOpen(false)}
+        initialTab={legalModalTab}
+      />
 
       {/* Modale Registrazione Partita / Vittoria Rapida (attiva solo se in una casa) */}
       {hasHouse && (

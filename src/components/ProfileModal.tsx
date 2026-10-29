@@ -83,7 +83,7 @@ function ProfileModalContent({ onClose }: { onClose: () => void }) {
       role="dialog"
       aria-modal="true"
     >
-      <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6">
+      <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6 modal-safe-container">
         <div
           className="relative z-10 w-full max-w-md my-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
           onClick={(e) => e.stopPropagation()}

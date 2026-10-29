@@ -207,13 +207,109 @@ export const HouseService = {
     if (!houseId) return [];
     const key = getHouseResourceKey(houseId, 'members');
     const raw = getStorageItem(key);
-    if (!raw) return [];
-    try {
-      const list = JSON.parse(raw);
-      return Array.isArray(list) ? list : [];
-    } catch {
-      return [];
+    let list: HouseMember[] = [];
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) list = parsed;
+      } catch {
+        list = [];
+      }
     }
+
+    // Assicura che l'utente corrente sia presente tra i membri se questa è la sua casa attiva
+    const currentUser = AuthService.getCurrentUser();
+    if (currentUser?.id) {
+      const activeId = getStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
+      if (activeId === houseId) {
+        const existingIdx = list.findIndex((m) => m.userId === currentUser.id);
+        const myNick = AuthService.getEffectiveNickname(houseId);
+        if (existingIdx === -1) {
+          list.unshift({
+            houseId,
+            userId: currentUser.id,
+            displayName: currentUser.displayName,
+            nickname: myNick,
+            avatarUrl: currentUser.avatarUrl,
+            role: 'owner',
+            joinedAt: new Date().toISOString(),
+          });
+          setStorageItem(key, JSON.stringify(list));
+        } else if (myNick && list[existingIdx].nickname !== myNick) {
+          list[existingIdx].nickname = myNick;
+          setStorageItem(key, JSON.stringify(list));
+        }
+      }
+    }
+
+    // Recupera eventuali membri creati con la casa salvati in precedenza nella lista players
+    const playersRaw = getStorageItem(getHouseResourceKey(houseId, 'players'));
+    if (playersRaw) {
+      try {
+        const players: Player[] = JSON.parse(playersRaw);
+        let updated = false;
+        for (const p of players) {
+          if (p.isFriend) continue;
+          if (p.id.startsWith('p_mem_')) continue;
+          const isAlreadyMember = list.some(
+            (m) =>
+              m.displayName.toLowerCase() === p.name.toLowerCase() ||
+              (m.nickname && m.nickname.toLowerCase() === (p.nickname || p.name).toLowerCase())
+          );
+          if (!isAlreadyMember) {
+            list.push({
+              houseId,
+              userId: `mem_${p.id}`,
+              displayName: p.name,
+              nickname: p.nickname || p.name,
+              role: 'member',
+              joinedAt: p.createdAt || new Date().toISOString(),
+            });
+            updated = true;
+          }
+        }
+        if (updated) {
+          setStorageItem(key, JSON.stringify(list));
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    return list;
+  },
+
+  deleteHouseMember(houseId: string, userId: string): void {
+    if (!houseId || !userId) return;
+    const key = getHouseResourceKey(houseId, 'members');
+    const members = this.getHouseMembers(houseId).filter((m) => m.userId !== userId);
+    setStorageItem(key, JSON.stringify(members));
+
+    // Rimuovi anche da players della casa se presente
+    const playersKey = getHouseResourceKey(houseId, 'players');
+    const raw = getStorageItem(playersKey);
+    if (raw) {
+      try {
+        const players: Player[] = JSON.parse(raw);
+        const filtered = players.filter(
+          (p) =>
+            p.id !== `p_mem_${userId}` &&
+            p.id !== `p_${userId}` &&
+            p.id !== userId.replace('mem_', '')
+        );
+        setStorageItem(playersKey, JSON.stringify(filtered));
+      } catch {
+        // ignore
+      }
+    }
+
+    if (isSupabaseConfigured() && !userId.startsWith('guest_')) {
+      const client = getSupabaseClient();
+      client?.from('house_members').delete().eq('house_id', houseId).eq('user_id', userId).then();
+      client?.from('players').delete().eq('id', `p_mem_${userId}`).eq('house_id', houseId).then();
+    }
+
+    this.notifyUpdate();
   },
 
   // Sincronizza il membro della casa nella tabella dei giocatori (Player) di quella casa
@@ -318,29 +414,34 @@ export const HouseService = {
     };
 
     const currentUser = AuthService.getCurrentUser();
-    if (currentUser?.displayName) {
-      addName(AuthService.getEffectiveNickname(id));
-    }
-
-    // 1. Membri effettivi della casa (soprannome della casa oppure nickname globale)
     const members = this.getHouseMembers(id);
+
+    // 1. Membri effettivi della casa: SOLO IL NICKNAME (se presente), altrimenti displayName. Mai entrambi!
     for (const m of members) {
       if (m.userId === currentUser.id) {
         addName(AuthService.getEffectiveNickname(id));
       } else {
-        if (m.nickname) addName(m.nickname);
-        addName(m.displayName);
+        const eff = m.nickname?.trim() ? m.nickname.trim() : m.displayName.trim();
+        addName(eff);
       }
     }
 
-    // 2. Eventuali giocatori registrati nella casa
+    // 2. Giocatori amici registrati nella casa: SOLO IL NICKNAME (se presente), altrimenti name. Mai entrambi!
     const playersRaw = getStorageItem(getHouseResourceKey(id, 'players'));
     if (playersRaw) {
       try {
         const players: Player[] = JSON.parse(playersRaw);
         for (const p of players) {
-          if (p.nickname) addName(p.nickname);
-          addName(p.name);
+          if (p.id.startsWith('p_mem_')) continue;
+          const isMember = members.some(
+            (m) =>
+              m.displayName.toLowerCase() === p.name.toLowerCase() ||
+              (m.nickname && m.nickname.toLowerCase() === p.name.toLowerCase())
+          );
+          if (isMember) continue;
+
+          const friendEff = p.nickname?.trim() ? p.nickname.trim() : p.name.trim();
+          addName(friendEff);
         }
       } catch {
         // ignore
@@ -375,12 +476,28 @@ export const HouseService = {
       houseId: id,
       userId: currentUser.id,
       displayName: currentUser.displayName,
-      nickname: userNick,
+      nickname: userNick || currentUser.displayName,
       avatarUrl: currentUser.avatarUrl,
       role: 'owner',
       joinedAt: now,
     };
     this.saveHouseMember(creatorMember);
+
+    // Salva anche i coinquilini/membri iniziali specificati dall'utente
+    for (const pName of initialPlayerNames) {
+      const trimmed = pName.trim();
+      if (!trimmed || trimmed.toLowerCase() === currentUser.displayName.toLowerCase()) continue;
+      const memberId = `member_${id}_${Math.random().toString(36).substring(2, 7)}`;
+      const memberObj: HouseMember = {
+        houseId: id,
+        userId: memberId,
+        displayName: trimmed,
+        nickname: trimmed,
+        role: 'member',
+        joinedAt: now,
+      };
+      this.saveHouseMember(memberObj);
+    }
 
     // Crea giocatori iniziali se specificati dall'utente
     const suits: CardSuit[] = ['coppe', 'denari', 'spade', 'bastoni'];
