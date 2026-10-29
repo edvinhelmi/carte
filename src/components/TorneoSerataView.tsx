@@ -5,8 +5,6 @@ import {
   Plus,
   Trash2,
   Clock,
-  Share2,
-  Check,
   RotateCcw,
   ChevronDown,
   Users,
@@ -108,8 +106,6 @@ export function TorneoSerataView({
   const [a5Player4, setA5Player4] = useState('');
   const [a5Player5, setA5Player5] = useState('');
 
-  const [copied, setCopied] = useState(false);
-
   // Suggerimenti basati sui membri reali e giocatori registrati nella Casa attiva
   const [suggestionVersion, setSuggestionVersion] = useState(0);
 
@@ -133,19 +129,6 @@ export function TorneoSerataView({
     if (!activeHouseId) return [];
     return HouseService.getSuggestedPlayerNames(activeHouseId);
   }, [suggestionVersion]);
-
-  const handleShareLink = () => {
-    if (typeof window === 'undefined') return;
-    const url = HouseService.getShareUrl(HouseService.getActiveHouseId());
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      });
-    } else {
-      prompt('Copia questo link e invialo a chi gioca al tavolo:', url);
-    }
-  };
 
   // Seleziona una squadra esistente come preset (solo 2vs2)
   const handleSelectTeam1Preset = (teamId: string) => {
@@ -379,29 +362,6 @@ export function TorneoSerataView({
 
   return (
     <div className="space-y-6">
-      {/* BARRA SINCRONIZZAZIONE LIVE & CONDIVISIONE */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface)] border border-[var(--divider)] px-4 sm:px-5 py-3 rounded-2xl shadow-sm">
-        <div className="text-xs text-[var(--text)]">
-          <span className="font-semibold text-[var(--text)]">Sincronizzazione live:</span>{' '}
-          <span className="text-[var(--text-muted)]">
-            Condividi il link con chi è al tavolo per vedere e aggiornare i punteggi da qualsiasi telefono.
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleShareLink}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] text-[var(--text)] text-xs font-semibold border border-[var(--control-border)] hover:border-[var(--control-border-hover)] btn-tactile cursor-pointer min-h-[44px]"
-        >
-          {copied ? (
-            <Check className="w-3.5 h-3.5 text-[var(--accent)]" />
-          ) : (
-            <Share2 className="w-3.5 h-3.5 text-[var(--accent)]" />
-          )}
-          <span>{copied ? 'Link Copiato!' : 'Condividi Link Tavolo'}</span>
-        </button>
-      </div>
-
       {/* SEZIONE 1: TABELLONE IN TEMPO REALE SE C'È UN TORNEO ATTIVO */}
       {activeSession ? (
         <div className="space-y-6" data-reveal="rise">
