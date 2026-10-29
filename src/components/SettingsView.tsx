@@ -6,19 +6,14 @@ import {
   RotateCcw,
   Trash2,
   Smartphone,
-  Share2,
-  Check,
-  Radio,
   Home,
   QrCode,
   Cloud,
-  Globe,
   ShieldCheck,
   Cookie,
   FileText,
 } from 'lucide-react';
 import { StorageService } from '@/lib/storage';
-import { RealtimeSyncService } from '@/lib/realtimeSync';
 import { HouseService } from '@/lib/houseService';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
 import { ShareHouseModal } from './ShareHouseModal';
@@ -32,10 +27,6 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeHouse, setActiveHouse] = useState(() => HouseService.getActiveHouse());
   const [showShareModal, setShowShareModal] = useState(false);
-  const [roomInput, setRoomInput] = useState(() => RealtimeSyncService.getRoom());
-  const [roomSaved, setRoomSaved] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
-  const [showGoogleGuide, setShowGoogleGuide] = useState(false);
   const hasCloud = isSupabaseConfigured();
 
   React.useEffect(() => {
@@ -110,42 +101,20 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
     }
   };
 
-  const handleSaveRoom = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!roomInput.trim()) return;
-    RealtimeSyncService.setRoom(roomInput.trim());
-    setRoomSaved(true);
-    setTimeout(() => setRoomSaved(false), 2500);
-  };
-
-  const handleCopyShareLink = () => {
-    if (typeof window === 'undefined') return;
-    const room = RealtimeSyncService.getRoom();
-    const url = `${window.location.origin}?room=${room}`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(() => {
-        setLinkCopied(true);
-        setTimeout(() => setLinkCopied(false), 2500);
-      });
-    } else {
-      prompt('Copia questo link e invialo a chi gioca al tavolo:', url);
-    }
-  };
-
   return (
     <div className="space-y-6 max-w-4xl" data-reveal="rise">
       {/* Intestazione */}
       <div>
         <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight flex items-center gap-2.5">
           <Settings className="w-6 h-6 text-[var(--accent)]" />
-          <span>Impostazioni &amp; Sincronizzazione</span>
+          <span>Impostazioni &amp; Gestione Dati</span>
         </h1>
         <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1">
-          Gestione dei dati di casa, stanza live in tempo reale e salvataggio offline.
+          Gestione della casa, salvataggio e backup dei dati, note legali e privacy.
         </p>
       </div>
 
-      {/* SEZIONE 0: CASA ATTIVA E CONDIVISIONE */}
+      {/* SEZIONE 1: CASA ATTIVA E CONDIVISIONE */}
       {activeHouse && (
         <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -182,140 +151,7 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
         </div>
       )}
 
-      {/* SEZIONE 1: GUIDA INTERNET GOOGLE AUTH & SUPABASE */}
-      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
-            <Globe className="w-4 h-4 text-[var(--accent)]" />
-            <span>Accesso con Google &amp; Supabase (Istruzioni Setup)</span>
-          </h2>
-          <button
-            type="button"
-            onClick={() => setShowGoogleGuide((prev) => !prev)}
-            className="touch-target px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--accent)] btn-tactile cursor-pointer"
-          >
-            {showGoogleGuide ? 'Nascondi Guida' : 'Mostra Istruzioni'}
-          </button>
-        </div>
-
-        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-          Per consentire l&apos;accesso con un click tramite account Google autenticato su Supabase, è necessario creare un Client ID su Google Cloud e incollarlo su Supabase.
-        </p>
-
-        {showGoogleGuide && (
-          <div className="space-y-4 pt-2 text-xs text-[var(--text)] border-t border-[var(--divider)]">
-            <div className="p-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] space-y-2">
-              <h3 className="font-heading font-bold text-sm text-[var(--accent)] flex items-center gap-2">
-                <span>Passo 1: Google Cloud Console</span>
-              </h3>
-              <ol className="list-decimal list-inside space-y-1.5 text-[var(--text-muted)] leading-relaxed">
-                <li>
-                  Apri la console <strong className="text-[var(--text)]">Google Cloud Console</strong> e crea un nuovo progetto (es. <em>Briscola Club</em>).
-                </li>
-                <li>
-                  Vai su <strong className="text-[var(--text)]">APIs &amp; Services &rarr; OAuth consent screen</strong> (Schermata consenso OAuth):
-                  <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-[var(--text-subtle)]">
-                    <li>Tipo utente: <strong className="text-[var(--text)]">External</strong>.</li>
-                    <li><strong className="text-amber-300">Nome applicazione (App name):</strong> Scrivi <strong className="text-[var(--text)]">Briscola Club</strong> (è questo che Google mostra in grande all&apos;utente!).</li>
-                    <li><strong className="text-[var(--text)]">Email di supporto utente:</strong> seleziona la tua email.</li>
-                    <li><strong className="text-[var(--text)]">Domini autorizzati:</strong> aggiungi <code className="text-amber-300 font-mono">supabase.co</code> e il dominio del tuo sito (es. <code className="text-amber-300 font-mono">vercel.app</code>).</li>
-                    <li><strong className="text-[var(--text)]">Privacy &amp; Termini:</strong> inserisci <code className="text-amber-300 font-mono">/privacy</code> e <code className="text-amber-300 font-mono">/terms</code> del tuo sito.</li>
-                    <li>Premi <strong className="text-[var(--text)]">Salva e continua</strong> e imposta lo stato su <strong className="text-[var(--text)]">Publish App</strong> (non serve verifica per i permessi base di login).</li>
-                  </ul>
-                </li>
-                <li>
-                  Vai su <strong className="text-[var(--text)]">Credentials &rarr; Create Credentials &rarr; OAuth Client ID</strong>. Scegli tipo <em>&quot;Web application&quot;</em>.
-                </li>
-                <li>
-                  Sotto <strong className="text-[var(--text)]">&quot;Authorized redirect URIs&quot;</strong>, inserisci l&apos;URL di callback di Supabase:
-                  <code className="block mt-1 p-2 rounded-lg bg-[var(--canvas)] text-amber-300 font-mono text-[11px] select-all">
-                    https://&lt;TUO-PROJECT-REF&gt;.supabase.co/auth/v1/callback
-                  </code>
-                </li>
-                <li>
-                  Copia il <strong className="text-[var(--text)]">Client ID</strong> e il <strong className="text-[var(--text)]">Client Secret</strong> generati.
-                </li>
-              </ol>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] space-y-2">
-              <h3 className="font-heading font-bold text-sm text-[var(--accent)] flex items-center gap-2">
-                <span>Passo 2: Supabase Dashboard</span>
-              </h3>
-              <ol className="list-decimal list-inside space-y-1.5 text-[var(--text-muted)] leading-relaxed">
-                <li>
-                  Vai sulla tua dashboard Supabase in <strong className="text-[var(--text)]">Authentication &rarr; Providers &rarr; Google</strong>.
-                </li>
-                <li>
-                  Attiva lo switch <strong className="text-[var(--text)]">&quot;Enable Google provider&quot;</strong>.
-                </li>
-                <li>
-                  Incolla il <strong className="text-[var(--text)]">Client ID</strong> e il <strong className="text-[var(--text)]">Client Secret</strong> copiati al Passo 1 e premi Salva.
-                </li>
-                <li>
-                  In <strong className="text-[var(--text)]">Authentication &rarr; URL Configuration</strong>, aggiungi il dominio del tuo sito (es. <em>http://localhost:3000</em> o l&apos;URL Vercel).
-                </li>
-                <li>
-                  Nell&apos;<strong className="text-[var(--text)]">SQL Editor</strong>, incolla ed esegui lo script contenuto in <code className="text-amber-300 font-mono">supabase/schema.sql</code> per creare le tabelle profili e membri.
-                </li>
-              </ol>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* SEZIONE 2: LIVE CLOUD SYNC & ROOM CODE */}
-      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
-            <Radio className="w-4 h-4 text-[var(--accent)]" />
-            <span>Stanza Live Multi-Dispositivo</span>
-          </h2>
-          <span className="text-xs text-[var(--text-muted)] font-medium px-2.5 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)]">
-            Attiva
-          </span>
-        </div>
-
-        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
-          Tutti i dispositivi (smartphone, tablet o PC) connessi alla stessa stanza vedono e aggiornano i punteggi contemporaneamente in tempo reale.
-        </p>
-
-        <form onSubmit={handleSaveRoom} className="flex flex-col sm:flex-row gap-2.5 pt-1">
-          <div className="flex-1">
-            <label className="text-[11px] text-[var(--text-subtle)] block mb-1 font-medium">
-              Codice Stanza Tavolo:
-            </label>
-            <input
-              type="text"
-              required
-              value={roomInput}
-              onChange={(e) => setRoomInput(e.target.value)}
-              placeholder="Es. carte_briscola_live_casa"
-              className="w-full bg-[var(--surface-raised)] border border-[var(--control-border)] rounded-xl px-3.5 py-2 text-xs font-mono text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
-            />
-          </div>
-
-          <div className="flex items-end gap-2">
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
-            >
-              {roomSaved ? '✓ Salvata' : 'Salva Stanza'}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleCopyShareLink}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] text-xs font-bold btn-tactile cursor-pointer shadow-sm"
-            >
-              {linkCopied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-              <span>{linkCopied ? 'Copiato!' : 'Copia Link Tavolo'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* SEZIONE 3: BACKUP E RIPRISTINO */}
+      {/* SEZIONE 2: BACKUP E RIPRISTINO */}
       <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
         <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
           <Download className="w-4 h-4 text-[var(--accent)]" />
@@ -353,7 +189,7 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
         </div>
       </div>
 
-      {/* SEZIONE 4: GUIDA PWA / TELEFONO */}
+      {/* SEZIONE 3: GUIDA PWA / TELEFONO */}
       <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
         <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
           <Smartphone className="w-4 h-4 text-[var(--accent)]" />
@@ -377,7 +213,7 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
         </div>
       </div>
 
-      {/* SEZIONE 5: MANUTENZIONE DATI */}
+      {/* SEZIONE 4: MANUTENZIONE DATI */}
       <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
         <h2 className="font-heading font-bold text-base text-[var(--text)]">Manutenzione Dati</h2>
         <div className="flex flex-wrap items-center gap-3">
@@ -401,16 +237,13 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
         </div>
       </div>
 
-      {/* SEZIONE 6: PRIVACY, COOKIE & NOTE LEGALI */}
+      {/* SEZIONE 5: PRIVACY, COOKIE & NOTE LEGALI */}
       <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[var(--accent)]" />
             <span>Privacy, Cookie &amp; Note Legali</span>
           </h2>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-            Conforme GDPR (UE 2016/679)
-          </span>
         </div>
 
         <p className="text-xs text-[var(--text-muted)] leading-relaxed">

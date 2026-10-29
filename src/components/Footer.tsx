@@ -10,8 +10,8 @@ interface FooterProps {
 
 export function Footer({ onOpenLegalModal }: FooterProps) {
   return (
-    <footer className="mt-auto border-t border-[var(--divider)] bg-[var(--surface)]/60 text-center py-6 px-4 text-xs text-[var(--text-muted)] space-y-3 pb-24 md:pb-8">
-      <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+    <footer className="mt-16 sm:mt-24 border-t border-[var(--divider)] bg-[var(--surface)]/70 backdrop-blur-sm text-center pt-10 sm:pt-12 pb-28 md:pb-12 px-4 text-xs text-[var(--text-muted)] space-y-4">
+      <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
         <div>
           <p className="font-heading font-bold text-sm text-[var(--text)]">
             {LEGAL_METADATA.appName}
@@ -26,37 +26,37 @@ export function Footer({ onOpenLegalModal }: FooterProps) {
           <button
             type="button"
             onClick={() => onOpenLegalModal('privacy')}
-            className="hover:text-[var(--accent-text)] transition-colors cursor-pointer inline-flex items-center gap-1"
+            className="hover:text-[var(--accent-text)] transition-colors cursor-pointer inline-flex items-center gap-1.5 touch-target"
           >
-            <ShieldCheck className="w-3.5 h-3.5" />
+            <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent)]" />
             <span>Privacy Policy</span>
           </button>
 
-          <span>•</span>
+          <span className="text-[var(--divider)]">•</span>
 
           <button
             type="button"
             onClick={() => onOpenLegalModal('cookie')}
-            className="hover:text-[var(--accent-text)] transition-colors cursor-pointer inline-flex items-center gap-1"
+            className="hover:text-[var(--accent-text)] transition-colors cursor-pointer inline-flex items-center gap-1.5 touch-target"
           >
-            <Cookie className="w-3.5 h-3.5" />
+            <Cookie className="w-3.5 h-3.5 text-[var(--accent)]" />
             <span>Cookie &amp; Storage</span>
           </button>
 
-          <span>•</span>
+          <span className="text-[var(--divider)]">•</span>
 
           <button
             type="button"
             onClick={() => onOpenLegalModal('terms')}
-            className="hover:text-[var(--accent-text)] transition-colors cursor-pointer inline-flex items-center gap-1"
+            className="hover:text-[var(--accent-text)] transition-colors cursor-pointer inline-flex items-center gap-1.5 touch-target"
           >
-            <FileText className="w-3.5 h-3.5" />
+            <FileText className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             <span>Termini di Servizio</span>
           </button>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto pt-2 border-t border-[var(--divider)]/50 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-[var(--text-subtle)]">
+      <div className="max-w-5xl mx-auto pt-3 border-t border-[var(--divider)]/50 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-[var(--text-subtle)]">
         <span>
           © {new Date().getFullYear()} {LEGAL_METADATA.appName} • Conforme GDPR (Regolamento UE 2016/679)
         </span>

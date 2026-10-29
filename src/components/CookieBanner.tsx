@@ -61,11 +61,8 @@ export function CookieBanner({ onOpenLegalModal }: CookieBannerProps) {
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-heading text-sm font-bold text-[var(--text)]">
-                Informativa Cookie &amp; Privacy (GDPR)
+                Informativa Cookie &amp; Privacy
               </h3>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">
-                Solo Tecnici
-              </span>
             </div>
             <p className="text-xs text-[var(--text-muted)] leading-relaxed">
               Utilizziamo memoria locale e cookie tecnici strettamente necessari per il funzionamento del segnapunti e la sincronizzazione delle partite. <strong>Nessun cookie di profilazione o pubblicità di terze parti.</strong>

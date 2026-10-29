@@ -154,7 +154,7 @@ export default function Home() {
       )}
 
       {/* Contenuto Principale: Schermata Vuota (se nessuna casa) oppure Viste Dashboard */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-6 overflow-x-clip">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 sm:pb-16 overflow-x-clip">
         {!hasHouse ? (
           <EmptyHouseState
             onHouseJoinedOrCreated={() => {
