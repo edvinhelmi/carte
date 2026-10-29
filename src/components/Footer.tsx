@@ -10,7 +10,7 @@ interface FooterProps {
 
 export function Footer({ onOpenLegalModal }: FooterProps) {
   return (
-    <footer className="mt-12 sm:mt-16 border-t border-[var(--divider)] bg-[var(--surface)]/70 backdrop-blur-sm text-center pt-8 sm:pt-10 pb-14 md:pb-3 px-4 text-xs text-[var(--text-muted)] space-y-3">
+    <footer className="mt-16 sm:mt-24 border-t border-[var(--divider)] bg-[var(--surface)]/70 backdrop-blur-sm text-center pt-10 sm:pt-12 pb-28 md:pb-12 px-4 text-xs text-[var(--text-muted)] space-y-4">
       <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
         <div>
           <p className="font-heading font-bold text-sm text-[var(--text)]">
@@ -56,7 +56,7 @@ export function Footer({ onOpenLegalModal }: FooterProps) {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto pt-2.5 border-t border-[var(--divider)]/50 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-[10px] text-[var(--text-subtle)]">
+      <div className="max-w-5xl mx-auto pt-3 border-t border-[var(--divider)]/50 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-[var(--text-subtle)]">
         <span>
           © {new Date().getFullYear()} {LEGAL_METADATA.appName} • Conforme GDPR (Regolamento UE 2016/679)
         </span>
