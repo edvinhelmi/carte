@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Trophy, Flame, Users, User, Swords, ChevronDown } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faClone, faBroom } from '@fortawesome/free-solid-svg-icons';
 import { Team, Player, Match, TournamentSession } from '@/types/game';
 import { calculateTeamStats, calculatePlayerStats, calculateHeadToHead } from '@/lib/stats';
 import { SuitIcon } from './SuitIcon';
@@ -108,24 +110,26 @@ export function LeaderboardView({
             <button
               type="button"
               onClick={() => setGameFilter('briscola')}
-              className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 ${
+              className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 inline-flex items-center justify-center gap-1.5 ${
                 gameFilter === 'briscola'
                   ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
-              🃏 Briscola
+              <FontAwesomeIcon icon={faClone} className="text-[11px]" />
+              <span>Briscola</span>
             </button>
             <button
               type="button"
               onClick={() => setGameFilter('scopa')}
-              className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 ${
+              className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 inline-flex items-center justify-center gap-1.5 ${
                 gameFilter === 'scopa'
                   ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
-              🎴 Scopa
+              <FontAwesomeIcon icon={faBroom} className="text-[11px]" />
+              <span>Scopa</span>
             </button>
           </div>
 

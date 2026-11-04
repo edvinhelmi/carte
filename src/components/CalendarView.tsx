@@ -13,6 +13,8 @@ import {
 import { Match, Team, TournamentSession } from '@/types/game';
 import { getDailySummary } from '@/lib/stats';
 import { formatDateKey, StorageService } from '@/lib/storage';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faClone, faBroom, faTrophy } from '@fortawesome/free-solid-svg-icons';
 
 interface CalendarViewProps {
   matches: Match[];
@@ -164,24 +166,26 @@ export function CalendarView({
             <button
               type="button"
               onClick={() => setGameFilter('briscola')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 inline-flex items-center gap-1.5 ${
                 gameFilter === 'briscola'
                   ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
-              🃏 Briscola
+              <FontAwesomeIcon icon={faClone} className="text-[11px]" />
+              <span>Briscola</span>
             </button>
             <button
               type="button"
               onClick={() => setGameFilter('scopa')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 inline-flex items-center gap-1.5 ${
                 gameFilter === 'scopa'
                   ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
-              🎴 Scopa
+              <FontAwesomeIcon icon={faBroom} className="text-[11px]" />
+              <span>Scopa</span>
             </button>
           </div>
 
@@ -284,7 +288,7 @@ export function CalendarView({
                       }`}
                     >
                       {dayTourneys.length > 0 ? (
-                        '🏆'
+                        <FontAwesomeIcon icon={faTrophy} className="text-[10px] text-amber-400" />
                       ) : (
                         <>
                           <span className="hidden sm:inline">{dayMatches.length} part.</span>
@@ -394,19 +398,25 @@ export function CalendarView({
                         >
                           <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-medium gap-2">
                             <div className="flex items-center gap-2 flex-wrap min-w-0">
-                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[var(--surface-alt)] text-[var(--text-muted)] border border-[var(--control-border)] font-bold">
-                                {session.gameType === 'scopa'
-                                  ? session.scopaVariant === 'scopone_scientifico'
-                                    ? '🎴 Scopone'
-                                    : '🎴 Scopa'
-                                  : session.mode === 'a5'
-                                  ? '🃏 Briscola A 5'
-                                  : session.mode === '1vs1vs1'
-                                  ? '🃏 Briscola a 3'
-                                  : session.mode === '1vs1'
-                                  ? '🃏 Briscola 1v1'
-                                  : '🃏 Briscola 2v2'}
-                                {session.targetPoints ? ` (${session.targetPoints} pt)` : ''}
+                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[var(--surface-alt)] text-[var(--text-muted)] border border-[var(--control-border)] font-bold inline-flex items-center gap-1.5">
+                                <FontAwesomeIcon
+                                  icon={session.gameType === 'scopa' ? faBroom : faClone}
+                                  className="text-[10px] text-[var(--accent)]"
+                                />
+                                <span>
+                                  {session.gameType === 'scopa'
+                                    ? session.scopaVariant === 'scopone_scientifico'
+                                      ? 'Scopone'
+                                      : 'Scopa'
+                                    : session.mode === 'a5'
+                                    ? 'Briscola A 5'
+                                    : session.mode === '1vs1vs1'
+                                    ? 'Briscola a 3'
+                                    : session.mode === '1vs1'
+                                    ? 'Briscola 1v1'
+                                    : 'Briscola 2v2'}
+                                  {session.targetPoints ? ` (${session.targetPoints} pt)` : ''}
+                                </span>
                               </span>
                               <span className="font-mono tabular-nums text-xs">
                                 {isA5

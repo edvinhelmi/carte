@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { StorageService } from '@/lib/storage';
 import type { GameType } from '@/types/game';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faClone, faBroom } from '@fortawesome/free-solid-svg-icons';
 
 interface GameCategorySwitcherProps {
   className?: string;
@@ -51,7 +53,7 @@ export function GameCategorySwitcher({ className = '', size = 'md' }: GameCatego
             : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)]/40'
         }`}
       >
-        <span className="text-sm leading-none" aria-hidden="true">🃏</span>
+        <FontAwesomeIcon icon={faClone} className="text-xs shrink-0" aria-hidden="true" />
         <span>Briscola</span>
       </button>
 
@@ -68,7 +70,7 @@ export function GameCategorySwitcher({ className = '', size = 'md' }: GameCatego
             : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)]/40'
         }`}
       >
-        <span className="text-sm leading-none" aria-hidden="true">🎴</span>
+        <FontAwesomeIcon icon={faBroom} className="text-xs shrink-0" aria-hidden="true" />
         <span>Scopa</span>
       </button>
     </div>

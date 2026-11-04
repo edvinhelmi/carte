@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { Plus, Minus, RotateCcw, Check, Sparkles, History } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faBroom, faClone, faCoins, faCrown, faStar } from '@fortawesome/free-solid-svg-icons';
 import { StorageService } from '@/lib/storage';
 import type { TournamentSession, ScopaRound } from '@/types/game';
 
@@ -98,8 +100,8 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
       {/* Header del Calcolatore Turno */}
       <div className="flex items-center justify-between gap-2 pb-3 border-b border-[var(--divider)]">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-base shadow-sm">
-            🎴
+          <div className="w-9 h-9 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-sm shadow-sm">
+            <FontAwesomeIcon icon={faBroom} className="w-4 h-4 text-amber-400" />
           </div>
           <div>
             <h3 className="font-heading font-black text-sm sm:text-base text-[var(--text)] tracking-tight">
@@ -128,7 +130,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)]">
           <span className="flex items-center gap-1.5 text-[var(--text)] font-bold">
-            <span>🧹</span>
+            <FontAwesomeIcon icon={faBroom} className="w-3.5 h-3.5 text-amber-400" />
             <span>Scope (1 pt ciascuna)</span>
           </span>
           <span className="font-mono text-[11px] tabular-nums">
@@ -203,7 +205,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-[var(--text)] flex items-center gap-1.5">
-              <span>🃏</span>
+              <FontAwesomeIcon icon={faClone} className="w-3.5 h-3.5 text-sky-400" />
               <span>Carte (&gt;20 carte prese = 1 pt)</span>
             </span>
           </div>
@@ -248,7 +250,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-[var(--text)] flex items-center gap-1.5">
-              <span>🟡</span>
+              <FontAwesomeIcon icon={faCoins} className="w-3.5 h-3.5 text-amber-400" />
               <span>Denari / Ori (&gt;5 denari = 1 pt)</span>
             </span>
           </div>
@@ -293,7 +295,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-[var(--text)] flex items-center gap-1.5">
-              <span>⭐</span>
+              <FontAwesomeIcon icon={faStar} className="w-3.5 h-3.5 text-amber-400" />
               <span>Settebello (7 di denari = 1 pt)</span>
             </span>
           </div>
@@ -329,7 +331,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-[var(--text)] flex items-center gap-1.5">
-              <span>👑</span>
+              <FontAwesomeIcon icon={faCrown} className="w-3.5 h-3.5 text-amber-300" />
               <span>Primiera / Settanta (1 pt)</span>
             </span>
           </div>

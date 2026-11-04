@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, JetBrains_Mono } from "next/font/google";
+import "@fortawesome/fontawesome-svg-core/styles.css";
+import { config } from "@fortawesome/fontawesome-svg-core";
 import "./globals.css";
+
+config.autoAddCss = false;
 
 const bricolageGrotesque = Bricolage_Grotesque({
   variable: "--font-bricolage",

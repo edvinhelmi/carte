@@ -20,6 +20,8 @@ import { LegalModal, type LegalTab } from '@/components/LegalModal';
 import { Footer } from '@/components/Footer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Trophy, ArrowUp } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHouse } from '@fortawesome/free-solid-svg-icons';
 
 const emptySubscribe = () => () => {};
 
@@ -201,7 +203,7 @@ export default function Home() {
       {/* Toast Notifica Casa */}
       {joinNotification && (
         <div className="fixed top-[calc(env(safe-area-inset-top,0px)+3.75rem)] left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-[var(--surface-raised)] border border-emerald-500/40 text-emerald-400 font-bold text-xs shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-2">
-          <span>🏠</span>
+          <FontAwesomeIcon icon={faHouse} className="w-3.5 h-3.5 text-emerald-400" />
           <span>{joinNotification}</span>
         </div>
       )}

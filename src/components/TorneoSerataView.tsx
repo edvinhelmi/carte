@@ -15,6 +15,8 @@ import { TournamentSession, Team, Player, TournamentMode, GameType, ScopaVariant
 import { StorageService } from '@/lib/storage';
 import { HouseService } from '@/lib/houseService';
 import { fireWinConfetti } from '@/lib/confetti';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faClone, faBroom, faTrophy, faCheck, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import { ScopaRoundScorer } from './ScopaRoundScorer';
 
 interface TorneoSerataViewProps {
@@ -548,7 +550,7 @@ export function TorneoSerataView({
                 <div>
                   <div className="mb-1.5 flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-bold text-amber-400 tracking-wide flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                      <span>🎴</span>
+                      <FontAwesomeIcon icon={faBroom} className="text-xs" />
                       <span>Partita in corso</span>
                     </span>
                     <span className="text-xs px-2.5 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-bold">
@@ -586,7 +588,7 @@ export function TorneoSerataView({
                 <div className="p-5 rounded-[24px] bg-amber-500/15 border border-amber-500/40 text-amber-200 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in backdrop-blur-xl">
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-2xl bg-amber-500 text-[var(--on-accent)] flex items-center justify-center font-black text-xl shrink-0 shadow-lg shadow-amber-500/30">
-                      🏆
+                      <FontAwesomeIcon icon={faTrophy} className="text-xl" />
                     </div>
                     <div>
                       <h3 className="font-heading font-black text-base text-[var(--text)]">
@@ -775,7 +777,7 @@ export function TorneoSerataView({
             <div>
               <div className="mb-1.5 flex items-center gap-2">
                 <span className="text-xs font-semibold text-[var(--accent)] tracking-wide flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                  <span>🃏</span>
+                  <FontAwesomeIcon icon={faClone} className="text-xs" />
                   <span>Torneo live in corso</span>
                 </span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-bold">
@@ -1228,7 +1230,7 @@ export function TorneoSerataView({
             <div className="space-y-5">
               <div>
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-xs font-semibold border border-amber-500/30 mb-3">
-                  <span>🎴</span>
+                  <FontAwesomeIcon icon={faBroom} className="text-xs shrink-0" aria-hidden="true" />
                   <span>Nuova Partita di Scopa &amp; Scopone</span>
                 </div>
                 <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
@@ -1254,7 +1256,7 @@ export function TorneoSerataView({
                         : 'text-[var(--text-muted)] hover:text-[var(--text)]'
                     }`}
                   >
-                    <span>🎴</span>
+                    <FontAwesomeIcon icon={faBroom} className="text-xs shrink-0" aria-hidden="true" />
                     <span>Scopa Normale</span>
                   </button>
                   <button
@@ -1269,7 +1271,7 @@ export function TorneoSerataView({
                         : 'text-[var(--text-muted)] hover:text-[var(--text)]'
                     }`}
                   >
-                    <span>🃏</span>
+                    <FontAwesomeIcon icon={faClone} className="text-xs shrink-0" aria-hidden="true" />
                     <span>Scopone Scientifico</span>
                   </button>
                 </div>
@@ -1338,7 +1340,7 @@ export function TorneoSerataView({
                 </div>
               ) : (
                 <div className="p-3 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs text-[var(--text-muted)] flex items-center gap-2">
-                  <span>ℹ️</span>
+                  <FontAwesomeIcon icon={faInfoCircle} className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                   <span>
                     Lo <strong>Scopone Scientifico</strong> si gioca a 4 giocatori divisi in 2 squadre avversarie (2 contro 2).
                   </span>
@@ -1481,7 +1483,7 @@ export function TorneoSerataView({
                                 : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] hover:border-[var(--control-border)]'
                             }`}
                           >
-                            {isSelected ? '✓ ' : '+ '}
+                            {isSelected ? <FontAwesomeIcon icon={faCheck} className="mr-1 text-[10px]" /> : '+ '}
                             {name}
                           </button>
                         );
@@ -1606,7 +1608,7 @@ export function TorneoSerataView({
                                 : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] hover:border-[var(--control-border)]'
                             }`}
                           >
-                            {isSelected ? '✓ ' : '+ '}
+                            {isSelected ? <FontAwesomeIcon icon={faCheck} className="mr-1 text-[10px]" /> : '+ '}
                             {name}
                           </button>
                         );
@@ -1721,7 +1723,7 @@ export function TorneoSerataView({
                                 : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] cursor-pointer'
                             }`}
                           >
-                            {isSelected ? '✓ ' : ''}
+                            {isSelected ? <FontAwesomeIcon icon={faCheck} className="mr-1 text-[10px]" /> : ''}
                             {name}
                           </button>
                         );
@@ -1774,7 +1776,7 @@ export function TorneoSerataView({
                                 : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] cursor-pointer'
                             }`}
                           >
-                            {isSelected ? '✓ ' : ''}
+                            {isSelected ? <FontAwesomeIcon icon={faCheck} className="mr-1 text-[10px]" /> : ''}
                             {name}
                           </button>
                         );
@@ -1832,7 +1834,7 @@ export function TorneoSerataView({
                                 : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] cursor-pointer'
                             }`}
                           >
-                            {isSelected ? '✓ ' : ''}
+                            {isSelected ? <FontAwesomeIcon icon={faCheck} className="mr-1 text-[10px]" /> : ''}
                             {name}
                           </button>
                         );
@@ -1885,7 +1887,7 @@ export function TorneoSerataView({
                                 : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] cursor-pointer'
                             }`}
                           >
-                            {isSelected ? '✓ ' : ''}
+                            {isSelected ? <FontAwesomeIcon icon={faCheck} className="mr-1 text-[10px]" /> : ''}
                             {name}
                           </button>
                         );
@@ -1938,7 +1940,7 @@ export function TorneoSerataView({
                                 : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] cursor-pointer'
                             }`}
                           >
-                            {isSelected ? '✓ ' : ''}
+                            {isSelected ? <FontAwesomeIcon icon={faCheck} className="mr-1 text-[10px]" /> : ''}
                             {name}
                           </button>
                         );
@@ -2068,7 +2070,7 @@ export function TorneoSerataView({
                                     : 'bg-[var(--surface-alt)] text-[var(--text-muted)] border-[var(--divider)] hover:text-[var(--text)] cursor-pointer'
                                 }`}
                               >
-                                {isSelected ? '✓ ' : ''}
+                                {isSelected ? <FontAwesomeIcon icon={faCheck} className="mr-1 text-[10px]" /> : ''}
                                 {name}
                               </button>
                             );
@@ -2156,18 +2158,26 @@ export function TorneoSerataView({
                     <div className="flex items-center gap-2 flex-wrap min-w-0">
                       <span className="font-mono tabular-nums">{session.dateKey}</span>
                       <span>•</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-raised)] text-[var(--text-muted)] border border-[var(--control-border)] font-bold">
-                        {session.gameType === 'scopa'
-                          ? session.scopaVariant === 'scopone_scientifico'
-                            ? '🎴 Scopone'
-                            : '🎴 Scopa'
-                          : session.mode === 'a5'
-                          ? '🃏 Briscola A 5'
-                          : session.mode === '1vs1vs1'
-                          ? '🃏 Briscola a 3'
-                          : session.mode === '1vs1'
-                          ? '🃏 Briscola 1v1'
-                          : '🃏 Briscola 2v2'}
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-raised)] text-[var(--text-muted)] border border-[var(--control-border)] font-bold inline-flex items-center gap-1">
+                        {session.gameType === 'scopa' ? (
+                          <>
+                            <FontAwesomeIcon icon={faBroom} className="text-[10px]" />
+                            <span>{session.scopaVariant === 'scopone_scientifico' ? 'Scopone' : 'Scopa'}</span>
+                          </>
+                        ) : (
+                          <>
+                            <FontAwesomeIcon icon={faClone} className="text-[10px]" />
+                            <span>
+                              {session.mode === 'a5'
+                                ? 'Briscola A 5'
+                                : session.mode === '1vs1vs1'
+                                ? 'Briscola a 3'
+                                : session.mode === '1vs1'
+                                ? 'Briscola 1v1'
+                                : 'Briscola 2v2'}
+                            </span>
+                          </>
+                        )}
                         {session.targetPoints ? ` (${session.targetPoints} pt)` : ''}
                       </span>
                       {winnerLabel && (
