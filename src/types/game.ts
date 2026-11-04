@@ -17,6 +17,7 @@ export interface Team {
   houseId?: string;
   name: string;
   playerIds: string[]; // 1 player for 1v1, 2 players for 2v2
+  playerNames?: string[]; // Nomi espliciti dei componenti per fallback e visualizzazione
   color: string;
   createdAt: string;
 }
@@ -77,6 +78,7 @@ export interface TournamentSession {
   dateKey: string; // YYYY-MM-DD
   startedAt: string;
   endedAt?: string;
+  updatedAt?: string; // ISO string dell'ultimo aggiornamento punti per sincronizzazione perfetta multi-telefono
   mode?: TournamentMode;
   team1Name: string;
   team1Players: string[];

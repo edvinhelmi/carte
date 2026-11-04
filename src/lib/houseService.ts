@@ -86,6 +86,11 @@ export const HouseService = {
     if (!activeId || !known.some((k) => k.id === activeId)) {
       setStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID, known[0].id);
     }
+
+    const finalActiveId = getStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
+    if (finalActiveId) {
+      this.migrateManualMembersToFriends(finalActiveId);
+    }
   },
 
   hasActiveHouse(): boolean {
@@ -202,6 +207,113 @@ export const HouseService = {
     this.setupCloudSync(cleanId);
   },
 
+  // Migra utenti manuali (es. Francesco o dummy mem_) da house_members a Giocatori Amici
+  migrateManualMembersToFriends(houseId?: string): void {
+    const id = houseId || getStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
+    if (!id) return;
+
+    const membersKey = getHouseResourceKey(id, 'members');
+    const membersRaw = getStorageItem(membersKey);
+    if (!membersRaw) return;
+
+    let members: HouseMember[] = [];
+    try {
+      members = JSON.parse(membersRaw);
+      if (!Array.isArray(members)) return;
+    } catch {
+      return;
+    }
+
+    const currentUser = AuthService.getCurrentUser();
+    const remainingMembers: HouseMember[] = [];
+    const manualMembersToMigrate: HouseMember[] = [];
+
+    for (const m of members) {
+      if (!m) continue;
+      // L'utente corrente reale non va migrato
+      if (currentUser?.id && m.userId === currentUser.id) {
+        remainingMembers.push(m);
+        continue;
+      }
+
+      const isManual =
+        (m.userId && (m.userId.startsWith('mem_') || m.userId.startsWith('member_') || m.userId.startsWith('guest_'))) ||
+        (m.displayName && m.displayName.trim().toLowerCase() === 'francesco') ||
+        (m.nickname && m.nickname.trim().toLowerCase() === 'francesco');
+
+      if (isManual) {
+        manualMembersToMigrate.push(m);
+      } else {
+        remainingMembers.push(m);
+      }
+    }
+
+    if (manualMembersToMigrate.length === 0) return;
+
+    setStorageItem(membersKey, JSON.stringify(remainingMembers));
+
+    // Aggiungi ciascun membro manuale tra i Giocatori Amici (isFriend: true)
+    const playersKey = getHouseResourceKey(id, 'players');
+    const playersRaw = getStorageItem(playersKey);
+    let players: Player[] = [];
+    try {
+      players = playersRaw ? JSON.parse(playersRaw) : [];
+      if (!Array.isArray(players)) players = [];
+    } catch {
+      players = [];
+    }
+
+    const suits: CardSuit[] = ['coppe', 'denari', 'spade', 'bastoni'];
+
+    for (const m of manualMembersToMigrate) {
+      const name = m.displayName?.trim() || m.nickname?.trim() || 'Amico';
+      const nickname = (m.nickname && m.nickname.trim().toLowerCase() !== name.toLowerCase()) ? m.nickname.trim() : undefined;
+      const lowerName = name.toLowerCase();
+
+      // Rimuovi eventuali vecchi player p_mem_...
+      players = players.filter(
+        (p) =>
+          p.id !== `p_mem_${m.userId}` &&
+          p.id !== m.userId &&
+          !(p.name?.trim().toLowerCase() === lowerName && !p.isFriend)
+      );
+
+      const existingFriendIdx = players.findIndex(
+        (p) => p.name?.trim().toLowerCase() === lowerName || (p.nickname && p.nickname.trim().toLowerCase() === lowerName)
+      );
+
+      if (existingFriendIdx >= 0) {
+        players[existingFriendIdx] = {
+          ...players[existingFriendIdx],
+          name,
+          nickname: nickname || players[existingFriendIdx].nickname,
+          isFriend: true,
+          houseId: id,
+        };
+      } else {
+        players.push({
+          id: `p_friend_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          houseId: id,
+          name,
+          nickname,
+          avatarSuit: suits[players.length % suits.length],
+          createdAt: m.joinedAt || new Date().toISOString(),
+          isFriend: true,
+        });
+      }
+
+      // Se c'è Supabase, pulisci da house_members e players
+      if (isSupabaseConfigured()) {
+        const client = getSupabaseClient();
+        client?.from('house_members').delete().eq('house_id', id).eq('user_id', m.userId).then();
+        client?.from('players').delete().eq('house_id', id).eq('id', `p_mem_${m.userId}`).then();
+      }
+    }
+
+    setStorageItem(playersKey, JSON.stringify(players));
+    this.notifyUpdate();
+  },
+
   // Membri della Casa
   getHouseMembers(houseId: string): HouseMember[] {
     if (!houseId) return [];
@@ -242,55 +354,16 @@ export const HouseService = {
       }
     }
 
-    // Recupera eventuali membri creati con la casa salvati in precedenza nella lista players
-    const playersRaw = getStorageItem(getHouseResourceKey(houseId, 'players'));
-    if (playersRaw) {
-      try {
-        const players: Player[] = JSON.parse(playersRaw);
-        let updated = false;
-        for (const p of players) {
-          if (!p || p.isFriend) continue;
-          const pNameClean = typeof p.name === 'string' ? p.name.trim().toLowerCase() : '';
-          const pNickClean = typeof p.nickname === 'string' ? p.nickname.trim().toLowerCase() : pNameClean;
-          if (!pNameClean && !pNickClean) continue;
-
-          const pUserId = (p.id && typeof p.id === 'string' && p.id.startsWith('p_mem_'))
-            ? p.id.replace('p_mem_', '')
-            : (p.id && typeof p.id === 'string' && p.id.startsWith('mem_'))
-              ? p.id
-              : `mem_${p.id || Date.now()}`;
-
-          const isAlreadyMember = list.some((m) => {
-            if (!m) return false;
-            if (m.userId === pUserId) return true;
-            const mDisp = typeof m.displayName === 'string' ? m.displayName.trim().toLowerCase() : '';
-            const mNick = typeof m.nickname === 'string' ? m.nickname.trim().toLowerCase() : '';
-            return (
-              (mDisp && pNameClean && mDisp === pNameClean) ||
-              (mNick && pNickClean && mNick === pNickClean) ||
-              (mNick && pNameClean && mNick === pNameClean)
-            );
-          });
-          if (!isAlreadyMember) {
-            const fallbackName = (p.name && typeof p.name === 'string') ? p.name : (p.nickname || 'Membro');
-            list.push({
-              houseId,
-              userId: pUserId,
-              displayName: fallbackName,
-              nickname: p.nickname || fallbackName,
-              role: 'member',
-              joinedAt: p.createdAt || new Date().toISOString(),
-            });
-            updated = true;
-          }
-        }
-        if (updated) {
-          setStorageItem(key, JSON.stringify(list));
-        }
-      } catch {
-        // ignore
-      }
-    }
+    // Escludi membri manuali / dummy (mem_, member_, guest_ o francesco) che appartengono invece ai Giocatori Amici
+    list = list.filter((m) => {
+      if (!m) return false;
+      if (currentUser?.id && m.userId === currentUser.id) return true;
+      if (m.userId?.startsWith('mem_') || m.userId?.startsWith('member_') || m.userId?.startsWith('guest_')) return false;
+      const disp = m.displayName?.trim().toLowerCase();
+      const nick = m.nickname?.trim().toLowerCase();
+      if (disp === 'francesco' || nick === 'francesco') return false;
+      return true;
+    });
 
     return list;
   },
@@ -494,7 +567,7 @@ export const HouseService = {
     // Salva metadati casa
     setStorageItem(getHouseResourceKey(id, 'meta'), JSON.stringify(house));
 
-    // Aggiungi utente creatore come primo membro della casa
+    // Aggiungi utente creatore come primo membro reale della casa
     const currentUser = AuthService.getCurrentUser();
     const userNick = AuthService.getHouseNickname(id);
     const creatorMember: HouseMember = {
@@ -508,33 +581,18 @@ export const HouseService = {
     };
     this.saveHouseMember(creatorMember);
 
-    // Salva anche i coinquilini/membri iniziali specificati dall'utente
-    for (const pName of initialPlayerNames) {
-      const trimmed = pName.trim();
-      if (!trimmed || trimmed.toLowerCase() === currentUser.displayName.toLowerCase()) continue;
-      const memberId = `member_${id}_${Math.random().toString(36).substring(2, 7)}`;
-      const memberObj: HouseMember = {
-        houseId: id,
-        userId: memberId,
-        displayName: trimmed,
-        nickname: trimmed,
-        role: 'member',
-        joinedAt: now,
-      };
-      this.saveHouseMember(memberObj);
-    }
-
-    // Crea giocatori iniziali se specificati dall'utente
+    // I giocatori inseriti a mano finiscono nei Giocatori Amici (isFriend: true), MAI nei membri della casa
     const suits: CardSuit[] = ['coppe', 'denari', 'spade', 'bastoni'];
     const players: Player[] = initialPlayerNames
       .map((n) => n.trim())
-      .filter(Boolean)
+      .filter((n) => n && n.toLowerCase() !== currentUser.displayName.toLowerCase())
       .map((playerName, idx) => ({
-        id: `p_${id}_${idx + 1}`,
+        id: `p_friend_${id}_${idx + 1}`,
         houseId: id,
         name: playerName,
         avatarSuit: suits[idx % suits.length],
         createdAt: now,
+        isFriend: true,
       }));
 
     setStorageItem(getHouseResourceKey(id, 'players'), JSON.stringify(players));
@@ -851,22 +909,35 @@ export const HouseService = {
           joined_at: string;
           profiles?: { display_name?: string; avatar_url?: string } | null;
         }
-        const mappedMembers: HouseMember[] = (membersData as CloudMemberRecord[]).map((m) => {
-          const profile = m.profiles;
-          return {
-            houseId: m.house_id,
-            userId: m.user_id,
-            displayName: profile?.display_name || 'Membro',
-            nickname: m.nickname || undefined,
-            avatarUrl: profile?.avatar_url || undefined,
-            role: m.role || 'member',
-            joinedAt: m.joined_at,
-          };
-        });
+        const mappedMembers: HouseMember[] = (membersData as CloudMemberRecord[])
+          .filter((m) => {
+            if (m.user_id.startsWith('mem_') || m.user_id.startsWith('member_') || m.user_id.startsWith('guest_')) return false;
+            const disp = m.profiles?.display_name?.toLowerCase().trim() || '';
+            const nick = m.nickname?.toLowerCase().trim() || '';
+            if (disp === 'francesco' || nick === 'francesco') return false;
+            return true;
+          })
+          .map((m) => {
+            const profile = m.profiles;
+            return {
+              houseId: m.house_id,
+              userId: m.user_id,
+              displayName: profile?.display_name || 'Membro',
+              nickname: m.nickname || undefined,
+              avatarUrl: profile?.avatar_url || undefined,
+              role: m.role || 'member',
+              joinedAt: m.joined_at,
+            };
+          });
 
         // Preserva eventuali membri locali non ancora sincronizzati sul cloud o guest
         const existingLocal = this.getHouseMembers(houseId);
         for (const localM of existingLocal) {
+          if (localM.userId.startsWith('mem_') || localM.userId.startsWith('member_') || localM.userId.startsWith('guest_')) continue;
+          const disp = localM.displayName?.toLowerCase().trim() || '';
+          const nick = localM.nickname?.toLowerCase().trim() || '';
+          if (disp === 'francesco' || nick === 'francesco') continue;
+
           const cloudIndex = mappedMembers.findIndex((m) => m.userId === localM.userId);
           if (cloudIndex >= 0) {
             // Se in locale c'è un soprannome più recente impostato dall'utente, mantienilo
@@ -896,6 +967,7 @@ export const HouseService = {
           nickname: p.nickname ?? undefined,
           avatarSuit: p.avatar_suit as CardSuit,
           createdAt: p.created_at,
+          isFriend: Boolean(p.is_friend || (p.id && p.id.includes('friend'))),
         }));
         const localPlayersRaw = getStorageItem(getHouseResourceKey(houseId, 'players'));
         let localPlayers: Player[] = [];
@@ -909,7 +981,10 @@ export const HouseService = {
         }
         const mergedPlayers = [...mappedPlayers];
         for (const locP of localPlayers) {
-          if (!mergedPlayers.some((p) => p.id === locP.id)) {
+          const mIdx = mergedPlayers.findIndex((p) => p.id === locP.id);
+          if (mIdx >= 0) {
+            if (locP.isFriend) mergedPlayers[mIdx].isFriend = true;
+          } else {
             mergedPlayers.push(locP);
           }
         }
@@ -929,7 +1004,31 @@ export const HouseService = {
             localTeams = [];
           }
         }
-        const mergedTeams = [...teams];
+        const mappedTeams: Team[] = teams.map((t: any) => {
+          const locMatch = localTeams.find((lt) => lt.id === t.id);
+          const pIds = (Array.isArray(t.player_ids) && t.player_ids.length > 0)
+            ? t.player_ids
+            : (Array.isArray(t.playerIds) && t.playerIds.length > 0)
+              ? t.playerIds
+              : (locMatch?.playerIds || []);
+          const pNames = (Array.isArray(t.player_names) && t.player_names.length > 0)
+            ? t.player_names
+            : (Array.isArray(t.playerNames) && t.playerNames.length > 0)
+              ? t.playerNames
+              : (locMatch?.playerNames || []);
+
+          return {
+            id: t.id,
+            houseId: t.house_id || t.houseId || houseId,
+            name: t.name,
+            playerIds: pIds,
+            playerNames: pNames,
+            color: t.color || '#10b981',
+            createdAt: t.created_at || t.createdAt || new Date().toISOString(),
+          };
+        });
+
+        const mergedTeams = [...mappedTeams];
         for (const locT of localTeams) {
           if (!mergedTeams.some((t) => t.id === locT.id)) {
             mergedTeams.push(locT);
@@ -996,9 +1095,10 @@ export const HouseService = {
           status: s.is_active ? 'in_progress' : 'completed',
           winnerTeam: s.winner_team || s.winnerTeam,
           winnerPlayerName: s.winner_player_name || s.winnerPlayerName,
+          updatedAt: s.updated_at || s.created_at || s.started_at || new Date().toISOString(),
         }));
 
-        // Preserva tassativamente le sessioni in corso create o modificate localmente
+        // Preserva le sessioni con confronto basato su timestamp per sincronizzazione infallibile
         const localSessionsRaw = getStorageItem(getHouseResourceKey(houseId, 'sessions'));
         let localSessions: TournamentSession[] = [];
         if (localSessionsRaw) {
@@ -1014,15 +1114,28 @@ export const HouseService = {
         for (const locS of localSessions) {
           const cloudIndex = mergedSessions.findIndex((s) => s.id === locS.id);
           if (cloudIndex >= 0) {
-            // Se in locale è in_progress, mantienila sempre attiva finché l'utente non la conclude
-            if (locS.status === 'in_progress') {
+            const cloudS = mergedSessions[cloudIndex];
+            if (cloudS.status === 'completed' && locS.status !== 'completed') {
+              // Il cloud ha terminato il torneo, adotta la chiusura
+              continue;
+            }
+            if (locS.status === 'completed' && cloudS.status !== 'completed') {
+              // L'utente locale ha appena concluso il torneo
+              mergedSessions[cloudIndex] = { ...cloudS, ...locS, status: 'completed' };
+              continue;
+            }
+
+            const locTime = locS.updatedAt ? new Date(locS.updatedAt).getTime() : 0;
+            const cloudTime = cloudS.updatedAt ? new Date(cloudS.updatedAt).getTime() : 0;
+
+            if (locTime > cloudTime) {
+              mergedSessions[cloudIndex] = { ...cloudS, ...locS };
+            } else {
               mergedSessions[cloudIndex] = {
-                ...mergedSessions[cloudIndex],
                 ...locS,
-                team1Wins: Math.max(locS.team1Wins, mergedSessions[cloudIndex].team1Wins),
-                team2Wins: Math.max(locS.team2Wins, mergedSessions[cloudIndex].team2Wins),
-                team3Wins: Math.max(locS.team3Wins || 0, mergedSessions[cloudIndex].team3Wins || 0),
-                status: 'in_progress',
+                ...cloudS,
+                team1Players: (cloudS.team1Players && cloudS.team1Players.length > 0) ? cloudS.team1Players : locS.team1Players,
+                team2Players: (cloudS.team2Players && cloudS.team2Players.length > 0) ? cloudS.team2Players : locS.team2Players,
               };
             }
           } else {
@@ -1032,6 +1145,9 @@ export const HouseService = {
 
         setStorageItem(getHouseResourceKey(houseId, 'sessions'), JSON.stringify(mergedSessions));
       }
+
+      // 5. Migra automaticamente eventuali record manuali o Francesco a Giocatori Amici
+      this.migrateManualMembersToFriends(houseId);
     } catch (err) {
       console.warn('Errore pull house data from cloud:', err);
     }

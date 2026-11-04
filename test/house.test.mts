@@ -43,10 +43,11 @@ describe('HouseService & Multi-Casa Storage System', () => {
       ['Luca', 'Sara', 'Matteo']
     );
 
-    // Verify creator was registered as owner member along with initial house members
+    // Verify creator was registered as owner member, while manually typed initial players are Giocatori Amici (not house members)
     const members = HouseService.getHouseMembers(newHouse.id);
-    assert.equal(members.length, 4);
+    assert.equal(members.length, 1);
     assert.equal(members[0].role, 'owner');
+    assert.ok(players.every((p) => p.isFriend === true));
   });
 
   it('dynamically derives suggested players from house members and registered players', async () => {
@@ -424,5 +425,88 @@ describe('HouseService & Multi-Casa Storage System', () => {
     const allSessions = StorageService.getTournamentSessions();
     const prevSession = allSessions.find((s) => s.id === activeSession.id);
     assert.equal(prevSession?.status, 'completed');
+  });
+
+  it('migrates manual members (like Francesco) to Giocatori Amici and excludes them from house_members', () => {
+    const house = HouseService.createHouse('Casa Test Francesco');
+    const membersKey = `carte_house_${house.id}_members`;
+
+    // Simulate manual member Francesco previously saved in house_members
+    const fakeMembers = [
+      {
+        houseId: house.id,
+        userId: AuthService.getCurrentUser().id,
+        displayName: 'Owner',
+        role: 'owner',
+        joinedAt: new Date().toISOString(),
+      },
+      {
+        houseId: house.id,
+        userId: 'mem_manual_francesco_123',
+        displayName: 'Francesco',
+        nickname: 'Fra',
+        role: 'member',
+        joinedAt: new Date().toISOString(),
+      },
+    ];
+    setStoredItem(membersKey, JSON.stringify(fakeMembers));
+
+    // Run migration
+    HouseService.migrateManualMembersToFriends(house.id);
+
+    // Verify Francesco is no longer in house members
+    const updatedMembers = HouseService.getHouseMembers(house.id);
+    assert.equal(updatedMembers.length, 1);
+    assert.equal(updatedMembers[0].userId, AuthService.getCurrentUser().id);
+    assert.ok(!updatedMembers.some((m) => m.displayName.toLowerCase() === 'francesco'));
+
+    // Verify Francesco is now in players with isFriend: true
+    const players = StorageService.getPlayers();
+    const fraFriend = players.find((p) => p.name.toLowerCase() === 'francesco');
+    assert.ok(fraFriend, 'Francesco must exist in players');
+    assert.equal(fraFriend?.isFriend, true);
+    assert.equal(fraFriend?.nickname, 'Fra');
+  });
+
+  it('preserves team playerIds and playerNames during remote full sync even with snake_case fields', () => {
+    const house = HouseService.createHouse('Casa Team Test');
+    const team = {
+      id: 't_alpha',
+      houseId: house.id,
+      name: 'I Campioni',
+      playerIds: ['p_1', 'p_2'],
+      playerNames: ['Luca', 'Marco'],
+      color: '#10b981',
+      createdAt: new Date().toISOString(),
+    };
+    StorageService.saveTeam(team);
+
+    // Incoming remote sync from Supabase or peer with snake_case
+    RealtimeSyncService.applyRemoteFullSync({
+      type: 'FULL_SYNC',
+      matches: [],
+      sessions: [],
+      teams: [
+        {
+          id: 't_alpha',
+          house_id: house.id,
+          name: 'I Campioni',
+          player_ids: ['p_1', 'p_2'],
+          player_names: ['Luca', 'Marco'],
+          color: '#10b981',
+          created_at: new Date().toISOString(),
+        } as any,
+      ],
+      players: [],
+      houseId: house.id,
+      senderId: 'remote_peer',
+      timestamp: Date.now(),
+    });
+
+    const teams = StorageService.getTeams();
+    const syncedTeam = teams.find((t) => t.id === 't_alpha');
+    assert.ok(syncedTeam);
+    assert.deepEqual(syncedTeam?.playerIds, ['p_1', 'p_2']);
+    assert.deepEqual(syncedTeam?.playerNames, ['Luca', 'Marco']);
   });
 });

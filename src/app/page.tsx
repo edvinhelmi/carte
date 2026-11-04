@@ -99,6 +99,48 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasHouse]);
 
+  // Sincronizzazione immediata al risveglio dell'app (apertura/sblocco telefono, ritorno alla scheda o ritorno online)
+  useEffect(() => {
+    const handleWakeup = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        const activeId = HouseService.getActiveHouseId();
+        if (activeId) {
+          RealtimeSyncService.connect();
+          HouseService.setupCloudSync(activeId);
+          HouseService.pullHouseDataFromCloud(activeId).then(() => {
+            refresh();
+          });
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleWakeup);
+    window.addEventListener('focus', handleWakeup);
+    window.addEventListener('online', handleWakeup);
+    return () => {
+      document.removeEventListener('visibilitychange', handleWakeup);
+      window.removeEventListener('focus', handleWakeup);
+      window.removeEventListener('online', handleWakeup);
+    };
+  }, [refresh]);
+
+  // Polling di garanzia anti-desincronizzazione tra coinquilini durante un torneo attivo (ogni 3.5s a schermo visibile)
+  useEffect(() => {
+    if (!activeSession || activeSession.status !== 'in_progress') return;
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        const activeId = HouseService.getActiveHouseId();
+        if (activeId) {
+          HouseService.pullHouseDataFromCloud(activeId).then(() => {
+            refresh();
+          });
+        }
+      }
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [activeSession?.id, activeSession?.status, refresh]);
+
   // TasteCode Motion: initialize reveal lifecycle for active tab
   useEffect(() => {
     if (!mounted) return;

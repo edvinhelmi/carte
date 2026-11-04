@@ -6,7 +6,11 @@ const DEFAULT_ROOM = 'carte_briscola_live_casa';
 const NTFY_BASE_URL = 'https://ntfy.sh';
 
 function getActiveHouseId(): string {
-  return getStoredItem('carte_active_house_id') || '';
+  return (
+    getStoredItem('carte_active_house_id_v2') ||
+    getStoredItem('carte_active_house_id') ||
+    ''
+  );
 }
 
 export interface FullSyncPayload {
@@ -36,15 +40,16 @@ export const RealtimeSyncService = {
       const urlParam = new URLSearchParams(window.location.search).get('room');
       if (urlParam) {
         const clean = urlParam.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-        if (clean) {
-          localStorage.setItem('carte_live_room_id', clean);
-          return clean;
-        }
+        if (clean) return clean;
       }
     } catch {
       // fallback
     }
-    return localStorage.getItem('carte_live_room_id') || DEFAULT_ROOM;
+    const houseId = getActiveHouseId();
+    if (houseId) {
+      return `carte_house_${houseId}`;
+    }
+    return getStoredItem('carte_live_room_id') || DEFAULT_ROOM;
   },
 
   setRoom(room: string) {
@@ -169,16 +174,19 @@ export const RealtimeSyncService = {
           for (const locS of localSessions) {
             const remoteIdx = mergedSessions.findIndex((s) => s.id === locS.id);
             if (remoteIdx >= 0) {
-              // Se la sessione locale è in corso, mantienila sempre attiva
-              if (locS.status === 'in_progress') {
-                mergedSessions[remoteIdx] = {
-                  ...mergedSessions[remoteIdx],
-                  ...locS,
-                  team1Wins: Math.max(locS.team1Wins, mergedSessions[remoteIdx].team1Wins),
-                  team2Wins: Math.max(locS.team2Wins, mergedSessions[remoteIdx].team2Wins),
-                  team3Wins: Math.max(locS.team3Wins || 0, mergedSessions[remoteIdx].team3Wins || 0),
-                  status: 'in_progress',
-                };
+              const remoteS = mergedSessions[remoteIdx];
+              // Remote payload came from a peer who updated score or completed session
+              const locTime = locS.updatedAt ? new Date(locS.updatedAt).getTime() : 0;
+              const remTime = remoteS.updatedAt ? new Date(remoteS.updatedAt).getTime() : 0;
+
+              if (remoteS.status === 'completed' && locS.status === 'in_progress') {
+                mergedSessions[remoteIdx] = remoteS;
+              } else if (locTime > remTime && locS.status === 'in_progress') {
+                // Local is strictly newer (action just taken on this device)
+                mergedSessions[remoteIdx] = locS;
+              } else {
+                // Remote is equal or newer -> adopt remote state
+                mergedSessions[remoteIdx] = remoteS;
               }
             } else if (locS.status === 'in_progress') {
               mergedSessions.unshift(locS);
@@ -197,9 +205,48 @@ export const RealtimeSyncService = {
           } catch {
             localTeams = [];
           }
-          const mergedTeams = [...payload.teams];
+          interface TeamRaw {
+            id: string;
+            houseId?: string;
+            house_id?: string;
+            name: string;
+            playerIds?: string[];
+            player_ids?: string[];
+            playerNames?: string[];
+            player_names?: string[];
+            color?: string;
+            createdAt?: string;
+            created_at?: string;
+          }
+          const normalizedPayloadTeams: Team[] = (payload.teams as TeamRaw[]).map((t) => ({
+            id: t.id,
+            houseId: t.houseId || t.house_id,
+            name: t.name,
+            playerIds: Array.isArray(t.playerIds)
+              ? t.playerIds
+              : Array.isArray(t.player_ids)
+                ? t.player_ids
+                : [],
+            playerNames: Array.isArray(t.playerNames)
+              ? t.playerNames
+              : Array.isArray(t.player_names)
+                ? t.player_names
+                : undefined,
+            color: t.color || '#10b981',
+            createdAt: t.createdAt || t.created_at || new Date().toISOString(),
+          }));
+
+          const mergedTeams = [...normalizedPayloadTeams];
           for (const locT of localTeams) {
-            if (!mergedTeams.some((t) => t.id === locT.id)) {
+            const matchIdx = mergedTeams.findIndex((t) => t.id === locT.id);
+            if (matchIdx >= 0) {
+              if ((!mergedTeams[matchIdx].playerIds || mergedTeams[matchIdx].playerIds.length === 0) && locT.playerIds && locT.playerIds.length > 0) {
+                mergedTeams[matchIdx].playerIds = locT.playerIds;
+              }
+              if (!mergedTeams[matchIdx].playerNames && locT.playerNames) {
+                mergedTeams[matchIdx].playerNames = locT.playerNames;
+              }
+            } else {
               mergedTeams.push(locT);
             }
           }

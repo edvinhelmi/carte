@@ -253,6 +253,7 @@ export const StorageService = {
         house_id: activeHouseId,
         name: team.name,
         player_ids: team.playerIds,
+        player_names: team.playerNames ?? null,
         color: team.color,
         created_at: team.createdAt,
       }).then();
@@ -366,11 +367,13 @@ export const StorageService = {
     const cleanT1 = (typeof team1Name === 'string' ? team1Name.trim() : '') || (mode === '2vs2' ? 'Squadra 1' : 'Giocatore 1');
     const cleanT2 = (typeof team2Name === 'string' ? team2Name.trim() : '') || (mode === '2vs2' ? 'Squadra 2' : 'Giocatore 2');
 
+    const nowIso = new Date().toISOString();
     const newSession: TournamentSession = {
       id: `tour_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       houseId: HouseService.getActiveHouseId() || 'casa_none',
       dateKey: formatDateKey(),
-      startedAt: new Date().toISOString(),
+      startedAt: nowIso,
+      updatedAt: nowIso,
       mode,
       team1Name: cleanT1,
       team1Players: Array.isArray(team1Players) ? team1Players : [],
@@ -439,6 +442,7 @@ export const StorageService = {
         team2_wins: newSession.team2Wins,
         team3_wins: newSession.team3Wins ?? null,
         players5: newSession.players5 ?? null,
+        updated_at: newSession.updatedAt,
         is_active: true,
       }).then();
     }
@@ -470,6 +474,7 @@ export const StorageService = {
       }
     }
 
+    session.updatedAt = new Date().toISOString();
     setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
 
     if (isSupabaseConfigured()) {
@@ -479,6 +484,7 @@ export const StorageService = {
         team2_wins: session.team2Wins,
         team3_wins: session.team3Wins ?? null,
         players5: session.players5 ?? null,
+        updated_at: session.updatedAt,
       }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
     }
 
@@ -509,6 +515,7 @@ export const StorageService = {
       }
     }
 
+    session.updatedAt = new Date().toISOString();
     setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
 
     if (isSupabaseConfigured()) {
@@ -518,6 +525,7 @@ export const StorageService = {
         team2_wins: session.team2Wins,
         team3_wins: session.team3Wins ?? null,
         players5: session.players5 ?? null,
+        updated_at: session.updatedAt,
       }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
     }
 
@@ -583,6 +591,7 @@ export const StorageService = {
       }
     }
 
+    session.updatedAt = new Date().toISOString();
     setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
 
     if (isSupabaseConfigured()) {
@@ -590,6 +599,7 @@ export const StorageService = {
       client?.from('tournament_sessions').update({
         is_active: false,
         ended_at: session.endedAt,
+        updated_at: session.updatedAt,
         winner_team: String(session.winnerTeam),
         winner_player_name: session.winnerPlayerName ?? null,
         players5: session.players5 ?? null,

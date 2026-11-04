@@ -123,10 +123,6 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
   }, [houseMembers, friendPlayers]);
 
   // Gestione modali
-  const [showMemberModal, setShowMemberModal] = useState(false);
-  const [newMemberName, setNewMemberName] = useState('');
-  const [newMemberNickname, setNewMemberNickname] = useState('');
-
   const [showFriendModal, setShowFriendModal] = useState(false);
   const [friendName, setFriendName] = useState('');
   const [friendNickname, setFriendNickname] = useState('');
@@ -140,12 +136,11 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
   const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
-    if (!showMemberModal && !showFriendModal && !showTeamModal && !showShareModal) return;
+    if (!showFriendModal && !showTeamModal && !showShareModal) return;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setShowMemberModal(false);
         setShowFriendModal(false);
         setShowTeamModal(false);
         setShowShareModal(false);
@@ -156,31 +151,9 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
       document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [showMemberModal, showFriendModal, showTeamModal, showShareModal]);
+  }, [showFriendModal, showTeamModal, showShareModal]);
 
   const activeHouse = HouseService.getActiveHouse();
-
-  // Salvataggio nuovo membro della casa
-  const handleSaveMember = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanName = newMemberName.trim();
-    if (!cleanName || !activeHouseId) return;
-
-    const newMember: HouseMember = {
-      houseId: activeHouseId,
-      userId: `mem_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      displayName: cleanName,
-      nickname: newMemberNickname.trim() || cleanName,
-      role: 'member',
-      joinedAt: new Date().toISOString(),
-    };
-
-    HouseService.saveHouseMember(newMember);
-    setNewMemberName('');
-    setNewMemberNickname('');
-    setShowMemberModal(false);
-    onDataUpdated();
-  };
 
   // Eliminazione membro della casa
   const handleDeleteMember = (userId: string, memberName: string) => {
@@ -231,7 +204,9 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
     }
 
     const playerIds = [selectedPlayer1];
+    const playerNames: string[] = [];
     const p1Obj = selectablePlayers.find((p) => p.id === selectedPlayer1);
+    if (p1Obj?.name) playerNames.push(p1Obj.name);
     if (p1Obj && selectedPlayer1.startsWith('p_mem_') && !players.some((p) => p.id === selectedPlayer1)) {
       StorageService.savePlayer({
         id: selectedPlayer1,
@@ -245,6 +220,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
     if (selectedPlayer2 && selectedPlayer2 !== selectedPlayer1) {
       playerIds.push(selectedPlayer2);
       const p2Obj = selectablePlayers.find((p) => p.id === selectedPlayer2);
+      if (p2Obj?.name) playerNames.push(p2Obj.name);
       if (p2Obj && selectedPlayer2.startsWith('p_mem_') && !players.some((p) => p.id === selectedPlayer2)) {
         StorageService.savePlayer({
           id: selectedPlayer2,
@@ -261,6 +237,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
       houseId: activeHouseId || undefined,
       name: teamName.trim(),
       playerIds,
+      playerNames,
       color: '#10b981',
       createdAt: new Date().toISOString(),
     };
@@ -312,22 +289,23 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
                 title="Condividi codice invito o QR"
               >
                 <QrCode className="w-3.5 h-3.5 text-[var(--accent)]" />
-                <span className="hidden sm:inline">Invita</span>
+                <span className="hidden sm:inline">Invita con QR</span>
               </button>
             )}
             <button
               type="button"
-              onClick={() => setShowMemberModal(true)}
+              onClick={() => setShowFriendModal(true)}
               className="touch-target inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+              title="Aggiungi una persona a mano tra i Giocatori Amici"
             >
               <Plus className="w-3.5 h-3.5 text-[var(--accent)]" />
-              <span>Aggiungi Membro</span>
+              <span>Aggiungi Amico</span>
             </button>
           </div>
         </div>
 
         <p className="text-xs text-[var(--text-muted)]">
-          Persone che vivono in casa o ne fanno parte stabilmente. Il loro soprannome viene suggerito automaticamente per le partite.
+          Membri effettivi della casa collegati con invito o account. Le persone scritte a mano vengono registrate nella sezione Giocatori Amici.
         </p>
 
         {houseMembers.length === 0 ? (
@@ -441,15 +419,34 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {teams.map((team) => {
               const playerIds = Array.isArray(team?.playerIds) ? team.playerIds : [];
-              const teamPlayerLabels = playerIds.map((id) => {
-                const sel = selectablePlayers.find((p) => p.id === id);
-                if (sel) return sel.name;
-                const pl = (players || []).find((p) => p.id === id);
-                if (pl) return (pl.nickname && pl.nickname.trim()) || pl.name || id;
-                const mem = (houseMembers || []).find((m) => `p_mem_${m.userId}` === id);
-                if (mem) return (mem.nickname && mem.nickname.trim()) || mem.displayName || id;
-                return id;
-              });
+              const teamPlayerLabels = (() => {
+                const labels: string[] = [];
+                for (const id of playerIds) {
+                  const sel = selectablePlayers.find((p) => p.id === id);
+                  if (sel?.name) {
+                    labels.push(sel.name);
+                    continue;
+                  }
+                  const pl = (players || []).find((p) => p.id === id || p.id === `p_${id}` || p.id === `p_mem_${id}`);
+                  if (pl) {
+                    labels.push((pl.nickname && pl.nickname.trim()) || pl.name || id);
+                    continue;
+                  }
+                  const mem = (houseMembers || []).find((m) => m.userId === id || `p_mem_${m.userId}` === id);
+                  if (mem) {
+                    labels.push((mem.nickname && mem.nickname.trim()) || mem.displayName || id);
+                    continue;
+                  }
+                  if (id && !id.startsWith('p_') && !id.startsWith('mem_')) {
+                    labels.push(id);
+                    continue;
+                  }
+                }
+                if (labels.length === 0 && Array.isArray(team?.playerNames) && team.playerNames.length > 0) {
+                  return team.playerNames.filter(Boolean);
+                }
+                return labels;
+              })();
               const teamInitials = (typeof team?.name === 'string' && team.name.trim() ? team.name.trim() : 'SQ')
                 .slice(0, 2)
                 .toUpperCase();
@@ -594,94 +591,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
         )}
       </div>
 
-      {/* MODAL 1: AGGIUNGI MEMBRO DELLA CASA */}
-      {showMemberModal && mounted && createPortal(
-        <div
-          className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in"
-          style={{ overscrollBehavior: 'contain' }}
-          onClick={() => setShowMemberModal(false)}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6 modal-safe-container">
-            <div
-              className="relative z-10 w-full max-w-sm my-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)] bg-[var(--surface-raised)] shrink-0">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)] shrink-0">
-                    <Crown className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-bold text-base text-[var(--text)]">Aggiungi Membro Casa</h3>
-                    <p className="text-[11px] text-[var(--text-muted)]">Chi vive o gioca stabilmente in casa</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowMemberModal(false)}
-                  className="touch-target p-2 text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg hover:bg-[var(--surface-alt)] transition-colors cursor-pointer"
-                  aria-label="Chiudi"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="p-5 overflow-y-auto space-y-4 flex-1 min-h-0">
-                <form onSubmit={handleSaveMember} className="space-y-4">
-                  <div>
-                    <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">Nome:</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Es. Marco, Giulia..."
-                      value={newMemberName}
-                      onChange={(e) => setNewMemberName(e.target.value)}
-                      className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs text-[var(--text-muted)] block mb-1.5 font-medium">
-                      Soprannome in casa (opzionale):
-                    </label>
-                    <p className="text-[11px] text-[var(--text-muted)] mb-1">
-                      Se impostato, comparirà solo questo nei suggerimenti per le partite.
-                    </p>
-                    <input
-                      type="text"
-                      placeholder="Es. Il Maestro, Teo..."
-                      value={newMemberNickname}
-                      onChange={(e) => setNewMemberNickname(e.target.value)}
-                      className="w-full bg-[var(--surface-alt)] border border-[var(--control-border)] rounded-xl px-3.5 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--divider)]">
-                    <button
-                      type="button"
-                      onClick={() => setShowMemberModal(false)}
-                      className="min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] cursor-pointer"
-                    >
-                      Annulla
-                    </button>
-                    <button
-                      type="submit"
-                      className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-bold text-xs btn-tactile cursor-pointer shadow-sm"
-                    >
-                      Salva Membro
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* MODAL 2: AGGIUNGI GIOCATORE AMICO */}
+      {/* MODAL: AGGIUNGI GIOCATORE AMICO */}
       {showFriendModal && mounted && createPortal(
         <div
           className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in"
