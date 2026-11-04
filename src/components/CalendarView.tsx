@@ -873,10 +873,10 @@ export function CalendarView({
             <button
               type="button"
               onClick={() => setViewMode('history')}
-              className="touch-target px-3.5 py-1.5 rounded-full text-xs font-bold bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] border border-amber-400/40 shadow-sm shadow-amber-500/20 btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] inline-flex items-center gap-1.5"
+              className="touch-target px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/35 hover:border-amber-400/60 shadow-sm btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] inline-flex items-center gap-1.5"
               title="Apri la cronologia completa delle partite della casa"
             >
-              <History className="w-3.5 h-3.5" />
+              <History className="w-3.5 h-3.5 text-amber-400" />
               <span>Storico</span>
             </button>
           </div>
