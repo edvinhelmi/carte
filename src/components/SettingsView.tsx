@@ -116,13 +116,13 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
 
       {/* SEZIONE 1: CASA ATTIVA E CONDIVISIONE */}
       {activeHouse && (
-        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
+        <div className="glass-ios-raised rounded-[28px] border border-white/10 p-6 sm:p-7 space-y-4 shadow-xl">
           <div className="flex items-center justify-between">
             <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
               <Home className="w-4 h-4 text-[var(--accent)]" />
               <span>Casa Attiva: {activeHouse.name}</span>
             </h2>
-            <span className="font-mono text-xs font-bold text-[var(--accent)] px-2.5 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)]">
+            <span className="font-mono text-xs font-bold text-amber-300 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
               {activeHouse.inviteCode}
             </span>
           </div>
@@ -135,13 +135,13 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
             <button
               type="button"
               onClick={() => setShowShareModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] text-xs font-bold btn-tactile cursor-pointer shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] text-xs font-bold btn-ios-tactile active:scale-96 cursor-pointer shadow-md"
             >
               <QrCode className="w-4 h-4" />
               <span>Mostra QR Code &amp; Link Casa</span>
             </button>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs text-[var(--text-muted)]">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10 text-xs text-[var(--text-muted)]">
               <Cloud className="w-3.5 h-3.5 text-sky-400" />
               <span>
                 {hasCloud ? 'Supabase Cloud: Connesso' : 'Persistenza: Local-First (Offline)'}
@@ -152,7 +152,7 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
       )}
 
       {/* SEZIONE 2: BACKUP E RIPRISTINO */}
-      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
+      <div className="glass-ios-raised rounded-[28px] border border-white/10 p-6 sm:p-7 space-y-4 shadow-xl">
         <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
           <Download className="w-4 h-4 text-[var(--accent)]" />
           <span>Backup &amp; Ripristino Dati</span>
@@ -165,7 +165,7 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
           <button
             type="button"
             onClick={handleExport}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-[var(--text)] btn-ios-tactile active:scale-96 cursor-pointer"
           >
             <Download className="w-4 h-4 text-[var(--accent)]" />
             <span>Esporta Backup (Scarica JSON)</span>
@@ -174,7 +174,7 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-[var(--text)] btn-ios-tactile active:scale-96 cursor-pointer"
           >
             <Upload className="w-4 h-4 text-[var(--text-muted)]" />
             <span>Ripristina da File JSON</span>
@@ -190,21 +190,21 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
       </div>
 
       {/* SEZIONE 3: GUIDA PWA / TELEFONO */}
-      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
+      <div className="glass-ios-raised rounded-[28px] border border-white/10 p-6 sm:p-7 space-y-4 shadow-xl">
         <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
           <Smartphone className="w-4 h-4 text-[var(--accent)]" />
           <span>Uso su Telefono &amp; Installazione PWA</span>
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <div className="bg-[var(--surface-raised)] p-4 rounded-xl border border-[var(--divider)] space-y-1.5">
+          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-1.5">
             <h3 className="font-bold text-sm text-[var(--text)]">iPhone (Safari)</h3>
             <p className="text-[var(--text-muted)] leading-relaxed">
               Tocca il tasto Condividi in basso nel browser Safari e seleziona <em>&quot;Aggiungi alla schermata Home&quot;</em> per avviare il tracker a schermo intero come una vera app.
             </p>
           </div>
 
-          <div className="bg-[var(--surface-raised)] p-4 rounded-xl border border-[var(--divider)] space-y-1.5">
+          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-1.5">
             <h3 className="font-bold text-sm text-[var(--text)]">Android (Chrome)</h3>
             <p className="text-[var(--text-muted)] leading-relaxed">
               Tocca i tre puntini in alto a destra e seleziona <em>&quot;Installa app&quot;</em> o <em>&quot;Aggiungi a Home&quot;</em> per averla subito a portata di mano sul tavolo da gioco.
@@ -214,13 +214,13 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
       </div>
 
       {/* SEZIONE 4: MANUTENZIONE DATI */}
-      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
+      <div className="glass-ios-raised rounded-[28px] border border-white/10 p-6 sm:p-7 space-y-4 shadow-xl">
         <h2 className="font-heading font-bold text-base text-[var(--text)]">Manutenzione Dati</h2>
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={handleResetDemo}
-            className="touch-target inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] text-[var(--text-muted)] hover:text-[var(--text)] text-xs font-semibold border border-[var(--control-border)] btn-tactile cursor-pointer"
+            className="touch-target inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-[var(--text-muted)] hover:text-[var(--text)] text-xs font-semibold border border-white/10 btn-ios-tactile active:scale-96 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Ricarica Dati Demo</span>
@@ -229,7 +229,7 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
           <button
             type="button"
             onClick={handleClearAll}
-            className="touch-target inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-rose-950/20 hover:bg-rose-950/40 text-rose-300 border border-rose-500/30 text-xs font-semibold btn-tactile cursor-pointer"
+            className="touch-target inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-rose-950/20 hover:bg-rose-950/40 text-rose-300 border border-rose-500/30 text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Azzera Tutti i Dati</span>
@@ -238,7 +238,7 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
       </div>
 
       {/* SEZIONE 5: PRIVACY, COOKIE & NOTE LEGALI */}
-      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 space-y-4 shadow-sm">
+      <div className="glass-ios-raised rounded-[28px] border border-white/10 p-6 sm:p-7 space-y-4 shadow-xl">
         <div className="flex items-center justify-between">
           <h2 className="font-heading font-bold text-base text-[var(--text)] flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[var(--accent)]" />
@@ -254,7 +254,7 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
           <button
             type="button"
             onClick={() => onOpenLegal?.('privacy')}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-[var(--text)] btn-ios-tactile active:scale-96 cursor-pointer"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent)]" />
             <span>Informativa Privacy</span>
@@ -263,7 +263,7 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
           <button
             type="button"
             onClick={() => onOpenLegal?.('cookie')}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-[var(--text)] btn-ios-tactile active:scale-96 cursor-pointer"
           >
             <Cookie className="w-3.5 h-3.5 text-[var(--accent)]" />
             <span>Cookie &amp; Storage</span>
@@ -272,7 +272,7 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
           <button
             type="button"
             onClick={() => onOpenLegal?.('terms')}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-[var(--text)] btn-ios-tactile active:scale-96 cursor-pointer"
           >
             <FileText className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             <span>Termini di Servizio</span>
@@ -289,7 +289,7 @@ export function SettingsView({ onDataUpdated, onOpenLegal }: SettingsViewProps) 
                 // ignore
               }
             }}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text-subtle)] hover:text-[var(--text)] btn-tactile cursor-pointer sm:ml-auto"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-[var(--text-subtle)] hover:text-[var(--text)] btn-ios-tactile active:scale-96 cursor-pointer sm:ml-auto"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Rivedi Consenso Cookie</span>

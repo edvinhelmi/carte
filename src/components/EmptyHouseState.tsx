@@ -81,7 +81,7 @@ export function EmptyHouseState({ onHouseJoinedOrCreated }: EmptyHouseStateProps
         <button
           type="button"
           onClick={handleOpenCreateHouse}
-          className="touch-target flex-1 min-h-[52px] px-6 py-3.5 rounded-2xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-heading font-bold text-sm sm:text-base shadow-[0_4px_20px_rgba(245,158,11,0.25)] hover:shadow-[0_6px_24px_rgba(245,158,11,0.35)] btn-tactile cursor-pointer flex items-center justify-center gap-2.5 transition-transform"
+          className="touch-target flex-1 min-h-[52px] px-6 py-3.5 rounded-2xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-heading font-bold text-sm sm:text-base shadow-lg shadow-amber-500/25 btn-ios-tactile active:scale-96 cursor-pointer flex items-center justify-center gap-2.5 transition-transform"
         >
           <Plus className="w-5 h-5 stroke-[2.5]" />
           <span>Crea Nuova Casa</span>
@@ -90,7 +90,7 @@ export function EmptyHouseState({ onHouseJoinedOrCreated }: EmptyHouseStateProps
         <button
           type="button"
           onClick={handleOpenJoinHouse}
-          className="touch-target flex-1 min-h-[52px] px-6 py-3.5 rounded-2xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-[var(--text)] font-heading font-bold text-sm sm:text-base shadow-sm hover:shadow-md btn-tactile cursor-pointer flex items-center justify-center gap-2.5 transition-colors"
+          className="touch-target flex-1 min-h-[52px] px-6 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-[var(--text)] font-heading font-bold text-sm sm:text-base btn-ios-tactile active:scale-96 cursor-pointer flex items-center justify-center gap-2.5 transition-colors"
         >
           <LogIn className="w-5 h-5 text-[var(--accent)]" />
           <span>Entra in una Casa</span>
@@ -98,7 +98,7 @@ export function EmptyHouseState({ onHouseJoinedOrCreated }: EmptyHouseStateProps
       </div>
 
       {/* Google User Identity Section */}
-      <div className="w-full rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border)] p-5 text-left relative overflow-hidden">
+      <div className="w-full rounded-[28px] glass-ios-raised border border-white/10 p-5 sm:p-6 text-left relative overflow-hidden shadow-xl">
         {currentUser.isGoogleUser ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5 min-w-0">

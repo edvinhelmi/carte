@@ -356,7 +356,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
         </p>
 
         {houseMembers.length === 0 ? (
-          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 text-center text-xs text-[var(--text-muted)]">
+          <div className="glass-ios rounded-[24px] border border-white/10 p-6 text-center text-xs text-[var(--text-muted)]">
             Nessun membro trovato. Aggiungi il primo coinquilino o invita altri con il codice QR!
           </div>
         ) : (
@@ -378,7 +378,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
               return (
                 <div
                   key={m.userId}
-                  className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-4 flex items-center justify-between gap-3 shadow-sm transition-colors"
+                  className="glass-ios-raised rounded-[24px] border border-white/10 hover:border-white/20 p-4 flex items-center justify-between gap-3 shadow-md transition-all"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {m.avatarUrl ? (
@@ -459,7 +459,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
         </div>
 
         {teams.length === 0 ? (
-          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 text-center text-xs text-[var(--text-muted)]">
+          <div className="glass-ios rounded-[24px] border border-white/10 p-6 text-center text-xs text-[var(--text-muted)]">
             Nessuna squadra registrata. Crea una nuova coppia di gioco con il pulsante &quot;Nuova Squadra&quot;!
           </div>
         ) : (
@@ -502,7 +502,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
               return (
                 <div
                   key={team.id}
-                  className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] hover:border-[var(--control-border)] p-5 interactive-card flex flex-col justify-between"
+                  className="glass-ios-raised rounded-[26px] border border-white/10 hover:border-white/20 p-5 flex flex-col justify-between shadow-md transition-all"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2 mb-2">
@@ -578,7 +578,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
         </p>
 
         {friendPlayers.length === 0 ? (
-          <div className="bg-[var(--surface)] rounded-2xl border border-dashed border-[var(--control-border)] p-6 text-center">
+          <div className="glass-ios rounded-[24px] border border-dashed border-white/15 p-6 text-center">
             <User className="w-8 h-8 text-[var(--text-subtle)] mx-auto mb-2 opacity-60" />
             <p className="text-xs font-semibold text-[var(--text)]">
               Nessun giocatore amico registrato per ora
@@ -604,7 +604,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
               return (
                 <div
                   key={player.id}
-                  className="bg-[var(--surface)] rounded-xl border border-[var(--divider)] hover:border-[var(--control-border)] p-3.5 flex items-center justify-between interactive-card group"
+                  className="glass-ios rounded-2xl border border-white/10 hover:border-white/20 p-3.5 flex items-center justify-between group transition-all"
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <div className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shrink-0 group-hover:border-[var(--accent)]/50 transition-colors">
