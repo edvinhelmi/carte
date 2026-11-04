@@ -1,4 +1,4 @@
-import type { Player, Team, Match, TournamentSession, TournamentMode, CardSuit } from '@/types/game';
+import type { Player, Team, Match, TournamentSession, TournamentMode, CardSuit, GameType, ScopaVariant, ScopaRound } from '@/types/game';
 import { RealtimeSyncService } from './realtimeSync.ts';
 import { HouseService, getHouseResourceKey } from './houseService.ts';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient.ts';
@@ -342,9 +342,31 @@ export const StorageService = {
     }
   },
 
-  getActiveTournamentSession(): TournamentSession | null {
+  getActiveTournamentSession(gameType?: GameType): TournamentSession | null {
     const sessions = this.getTournamentSessions();
-    return sessions.find((s) => s.status === 'in_progress') || null;
+    if (gameType) {
+      return sessions.find((s) => s.status === 'in_progress' && (s.gameType || 'briscola') === gameType) || null;
+    }
+    const currentCategory = this.getActiveGameCategory();
+    return (
+      sessions.find((s) => s.status === 'in_progress' && (s.gameType || 'briscola') === currentCategory) ||
+      sessions.find((s) => s.status === 'in_progress') ||
+      null
+    );
+  },
+
+  getActiveGameCategory(): GameType {
+    if (typeof window === 'undefined') return 'briscola';
+    const val = getStoredItem('carte_active_game_category_v1');
+    if (val === 'scopa') return 'scopa';
+    return 'briscola';
+  },
+
+  setActiveGameCategory(game: GameType): void {
+    if (typeof window === 'undefined') return;
+    setStoredItem('carte_active_game_category_v1', game);
+    window.dispatchEvent(new Event('carte_game_category_change'));
+    window.dispatchEvent(new Event('carte_storage_update'));
   },
 
   startTournamentSession(
@@ -355,13 +377,18 @@ export const StorageService = {
     mode: TournamentMode = '2vs2',
     team3Name?: string,
     team3Players?: string[],
-    players5Names?: string[]
+    players5Names?: string[],
+    gameType?: GameType,
+    scopaVariant?: ScopaVariant,
+    targetPoints?: number
   ): TournamentSession {
+    const effectiveGameType: GameType = gameType || this.getActiveGameCategory() || 'briscola';
     const sessions = this.getTournamentSessions();
     for (const s of sessions) {
-      if (s.status === 'in_progress') {
+      if (s.status === 'in_progress' && (s.gameType || 'briscola') === effectiveGameType) {
         s.status = 'completed';
         if (!s.endedAt) s.endedAt = new Date().toISOString();
+        s.updatedAt = new Date().toISOString();
       }
     }
     const cleanT1 = (typeof team1Name === 'string' ? team1Name.trim() : '') || (mode === '2vs2' ? 'Squadra 1' : 'Giocatore 1');
@@ -374,6 +401,10 @@ export const StorageService = {
       dateKey: formatDateKey(),
       startedAt: nowIso,
       updatedAt: nowIso,
+      gameType: effectiveGameType,
+      scopaVariant: effectiveGameType === 'scopa' ? (scopaVariant || 'scopa_normale') : undefined,
+      targetPoints: effectiveGameType === 'scopa' ? (targetPoints || 21) : undefined,
+      scopaRounds: [],
       mode,
       team1Name: cleanT1,
       team1Players: Array.isArray(team1Players) ? team1Players : [],
@@ -530,6 +561,76 @@ export const StorageService = {
     }
 
     this.broadcastStateChange();
+    return session;
+  },
+
+  addScopaRound(
+    sessionId: string,
+    roundData: Omit<import('@/types/game').ScopaRound, 'id' | 'roundNumber' | 'timestamp'>
+  ): TournamentSession | null {
+    const sessions = this.getTournamentSessions();
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session || session.status !== 'in_progress') return null;
+
+    if (!Array.isArray(session.scopaRounds)) {
+      session.scopaRounds = [];
+    }
+
+    const roundNumber = session.scopaRounds.length + 1;
+    const newRound: ScopaRound = {
+      id: `rnd_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      roundNumber,
+      ...roundData,
+      timestamp: new Date().toISOString(),
+    };
+
+    session.scopaRounds.push(newRound);
+    session.team1Wins = (session.team1Wins || 0) + roundData.totalPointsTeam1;
+    session.team2Wins = (session.team2Wins || 0) + roundData.totalPointsTeam2;
+    session.updatedAt = new Date().toISOString();
+
+    setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
+
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      client?.from('tournament_sessions').update({
+        team1_wins: session.team1Wins,
+        team2_wins: session.team2Wins,
+        scopa_rounds: session.scopaRounds,
+        updated_at: session.updatedAt,
+      }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
+    }
+
+    this.broadcastStateChange();
+    return session;
+  },
+
+  removeLastScopaRound(sessionId: string): TournamentSession | null {
+    const sessions = this.getTournamentSessions();
+    const session = sessions.find((s) => s.id === sessionId);
+    if (!session || session.status !== 'in_progress' || !session.scopaRounds || session.scopaRounds.length === 0) return null;
+
+    const removedRound = session.scopaRounds.pop();
+    if (removedRound) {
+      session.team1Wins = Math.max(0, (session.team1Wins || 0) - removedRound.totalPointsTeam1);
+      session.team2Wins = Math.max(0, (session.team2Wins || 0) - removedRound.totalPointsTeam2);
+      session.updatedAt = new Date().toISOString();
+
+      setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
+
+      if (isSupabaseConfigured()) {
+        const client = getSupabaseClient();
+        client?.from('tournament_sessions').update({
+          team1_wins: session.team1Wins,
+          team2_wins: session.team2Wins,
+          scopa_rounds: session.scopaRounds,
+          updated_at: session.updatedAt,
+        }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
+      }
+
+      this.broadcastStateChange();
+    }
+
     return session;
   },
 

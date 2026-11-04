@@ -116,6 +116,10 @@ CREATE TABLE IF NOT EXISTS public.tournament_sessions (
 ALTER TABLE public.tournament_sessions ADD COLUMN IF NOT EXISTS players5 JSONB;
 ALTER TABLE public.tournament_sessions ADD COLUMN IF NOT EXISTS winner_player_name TEXT;
 ALTER TABLE public.tournament_sessions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE public.tournament_sessions ADD COLUMN IF NOT EXISTS game_type TEXT DEFAULT 'briscola';
+ALTER TABLE public.tournament_sessions ADD COLUMN IF NOT EXISTS scopa_variant TEXT;
+ALTER TABLE public.tournament_sessions ADD COLUMN IF NOT EXISTS target_points INT;
+ALTER TABLE public.tournament_sessions ADD COLUMN IF NOT EXISTS scopa_rounds JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS player_names JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.players ADD COLUMN IF NOT EXISTS is_friend BOOLEAN DEFAULT false;
 

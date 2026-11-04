@@ -9,8 +9,24 @@ export function calculateTeamStats(
   teams: Team[] = [],
   matches: Match[] = [],
   players: Player[] = [],
-  tournamentSessions: TournamentSession[] = []
+  tournamentSessions: TournamentSession[] = [],
+  gameTypeFilter?: import('@/types/game').GameType | 'all'
 ): TeamStats[] {
+  const safeMatches = (matches || []).filter((m): m is Match => {
+    if (!m || typeof m.id !== 'string') return false;
+    if (gameTypeFilter && gameTypeFilter !== 'all') {
+      return (m.gameType || 'briscola') === gameTypeFilter;
+    }
+    return true;
+  });
+  const safeSessions = (tournamentSessions || []).filter((s): s is TournamentSession => {
+    if (!s) return false;
+    if (gameTypeFilter && gameTypeFilter !== 'all') {
+      return (s.gameType || 'briscola') === gameTypeFilter;
+    }
+    return true;
+  });
+
   const safePlayers = (players || []).filter((p): p is Player => Boolean(p && typeof p.id === 'string'));
   const playerMap = new Map(safePlayers.map((p) => [p.id, p]));
   const playerNameMap = new Map(
@@ -19,7 +35,7 @@ export function calculateTeamStats(
 
   // Includi anche team creati durante i tornei che potrebbero non essere salvati nei preset
   const allTeams = [...(teams || []).filter((t): t is Team => Boolean(t && typeof t.id === 'string'))];
-  for (const session of tournamentSessions || []) {
+  for (const session of safeSessions) {
     if (!session) continue;
     if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
       for (const p of session.players5) {
@@ -74,8 +90,6 @@ export function calculateTeamStats(
     }
   }
 
-  const safeMatches = (matches || []).filter((m): m is Match => Boolean(m && typeof m.id === 'string'));
-
   const stats: TeamStats[] = allTeams.map((team) => {
     const teamMatches = safeMatches.filter((m) => m.team1Id === team.id || m.team2Id === team.id);
     let wins = teamMatches.filter((m) => m.winnerTeamId === team.id).length;
@@ -83,8 +97,8 @@ export function calculateTeamStats(
 
     const teamLower = safeLower(team.name);
 
-    // Aggiungi vittorie e partite dalle sessioni di torneo
-    for (const session of tournamentSessions || []) {
+    // Aggiungi vittorie e partite dalle sessioni di torneo filtrate
+    for (const session of safeSessions) {
       if (!session) continue;
       if (session.mode === 'a5' && session.players5) {
         const pEntry = session.players5.find((p) => p && safeLower(p.name) === teamLower);
@@ -158,15 +172,31 @@ export function calculatePlayerStats(
   players: Player[] = [],
   teams: Team[] = [],
   matches: Match[] = [],
-  tournamentSessions: TournamentSession[] = []
+  tournamentSessions: TournamentSession[] = [],
+  gameTypeFilter?: import('@/types/game').GameType | 'all'
 ): PlayerStats[] {
+  const safeMatches = (matches || []).filter((m): m is Match => {
+    if (!m || typeof m.id !== 'string') return false;
+    if (gameTypeFilter && gameTypeFilter !== 'all') {
+      return (m.gameType || 'briscola') === gameTypeFilter;
+    }
+    return true;
+  });
+  const safeSessions = (tournamentSessions || []).filter((s): s is TournamentSession => {
+    if (!s) return false;
+    if (gameTypeFilter && gameTypeFilter !== 'all') {
+      return (s.gameType || 'briscola') === gameTypeFilter;
+    }
+    return true;
+  });
+
   const safePlayers = (players || []).filter((p): p is Player => Boolean(p && typeof p.id === 'string'));
   const allPlayers = [...safePlayers];
   const knownPlayerNames = new Set(
     safePlayers.filter((p) => typeof p.name === 'string' && p.name.trim()).map((p) => safeLower(p.name))
   );
 
-  for (const session of tournamentSessions || []) {
+  for (const session of safeSessions) {
     if (!session) continue;
     if (session.mode === 'a5' && session.players5) {
       for (const p of session.players5) {
@@ -188,7 +218,6 @@ export function calculatePlayerStats(
   }
 
   const safeTeams = (teams || []).filter((t): t is Team => Boolean(t && typeof t.id === 'string'));
-  const safeMatches = (matches || []).filter((m): m is Match => Boolean(m && typeof m.id === 'string'));
 
   const stats: PlayerStats[] = allPlayers.map((player) => {
     const pNameLower = safeLower(player.name);
@@ -216,7 +245,7 @@ export function calculatePlayerStats(
     let matchesPlayed = playerMatches.length;
 
     // Aggiungi vittorie e partite disputate nei tornei per il singolo giocatore
-    for (const session of tournamentSessions || []) {
+    for (const session of safeSessions) {
       if (!session) continue;
       if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
         const pEntry = session.players5.find((p) => p && matchesNameOrNick(p.name));
@@ -296,7 +325,8 @@ export function calculateHeadToHead(
   team2Id: string,
   teams: Team[] = [],
   matches: Match[] = [],
-  tournamentSessions: TournamentSession[] = []
+  tournamentSessions: TournamentSession[] = [],
+  gameTypeFilter?: import('@/types/game').GameType | 'all'
 ): HeadToHeadStats | null {
   if (!team1Id || !team2Id) return null;
   const team1 = (teams || []).find((t) => t && t.id === team1Id);
@@ -304,7 +334,22 @@ export function calculateHeadToHead(
 
   if (!team1 || !team2) return null;
 
-  const directMatches = (matches || [])
+  const safeMatches = (matches || []).filter((m): m is Match => {
+    if (!m || typeof m.id !== 'string') return false;
+    if (gameTypeFilter && gameTypeFilter !== 'all') {
+      return (m.gameType || 'briscola') === gameTypeFilter;
+    }
+    return true;
+  });
+  const safeSessions = (tournamentSessions || []).filter((s): s is TournamentSession => {
+    if (!s) return false;
+    if (gameTypeFilter && gameTypeFilter !== 'all') {
+      return (s.gameType || 'briscola') === gameTypeFilter;
+    }
+    return true;
+  });
+
+  const directMatches = safeMatches
     .filter(
       (m) =>
         m &&
@@ -325,7 +370,7 @@ export function calculateHeadToHead(
   const t2Lower = safeLower(team2.name);
 
   // Aggiungi risultati da tornei
-  for (const session of tournamentSessions || []) {
+  for (const session of safeSessions) {
     if (!session) continue;
     if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
       const p1Entry = session.players5.find((p) => p && safeLower(p.name) === t1Lower);
@@ -373,17 +418,30 @@ export function getDailySummary(
   dateKey: string,
   matches: Match[] = [],
   teams: Team[] = [],
-  tournamentSessions: TournamentSession[] = []
+  tournamentSessions: TournamentSession[] = [],
+  gameTypeFilter?: import('@/types/game').GameType | 'all'
 ) {
   const dayMatches = (matches || [])
-    .filter((m) => m && m.dateKey === dateKey)
+    .filter((m) => {
+      if (!m || m.dateKey !== dateKey) return false;
+      if (gameTypeFilter && gameTypeFilter !== 'all') {
+        return (m.gameType || 'briscola') === gameTypeFilter;
+      }
+      return true;
+    })
     .sort((a, b) => {
       const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
       const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
       return tb - ta;
     });
 
-  const daySessions = (tournamentSessions || []).filter((s) => s && s.dateKey === dateKey);
+  const daySessions = (tournamentSessions || []).filter((s) => {
+    if (!s || s.dateKey !== dateKey) return false;
+    if (gameTypeFilter && gameTypeFilter !== 'all') {
+      return (s.gameType || 'briscola') === gameTypeFilter;
+    }
+    return true;
+  });
 
   const totalMatches =
     dayMatches.length +

@@ -11,10 +11,11 @@ import {
   User,
   Sparkles,
 } from 'lucide-react';
-import { TournamentSession, Team, Player, TournamentMode } from '@/types/game';
+import { TournamentSession, Team, Player, TournamentMode, GameType, ScopaVariant } from '@/types/game';
 import { StorageService } from '@/lib/storage';
 import { HouseService } from '@/lib/houseService';
 import { fireWinConfetti } from '@/lib/confetti';
+import { ScopaRoundScorer } from './ScopaRoundScorer';
 
 interface TorneoSerataViewProps {
   sessions: TournamentSession[];
@@ -81,6 +82,23 @@ export function TorneoSerataView({
 
   // Modalità di torneo selezionata: 2vs2 (squadre), 1vs1 (singoli), 1vs1vs1 (a tre), a5 (chiamata a 5)
   const [tournamentMode, setTournamentMode] = useState<TournamentMode>('2vs2');
+
+  // Categoria di gioco e configurazione Scopa
+  const [activeCategory, setActiveCategory] = useState<GameType>(() => StorageService.getActiveGameCategory());
+  const [scopaVariant, setScopaVariant] = useState<ScopaVariant>('scopa_normale');
+  const [scopaTargetPoints, setScopaTargetPoints] = useState<number>(21);
+
+  useEffect(() => {
+    const handleCategoryChange = () => {
+      setActiveCategory(StorageService.getActiveGameCategory());
+    };
+    window.addEventListener('carte_game_category_change', handleCategoryChange);
+    window.addEventListener('carte_storage_update', handleCategoryChange);
+    return () => {
+      window.removeEventListener('carte_game_category_change', handleCategoryChange);
+      window.removeEventListener('carte_storage_update', handleCategoryChange);
+    };
+  }, []);
 
   // Form 2vs2 (Squadre)
   const [team1Name, setTeam1Name] = useState('');
@@ -247,9 +265,91 @@ export function TorneoSerataView({
     if (availablePlayerNames[4]) setA5Player5(availablePlayerNames[4]);
   };
 
-  // Avvio torneo
+  // Avvio torneo o partita di scopa
   const handleStartTournament = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (activeCategory === 'scopa') {
+      const targetPts = scopaTargetPoints > 0 ? scopaTargetPoints : undefined;
+
+      if (scopaVariant === 'scopone_scientifico') {
+        const t1 = team1Name.trim() || 'Squadra 1';
+        const t2 = team2Name.trim() || 'Squadra 2';
+        if (t1.toLowerCase() === t2.toLowerCase()) {
+          alert('Inserisci due nomi di squadra diversi!');
+          return;
+        }
+        StorageService.startTournamentSession(
+          t1,
+          team1SelectedPlayers,
+          t2,
+          team2SelectedPlayers,
+          '2vs2',
+          undefined,
+          undefined,
+          undefined,
+          'scopa',
+          'scopone_scientifico',
+          targetPts
+        );
+      } else {
+        // Scopa normale (1vs1 o 2vs2)
+        if (tournamentMode === '1vs1') {
+          const p1 = singlePlayer1.trim();
+          const p2 = singlePlayer2.trim();
+          if (!p1 || !p2) {
+            alert('Seleziona o inserisci entrambi i giocatori per la sfida 1 vs 1!');
+            return;
+          }
+          if (p1.toLowerCase() === p2.toLowerCase()) {
+            alert('I due giocatori devono avere nomi diversi!');
+            return;
+          }
+          StorageService.startTournamentSession(
+            p1,
+            [p1],
+            p2,
+            [p2],
+            '1vs1',
+            undefined,
+            undefined,
+            undefined,
+            'scopa',
+            'scopa_normale',
+            targetPts
+          );
+        } else {
+          const t1 = team1Name.trim() || 'Squadra 1';
+          const t2 = team2Name.trim() || 'Squadra 2';
+          if (t1.toLowerCase() === t2.toLowerCase()) {
+            alert('Inserisci due nomi di squadra diversi!');
+            return;
+          }
+          StorageService.startTournamentSession(
+            t1,
+            team1SelectedPlayers,
+            t2,
+            team2SelectedPlayers,
+            '2vs2',
+            undefined,
+            undefined,
+            undefined,
+            'scopa',
+            'scopa_normale',
+            targetPts
+          );
+        }
+      }
+
+      setTeam1Name('');
+      setTeam2Name('');
+      setTeam1SelectedPlayers([]);
+      setTeam2SelectedPlayers([]);
+      setSinglePlayer1('');
+      setSinglePlayer2('');
+      onDataUpdated();
+      return;
+    }
 
     if (tournamentMode === 'a5') {
       const names = [
@@ -407,8 +507,13 @@ export function TorneoSerataView({
   };
 
   const pastSessions = useMemo(
-    () => sessions.filter((s) => s.status === 'completed'),
-    [sessions]
+    () =>
+      sessions.filter(
+        (s) =>
+          s.status === 'completed' &&
+          ((s.gameType || 'briscola') === activeCategory)
+      ),
+    [sessions, activeCategory]
   );
 
   const isA5Mode = Boolean(activeSession && activeSession.mode === 'a5');
@@ -435,6 +540,236 @@ export function TorneoSerataView({
       {/* SEZIONE 1: TABELLONE IN TEMPO REALE SE C'È UN TORNEO ATTIVO */}
       {activeSession ? (
         <div className="space-y-6" data-reveal="rise">
+          {activeSession.gameType === 'scopa' ? (
+            /* TABELLONE LIVE SPECIFICO PER SCOPA & SCOPONE */
+            <div className="space-y-6">
+              {/* Header Partita Scopa */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--surface)] border border-[var(--divider)] p-5 sm:p-6 rounded-2xl shadow-sm">
+                <div>
+                  <div className="mb-1 flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-amber-400 tracking-wide flex items-center gap-1">
+                      <span>🎴</span>
+                      <span>Partita in corso</span>
+                    </span>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-bold">
+                      {activeSession.scopaVariant === 'scopone_scientifico' ? 'Scopone Scientifico' : 'Scopa Normale'}
+                    </span>
+                    {activeSession.targetPoints ? (
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-[var(--surface-raised)] text-[var(--text-muted)] border border-[var(--control-border)] font-mono font-semibold">
+                        Traguardo: {activeSession.targetPoints} pt
+                      </span>
+                    ) : (
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-[var(--surface-raised)] text-[var(--text-muted)] border border-[var(--control-border)] font-semibold">
+                        Punteggio Libero
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
+                    {activeSession.team1Name}{' '}
+                    <span className="text-[var(--accent)] font-normal">vs</span>{' '}
+                    {activeSession.team2Name}
+                  </h1>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleEndTournament}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--surface-raised)] hover:bg-rose-950/40 text-rose-300 hover:text-rose-200 border border-rose-500/30 hover:border-rose-500/50 font-bold text-xs btn-tactile cursor-pointer shadow-sm min-h-[44px]"
+                >
+                  <Trophy className="w-4 h-4 text-[var(--accent)]" />
+                  <span>Concludi Partita Scopa</span>
+                </button>
+              </div>
+
+              {/* Banner Obiettivo Raggiunto */}
+              {activeSession.targetPoints && (activeSession.team1Wins >= activeSession.targetPoints || activeSession.team2Wins >= activeSession.targetPoints) && (
+                <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-[var(--on-accent)] flex items-center justify-center font-black text-lg shrink-0">
+                      🏆
+                    </div>
+                    <div>
+                      <h3 className="font-heading font-black text-base text-[var(--text)]">
+                        {activeSession.team1Wins >= activeSession.targetPoints && activeSession.team2Wins >= activeSession.targetPoints
+                          ? activeSession.team1Wins > activeSession.team2Wins
+                            ? `${activeSession.team1Name} vince con ${activeSession.team1Wins} punti!`
+                            : activeSession.team2Wins > activeSession.team1Wins
+                            ? `${activeSession.team2Name} vince con ${activeSession.team2Wins} punti!`
+                            : 'Parità al traguardo dei punti!'
+                          : activeSession.team1Wins >= activeSession.targetPoints
+                          ? `${activeSession.team1Name} ha raggiunto ${activeSession.targetPoints} punti!`
+                          : `${activeSession.team2Name} ha raggiunto ${activeSession.targetPoints} punti!`}
+                      </h3>
+                      <p className="text-xs text-[var(--text-muted)]">
+                        Traguardo di {activeSession.targetPoints} punti superato. Puoi concludere la partita per registrarla.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleEndTournament}
+                    className="px-4 py-2 rounded-xl bg-[var(--accent)] text-[var(--on-accent)] font-bold text-xs btn-tactile cursor-pointer shrink-0 min-h-[44px] w-full sm:w-auto"
+                  >
+                    Assegna Vittoria
+                  </button>
+                </div>
+              )}
+
+              {/* TABELLONE PUNTI A SQUADRE */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* SQUADRA 1 */}
+                <div className={`relative rounded-2xl p-5 sm:p-6 flex flex-col justify-between text-center transition-all ${
+                  activeSession.team1Wins > activeSession.team2Wins
+                    ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-xl shadow-amber-500/10 ring-1 ring-[var(--accent)]/40'
+                    : 'bg-[var(--surface)] border border-[var(--divider)]'
+                }`}>
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-2">
+                      <span className="text-[11px] font-mono text-[var(--text-subtle)] font-bold">
+                        SQUADRA 1
+                      </span>
+                      {activeSession.team1Wins > activeSession.team2Wins && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/15 text-amber-300 border-amber-500/30">
+                          <Trophy className="w-3 h-3 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                          <span>In vantaggio</span>
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="font-heading text-xl sm:text-2xl font-extrabold text-[var(--text)] tracking-tight truncate">
+                      {activeSession.team1Name}
+                    </h2>
+                    {activeSession.team1Players && activeSession.team1Players.length > 0 && (
+                      <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
+                        {activeSession.team1Players.join(' & ')}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="my-4 sm:my-6">
+                    <span className={`text-6xl sm:text-7xl lg:text-8xl font-black font-mono tabular-nums tracking-tight select-none block ${
+                      activeSession.team1Wins > activeSession.team2Wins ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                    } ${bumpTeam1 ? 'animate-score-bump' : ''}`}
+                    onAnimationEnd={() => setBumpTeam1(false)}>
+                      {activeSession.team1Wins}
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)] font-medium mt-1 block">
+                      {activeSession.targetPoints ? `su ${activeSession.targetPoints} punti obiettivo` : 'punti totali'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAddWin(1)}
+                      className="w-full py-3.5 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-amber-500/40 text-[var(--text)] font-extrabold text-sm sm:text-base btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[48px]"
+                    >
+                      <Plus className="w-4 h-4 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
+                      <span>+1 Punto Rapido</span>
+                    </button>
+                    {activeSession.team1Wins > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveWin(1)}
+                        className="touch-target inline-flex items-center gap-1.5 text-xs text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-1.5 px-3 rounded-lg hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Correggi (-1 pt)</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* SQUADRA 2 */}
+                <div className={`relative rounded-2xl p-5 sm:p-6 flex flex-col justify-between text-center transition-all ${
+                  activeSession.team2Wins > activeSession.team1Wins
+                    ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-xl shadow-amber-500/10 ring-1 ring-[var(--accent)]/40'
+                    : 'bg-[var(--surface)] border border-[var(--divider)]'
+                }`}>
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-2">
+                      <span className="text-[11px] font-mono text-[var(--text-subtle)] font-bold">
+                        SQUADRA 2
+                      </span>
+                      {activeSession.team2Wins > activeSession.team1Wins && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-amber-500/15 text-amber-300 border-amber-500/30">
+                          <Trophy className="w-3 h-3 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                          <span>In vantaggio</span>
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="font-heading text-xl sm:text-2xl font-extrabold text-[var(--text)] tracking-tight truncate">
+                      {activeSession.team2Name}
+                    </h2>
+                    {activeSession.team2Players && activeSession.team2Players.length > 0 && (
+                      <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
+                        {activeSession.team2Players.join(' & ')}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="my-4 sm:my-6">
+                    <span className={`text-6xl sm:text-7xl lg:text-8xl font-black font-mono tabular-nums tracking-tight select-none block ${
+                      activeSession.team2Wins > activeSession.team1Wins ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                    } ${bumpTeam2 ? 'animate-score-bump' : ''}`}
+                    onAnimationEnd={() => setBumpTeam2(false)}>
+                      {activeSession.team2Wins}
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)] font-medium mt-1 block">
+                      {activeSession.targetPoints ? `su ${activeSession.targetPoints} punti obiettivo` : 'punti totali'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAddWin(2)}
+                      className="w-full py-3.5 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-amber-500/40 text-[var(--text)] font-extrabold text-sm sm:text-base btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[48px]"
+                    >
+                      <Plus className="w-4 h-4 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
+                      <span>+1 Punto Rapido</span>
+                    </button>
+                    {activeSession.team2Wins > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveWin(2)}
+                        className="touch-target inline-flex items-center gap-1.5 text-xs text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-1.5 px-3 rounded-lg hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Correggi (-1 pt)</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Barra Avanzamento Traguardo */}
+              {activeSession.targetPoints && (
+                <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-4 sm:p-5 text-center space-y-2">
+                  <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-semibold">
+                    <span>{activeSession.team1Name}: {activeSession.team1Wins} / {activeSession.targetPoints} pt</span>
+                    <span>Progresso Traguardo</span>
+                    <span>{activeSession.team2Name}: {activeSession.team2Wins} / {activeSession.targetPoints} pt</span>
+                  </div>
+                  <div className="w-full bg-[var(--surface-alt)] h-2.5 rounded-full overflow-hidden flex">
+                    <div
+                      className="bg-[var(--accent)] h-full transition-[width] duration-300 ease-out"
+                      style={{ width: `${Math.min(100, (activeSession.team1Wins / (activeSession.targetPoints || 21)) * 50)}%` }}
+                    />
+                    <div className="flex-1 bg-transparent" />
+                    <div
+                      className="bg-sky-400 h-full transition-[width] duration-300 ease-out"
+                      style={{ width: `${Math.min(100, (activeSession.team2Wins / (activeSession.targetPoints || 21)) * 50)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* CALCOLATORE TURNI / SMAZZATE GUIDATO (Scope, Carte, Denari, Settebello, Primiera, Napola) */}
+              <ScopaRoundScorer session={activeSession} onRoundAdded={onDataUpdated} />
+            </div>
+          ) : (
+            /* TABELLONE LIVE PER BRISCOLA */
+            <>
           {/* Header Torneo Attivo */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--surface)] border border-[var(--divider)] p-5 sm:p-6 rounded-2xl shadow-sm">
             <div>
@@ -878,82 +1213,209 @@ export function TorneoSerataView({
           </div>
         </>
       )}
-    </div>
-  ) : (
+    </>
+  )}
+</div>
+) : (
         /* SEZIONE 2: NESSUN TORNEO ATTIVO -> FORM ELEGANTE PER AVVIARE */
         <div
           className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-6 sm:p-8 shadow-sm space-y-6"
           data-reveal="rise"
         >
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] text-xs font-semibold border border-[var(--accent-border)] mb-3">
-              <Swords className="w-3.5 h-3.5" />
-              <span>Nuova Serata di Torneo</span>
-            </div>
-            <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
-              Avvia la Sfida di Stasera
-            </h1>
-            <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1.5 max-w-xl leading-relaxed">
-              Scegli la modalità di gioco (a squadre, 1 vs 1, a 3 o Briscola Chiamata a 5), inserisci i partecipanti e segna le vittorie mano dopo mano con un tocco.
-            </p>
-          </div>
+          {activeCategory === 'scopa' ? (
+            /* INTESTAZIONE E SELETTORI PER SCOPA */
+            <div className="space-y-5">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-xs font-semibold border border-amber-500/30 mb-3">
+                  <span>🎴</span>
+                  <span>Nuova Partita di Scopa &amp; Scopone</span>
+                </div>
+                <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
+                  Avvia la Sfida di Scopa
+                </h1>
+                <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1.5 max-w-xl leading-relaxed">
+                  Scegli tra Scopa Normale o Scopone Scientifico, imposta i punti traguardo per la vittoria (es. 11 o 21 pt) e calcola i punti per categoria ad ogni smazzata.
+                </p>
+              </div>
 
-            {/* SELETTORE MODALITÀ (Segmented Control) */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-[var(--text-muted)] block">
-                Modalità Torneo:
-              </label>
-              <div className="inline-flex flex-wrap p-1 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={() => setTournamentMode('2vs2')}
-                  className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
-                    tournamentMode === '2vs2'
-                      ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-                  }`}
-                >
-                  <Users className="w-3.5 h-3.5" />
-                  <span>2 vs 2 (Coppie)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTournamentMode('1vs1')}
-                  className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
-                    tournamentMode === '1vs1'
-                      ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-                  }`}
-                >
-                  <User className="w-3.5 h-3.5" />
-                  <span>1 vs 1 (Singolo)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTournamentMode('1vs1vs1')}
-                  className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
-                    tournamentMode === '1vs1vs1'
-                      ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-                  }`}
-                >
-                  <Swords className="w-3.5 h-3.5" />
-                  <span>1 vs 1 vs 1 (In 3)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTournamentMode('a5')}
-                  className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
-                    tournamentMode === 'a5'
-                      ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-                  }`}
-                >
-                  <Users className="w-3.5 h-3.5" />
-                  <span>A 5 (Chiamata)</span>
-                </button>
+              {/* Selettore Variante: Scopa Normale vs Scopone Scientifico */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-[var(--text-muted)] block">
+                  Variante di Gioco:
+                </label>
+                <div className="inline-flex flex-wrap p-1 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setScopaVariant('scopa_normale')}
+                    className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                      scopaVariant === 'scopa_normale'
+                        ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    <span>🎴</span>
+                    <span>Scopa Normale</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScopaVariant('scopone_scientifico');
+                      setTournamentMode('2vs2');
+                    }}
+                    className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                      scopaVariant === 'scopone_scientifico'
+                        ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    <span>🃏</span>
+                    <span>Scopone Scientifico</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Selettore Punti Traguardo */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-[var(--text-muted)] block">
+                  Punti per Vincere la Partita:
+                </label>
+                <div className="inline-flex flex-wrap p-1 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] w-full sm:w-auto">
+                  {[
+                    { pts: 11, label: '11 Punti' },
+                    { pts: 21, label: '21 Punti (Classico)' },
+                    { pts: 31, label: '31 Punti' },
+                    { pts: 0, label: 'Libero' },
+                  ].map((item) => (
+                    <button
+                      key={item.pts}
+                      type="button"
+                      onClick={() => setScopaTargetPoints(item.pts)}
+                      className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer ${
+                        scopaTargetPoints === item.pts
+                          ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Selettore Modalità (solo per Scopa Normale, dato che Scopone è rigorosamente a 4 giocatori 2vs2) */}
+              {scopaVariant === 'scopa_normale' ? (
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-[var(--text-muted)] block">
+                    Formato Sfida:
+                  </label>
+                  <div className="inline-flex flex-wrap p-1 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setTournamentMode('2vs2')}
+                      className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                        tournamentMode === '2vs2'
+                          ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      <span>2 vs 2 (A Coppie)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTournamentMode('1vs1')}
+                      className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                        tournamentMode === '1vs1'
+                          ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span>1 vs 1 (Singolo)</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs text-[var(--text-muted)] flex items-center gap-2">
+                  <span>ℹ️</span>
+                  <span>
+                    Lo <strong>Scopone Scientifico</strong> si gioca a 4 giocatori divisi in 2 squadre avversarie (2 contro 2).
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* INTESTAZIONE E SELETTORI PER BRISCOLA */
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] text-xs font-semibold border border-[var(--accent-border)] mb-3">
+                <Swords className="w-3.5 h-3.5" />
+                <span>Nuova Serata di Torneo</span>
+              </div>
+              <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight">
+                Avvia la Sfida di Stasera
+              </h1>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1.5 max-w-xl leading-relaxed">
+                Scegli la modalità di gioco (a squadre, 1 vs 1, a 3 o Briscola Chiamata a 5), inserisci i partecipanti e segna le vittorie mano dopo mano con un tocco.
+              </p>
+
+              {/* SELETTORE MODALITÀ BRISCOLA */}
+              <div className="space-y-2 mt-4">
+                <label className="text-xs font-semibold text-[var(--text-muted)] block">
+                  Modalità Torneo:
+                </label>
+                <div className="inline-flex flex-wrap p-1 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setTournamentMode('2vs2')}
+                    className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                      tournamentMode === '2vs2'
+                        ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>2 vs 2 (Coppie)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTournamentMode('1vs1')}
+                    className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                      tournamentMode === '1vs1'
+                        ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    <User className="w-3.5 h-3.5" />
+                    <span>1 vs 1 (Singolo)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTournamentMode('1vs1vs1')}
+                    className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                      tournamentMode === '1vs1vs1'
+                        ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    <Swords className="w-3.5 h-3.5" />
+                    <span>1 vs 1 vs 1 (In 3)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTournamentMode('a5')}
+                    className={`flex-1 sm:flex-initial min-h-[44px] py-2 px-3.5 sm:px-4 rounded-lg text-xs font-semibold btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                      tournamentMode === 'a5'
+                        ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>A 5 (Chiamata)</span>
+                  </button>
+                </div>
               </div>
             </div>
+          )}
 
           <form onSubmit={handleStartTournament} className="space-y-6">
             {/* MODALITÀ 2vs2 */}
@@ -1621,10 +2083,10 @@ export function TorneoSerataView({
             <div className="text-center pt-2">
               <button
                 type="submit"
-                className="px-8 py-3.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-extrabold text-sm shadow-md shadow-amber-500/20 btn-tactile cursor-pointer inline-flex items-center gap-2"
+                className="px-8 py-3.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-extrabold text-sm shadow-md shadow-amber-500/20 btn-tactile cursor-pointer inline-flex items-center gap-2 min-h-[44px]"
               >
                 <Swords className="w-4 h-4 stroke-[2.5]" />
-                <span>Inizia Torneo Serata</span>
+                <span>{activeCategory === 'scopa' ? 'Inizia Partita di Scopa' : 'Inizia Torneo Serata'}</span>
               </button>
             </div>
           </form>
@@ -1633,14 +2095,16 @@ export function TorneoSerataView({
 
       {/* SEZIONE 3: STORICO TORNEI / SERATE CONCLUSI */}
       <div className="space-y-4 pt-2">
-        <h2 className="font-heading text-lg font-bold text-[var(--text)] flex items-center gap-2">
-          <Clock className="w-4 h-4 text-[var(--accent)]" />
-          <span>Serate Concluse ({pastSessions.length})</span>
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h2 className="font-heading text-lg font-bold text-[var(--text)] flex items-center gap-2">
+            <Clock className="w-4 h-4 text-[var(--accent)]" />
+            <span>Partite &amp; Tornei Conclusi ({pastSessions.length})</span>
+          </h2>
+        </div>
 
         {pastSessions.length === 0 ? (
           <div className="text-center py-8 bg-[var(--surface)] rounded-2xl border border-[var(--divider)] text-[var(--text-muted)] text-xs">
-            Nessun torneo concluso registrato. Avvia una sfida per iniziare lo storico di casa!
+            Nessun torneo o partita conclusa registrata per questa categoria. Avvia una sfida per iniziare lo storico di casa!
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1692,13 +2156,18 @@ export function TorneoSerataView({
                       <span className="font-mono tabular-nums">{session.dateKey}</span>
                       <span>•</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-raised)] text-[var(--text-muted)] border border-[var(--control-border)] font-bold">
-                        {session.mode === 'a5'
-                          ? 'A 5 (Chiamata)'
+                        {session.gameType === 'scopa'
+                          ? session.scopaVariant === 'scopone_scientifico'
+                            ? '🎴 Scopone'
+                            : '🎴 Scopa'
+                          : session.mode === 'a5'
+                          ? '🃏 Briscola A 5'
                           : session.mode === '1vs1vs1'
-                          ? '1 vs 1 vs 1'
+                          ? '🃏 Briscola a 3'
                           : session.mode === '1vs1'
-                          ? '1 vs 1'
-                          : '2 vs 2'}
+                          ? '🃏 Briscola 1v1'
+                          : '🃏 Briscola 2v2'}
+                        {session.targetPoints ? ` (${session.targetPoints} pt)` : ''}
                       </span>
                       {winnerLabel && (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--accent-text)] bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full shadow-sm">

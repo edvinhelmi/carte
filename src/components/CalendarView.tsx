@@ -31,32 +31,35 @@ export function CalendarView({
 }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedDateKey, setSelectedDateKey] = useState(() => formatDateKey(new Date()));
+  const [gameFilter, setGameFilter] = useState<import('@/types/game').GameType | 'all'>('all');
 
   const teamMap = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams]);
 
-  // Raggruppa partite per dateKey
+  // Raggruppa partite per dateKey filtrate
   const matchesByDate = useMemo(() => {
     const map: Record<string, Match[]> = {};
     for (const m of matches) {
+      if (gameFilter !== 'all' && (m.gameType || 'briscola') !== gameFilter) continue;
       if (!map[m.dateKey]) {
         map[m.dateKey] = [];
       }
       map[m.dateKey].push(m);
     }
     return map;
-  }, [matches]);
+  }, [matches, gameFilter]);
 
-  // Raggruppa sessioni torneo per dateKey
+  // Raggruppa sessioni torneo per dateKey filtrate
   const sessionsByDate = useMemo(() => {
     const map: Record<string, TournamentSession[]> = {};
     for (const s of tournamentSessions) {
+      if (gameFilter !== 'all' && (s.gameType || 'briscola') !== gameFilter) continue;
       if (!map[s.dateKey]) {
         map[s.dateKey] = [];
       }
       map[s.dateKey].push(s);
     }
     return map;
-  }, [tournamentSessions]);
+  }, [tournamentSessions, gameFilter]);
 
   // Calcolo giorni del mese corrente
   const year = currentDate.getFullYear();
@@ -95,8 +98,8 @@ export function CalendarView({
   };
 
   const dailySummary = useMemo(() => {
-    return getDailySummary(selectedDateKey, matches, teams, tournamentSessions);
-  }, [selectedDateKey, matches, teams, tournamentSessions]);
+    return getDailySummary(selectedDateKey, matches, teams, tournamentSessions, gameFilter);
+  }, [selectedDateKey, matches, teams, tournamentSessions, gameFilter]);
 
   const selectedDaySessions = useMemo(() => {
     return sessionsByDate[selectedDateKey] || [];
@@ -144,22 +147,60 @@ export function CalendarView({
           </p>
         </div>
 
-        {/* Tasti rapidi Oggi / Ieri */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleSelectToday}
-            className="touch-target px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[var(--surface)] hover:bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--control-border)] btn-tactile cursor-pointer"
-          >
-            Oggi
-          </button>
-          <button
-            type="button"
-            onClick={handleSelectYesterday}
-            className="touch-target px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[var(--surface)] hover:bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--control-border)] btn-tactile cursor-pointer"
-          >
-            Ieri
-          </button>
+        {/* Filtro Gioco & Tasti rapidi Oggi / Ieri */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="inline-flex p-1 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)]">
+            <button
+              type="button"
+              onClick={() => setGameFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer min-h-[44px] sm:min-h-0 ${
+                gameFilter === 'all'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              Tutti
+            </button>
+            <button
+              type="button"
+              onClick={() => setGameFilter('briscola')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer min-h-[44px] sm:min-h-0 ${
+                gameFilter === 'briscola'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              🃏 Briscola
+            </button>
+            <button
+              type="button"
+              onClick={() => setGameFilter('scopa')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer min-h-[44px] sm:min-h-0 ${
+                gameFilter === 'scopa'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              🎴 Scopa
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleSelectToday}
+              className="touch-target px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[var(--surface)] hover:bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--control-border)] btn-tactile cursor-pointer min-h-[44px]"
+            >
+              Oggi
+            </button>
+            <button
+              type="button"
+              onClick={handleSelectYesterday}
+              className="touch-target px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[var(--surface)] hover:bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--control-border)] btn-tactile cursor-pointer min-h-[44px]"
+            >
+              Ieri
+            </button>
+          </div>
         </div>
       </div>
 
@@ -354,13 +395,18 @@ export function CalendarView({
                           <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-medium gap-2">
                             <div className="flex items-center gap-2 flex-wrap min-w-0">
                               <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[var(--surface-alt)] text-[var(--text-muted)] border border-[var(--control-border)] font-bold">
-                                {session.mode === 'a5'
-                                  ? 'A 5 (Chiamata)'
+                                {session.gameType === 'scopa'
+                                  ? session.scopaVariant === 'scopone_scientifico'
+                                    ? '🎴 Scopone'
+                                    : '🎴 Scopa'
+                                  : session.mode === 'a5'
+                                  ? '🃏 Briscola A 5'
                                   : session.mode === '1vs1vs1'
-                                  ? '1 vs 1 vs 1'
+                                  ? '🃏 Briscola a 3'
                                   : session.mode === '1vs1'
-                                  ? '1 vs 1'
-                                  : '2 vs 2'}
+                                  ? '🃏 Briscola 1v1'
+                                  : '🃏 Briscola 2v2'}
+                                {session.targetPoints ? ` (${session.targetPoints} pt)` : ''}
                               </span>
                               <span className="font-mono tabular-nums text-xs">
                                 {isA5

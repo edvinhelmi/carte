@@ -1,0 +1,76 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { StorageService } from '@/lib/storage';
+import type { GameType } from '@/types/game';
+
+interface GameCategorySwitcherProps {
+  className?: string;
+  size?: 'sm' | 'md';
+}
+
+export function GameCategorySwitcher({ className = '', size = 'md' }: GameCategorySwitcherProps) {
+  const [activeCategory, setActiveCategory] = useState<GameType>(() => StorageService.getActiveGameCategory());
+
+  useEffect(() => {
+    const handleCategoryChange = () => {
+      setActiveCategory(StorageService.getActiveGameCategory());
+    };
+    window.addEventListener('carte_game_category_change', handleCategoryChange);
+    window.addEventListener('carte_storage_update', handleCategoryChange);
+    return () => {
+      window.removeEventListener('carte_game_category_change', handleCategoryChange);
+      window.removeEventListener('carte_storage_update', handleCategoryChange);
+    };
+  }, []);
+
+  const handleSelect = (category: GameType) => {
+    if (category === activeCategory) return;
+    StorageService.setActiveGameCategory(category);
+    setActiveCategory(category);
+  };
+
+  const isSmall = size === 'sm';
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Seleziona gioco attivo"
+      className={`inline-flex items-center p-1 bg-[var(--surface-raised)] border border-[var(--control-border)] rounded-2xl shadow-sm ${className}`}
+    >
+      <button
+        type="button"
+        role="radio"
+        aria-checked={activeCategory === 'briscola'}
+        onClick={() => handleSelect('briscola')}
+        className={`flex items-center justify-center gap-1.5 font-bold transition-all duration-150 btn-tactile cursor-pointer select-none min-h-[44px] ${
+          isSmall ? 'px-3 py-1.5 text-xs rounded-xl' : 'px-4 py-2 text-xs sm:text-sm rounded-xl'
+        } ${
+          activeCategory === 'briscola'
+            ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm font-black ring-1 ring-amber-400/40'
+            : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)]'
+        }`}
+      >
+        <span className="text-base leading-none" aria-hidden="true">🃏</span>
+        <span>Briscola</span>
+      </button>
+
+      <button
+        type="button"
+        role="radio"
+        aria-checked={activeCategory === 'scopa'}
+        onClick={() => handleSelect('scopa')}
+        className={`flex items-center justify-center gap-1.5 font-bold transition-all duration-150 btn-tactile cursor-pointer select-none min-h-[44px] ${
+          isSmall ? 'px-3 py-1.5 text-xs rounded-xl' : 'px-4 py-2 text-xs sm:text-sm rounded-xl'
+        } ${
+          activeCategory === 'scopa'
+            ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm font-black ring-1 ring-amber-400/40'
+            : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)]'
+        }`}
+      >
+        <span className="text-base leading-none" aria-hidden="true">🎴</span>
+        <span>Scopa</span>
+      </button>
+    </div>
+  );
+}

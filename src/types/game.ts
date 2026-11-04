@@ -66,12 +66,32 @@ export interface HeadToHeadStats {
 
 export type TournamentMode = '2vs2' | '1vs1' | '1vs1vs1' | 'a5';
 
+export type ScopaVariant = 'scopa_normale' | 'scopone_scientifico';
+
+export interface ScopaRound {
+  id: string;
+  roundNumber: number;
+  scopeTeam1: number;       // Numero di scope fatte dalla Squadra 1
+  scopeTeam2: number;       // Numero di scope fatte dalla Squadra 2
+  carteWinner?: 1 | 2 | 'patta';    // Carte (>20 = 1pt, patta = 0pt)
+  denariWinner?: 1 | 2 | 'patta';   // Denari (>5 = 1pt, patta = 0pt)
+  settebelloWinner?: 1 | 2;         // Sette di denari (1pt, va sempre a una squadra)
+  primieraWinner?: 1 | 2 | 'patta'; // Primiera / settanta (1pt, patta = 0pt)
+  napolaPointsTeam1?: number;       // Napola Squadra 1 (almeno 3 punti per A-2-3 di denari)
+  napolaPointsTeam2?: number;       // Napola Squadra 2
+  extraPointsTeam1?: number;        // Punti extra/manuali Squadra 1
+  extraPointsTeam2?: number;        // Punti extra/manuali Squadra 2
+  totalPointsTeam1: number;         // Totale punti assegnati alla Squadra 1 in questa smazzata
+  totalPointsTeam2: number;         // Totale punti assegnati alla Squadra 2 in questa smazzata
+  timestamp: string;
+}
+
 export interface Player5Score {
   name: string;
   wins: number;
 }
 
-// Sessione di Torneo / Serata di partite consecutive tra due, tre o cinque partecipanti
+// Sessione di Torneo / Partita Serata tra partecipanti
 export interface TournamentSession {
   id: string;
   houseId?: string;
@@ -79,6 +99,10 @@ export interface TournamentSession {
   startedAt: string;
   endedAt?: string;
   updatedAt?: string; // ISO string dell'ultimo aggiornamento punti per sincronizzazione perfetta multi-telefono
+  gameType?: GameType; // 'briscola' | 'scopa' (default 'briscola')
+  scopaVariant?: ScopaVariant; // 'scopa_normale' | 'scopone_scientifico'
+  targetPoints?: number; // es. 11, 21, 31 (tipico per Scopa e Scopone)
+  scopaRounds?: ScopaRound[]; // Storico smazzate con punteggi per categoria
   mode?: TournamentMode;
   team1Name: string;
   team1Players: string[];

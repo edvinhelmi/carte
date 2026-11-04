@@ -18,16 +18,17 @@ export function LeaderboardView({
   tournamentSessions = [],
 }: LeaderboardViewProps) {
   const [activeTab, setActiveTab] = useState<'teams' | 'players' | 'h2h'>('teams');
+  const [gameFilter, setGameFilter] = useState<import('@/types/game').GameType | 'all'>('all');
   const [h2hTeam1, setH2hTeam1] = useState<string>('');
   const [h2hTeam2, setH2hTeam2] = useState<string>('');
 
   const teamStats = useMemo(
-    () => calculateTeamStats(teams, matches, players, tournamentSessions),
-    [teams, matches, players, tournamentSessions]
+    () => calculateTeamStats(teams, matches, players, tournamentSessions, gameFilter),
+    [teams, matches, players, tournamentSessions, gameFilter]
   );
   const playerStats = useMemo(
-    () => calculatePlayerStats(players, teams, matches, tournamentSessions),
-    [players, teams, matches, tournamentSessions]
+    () => calculatePlayerStats(players, teams, matches, tournamentSessions, gameFilter),
+    [players, teams, matches, tournamentSessions, gameFilter]
   );
 
   // Includi tutti i team (sia preset che generati da tornei 1v1 o 1vs1vs1) per H2H
@@ -43,8 +44,8 @@ export function LeaderboardView({
 
   const h2hStats = useMemo(() => {
     if (!effectiveTeam1Id || !effectiveTeam2Id || effectiveTeam1Id === effectiveTeam2Id) return null;
-    return calculateHeadToHead(effectiveTeam1Id, effectiveTeam2Id, availableTeams, matches, tournamentSessions);
-  }, [effectiveTeam1Id, effectiveTeam2Id, availableTeams, matches, tournamentSessions]);
+    return calculateHeadToHead(effectiveTeam1Id, effectiveTeam2Id, availableTeams, matches, tournamentSessions, gameFilter);
+  }, [effectiveTeam1Id, effectiveTeam2Id, availableTeams, matches, tournamentSessions, gameFilter]);
 
   const getRankBadge = (index: number) => {
     switch (index) {
@@ -78,7 +79,7 @@ export function LeaderboardView({
   return (
     <div className="space-y-6" data-reveal="rise">
       {/* Intestazione */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight flex items-center gap-2.5">
             <Trophy className="w-6 h-6 text-[var(--accent)]" />
@@ -89,44 +90,84 @@ export function LeaderboardView({
           </p>
         </div>
 
-        {/* Tab switch */}
-        <div className="flex items-center gap-1 bg-[var(--surface)] p-1 rounded-xl border border-[var(--divider)] w-full sm:w-auto overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => setActiveTab('teams')}
-            className={`touch-target flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer whitespace-nowrap min-h-[44px] ${
-              activeTab === 'teams'
-                ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
-                : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Squadre</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('players')}
-            className={`touch-target flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer whitespace-nowrap min-h-[44px] ${
-              activeTab === 'players'
-                ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
-                : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]'
-            }`}
-          >
-            <User className="w-3.5 h-3.5" />
-            <span>Giocatori</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('h2h')}
-            className={`touch-target flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer whitespace-nowrap min-h-[44px] ${
-              activeTab === 'h2h'
-                ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
-                : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]'
-            }`}
-          >
-            <Swords className="w-3.5 h-3.5" />
-            <span>Testa a Testa</span>
-          </button>
+        {/* Filtro Gioco & Tab switch */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Selettore Categoria Gioco */}
+          <div className="inline-flex p-1 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)]">
+            <button
+              type="button"
+              onClick={() => setGameFilter('all')}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer min-h-[44px] sm:min-h-0 ${
+                gameFilter === 'all'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              Tutti
+            </button>
+            <button
+              type="button"
+              onClick={() => setGameFilter('briscola')}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer min-h-[44px] sm:min-h-0 ${
+                gameFilter === 'briscola'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              🃏 Briscola
+            </button>
+            <button
+              type="button"
+              onClick={() => setGameFilter('scopa')}
+              className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer min-h-[44px] sm:min-h-0 ${
+                gameFilter === 'scopa'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              🎴 Scopa
+            </button>
+          </div>
+
+          {/* Tab switch */}
+          <div className="flex items-center gap-1 bg-[var(--surface)] p-1 rounded-xl border border-[var(--divider)] overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => setActiveTab('teams')}
+              className={`touch-target flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer whitespace-nowrap min-h-[44px] ${
+                activeTab === 'teams'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Squadre</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('players')}
+              className={`touch-target flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer whitespace-nowrap min-h-[44px] ${
+                activeTab === 'players'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]'
+              }`}
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Giocatori</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('h2h')}
+              className={`touch-target flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer whitespace-nowrap min-h-[44px] ${
+                activeTab === 'h2h'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)]'
+              }`}
+            >
+              <Swords className="w-3.5 h-3.5" />
+              <span>Testa a Testa</span>
+            </button>
+          </div>
         </div>
       </div>
 

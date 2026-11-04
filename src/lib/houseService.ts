@@ -1229,6 +1229,10 @@ export const HouseService = {
           winnerTeam: s.winner_team || s.winnerTeam,
           winnerPlayerName: s.winner_player_name || s.winnerPlayerName,
           updatedAt: s.updated_at || s.created_at || s.started_at || new Date().toISOString(),
+          gameType: s.game_type || s.gameType || 'briscola',
+          scopaVariant: s.scopa_variant || s.scopaVariant || undefined,
+          targetPoints: s.target_points ?? s.targetPoints ?? undefined,
+          scopaRounds: Array.isArray(s.scopa_rounds) ? s.scopa_rounds : Array.isArray(s.scopaRounds) ? s.scopaRounds : [],
         }));
 
         // Preserva le sessioni con confronto basato su timestamp per sincronizzazione infallibile
