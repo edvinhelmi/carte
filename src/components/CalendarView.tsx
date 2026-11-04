@@ -9,6 +9,9 @@ import {
   Plus,
   Sparkles,
   Swords,
+  History,
+  ArrowLeft,
+  ExternalLink,
 } from 'lucide-react';
 import { Match, Team, TournamentSession } from '@/types/game';
 import { getDailySummary } from '@/lib/stats';
@@ -31,6 +34,7 @@ export function CalendarView({
   onOpenQuickMatchWithDate,
   onMatchesUpdated,
 }: CalendarViewProps) {
+  const [viewMode, setViewMode] = useState<'calendar' | 'history'>('calendar');
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedDateKey, setSelectedDateKey] = useState(() => formatDateKey(new Date()));
   const [gameFilter, setGameFilter] = useState<import('@/types/game').GameType | 'all'>('all');
@@ -135,6 +139,668 @@ export function CalendarView({
 
   const hasActivity = dailySummary.totalMatches > 0 || selectedDaySessions.length > 0;
 
+  // Tutte le date distinte con partite o tornei registrati (filtrate per categoria)
+  const allHistoryDateKeys = useMemo(() => {
+    const dateSet = new Set<string>();
+    for (const m of matches) {
+      if (gameFilter !== 'all' && (m.gameType || 'briscola') !== gameFilter) continue;
+      if (m.dateKey) dateSet.add(m.dateKey);
+    }
+    for (const s of tournamentSessions) {
+      if (gameFilter !== 'all' && (s.gameType || 'briscola') !== gameFilter) continue;
+      if (s.dateKey) dateSet.add(s.dateKey);
+    }
+    return Array.from(dateSet).sort((a, b) => b.localeCompare(a));
+  }, [matches, tournamentSessions, gameFilter]);
+
+  const totalHistoryMatches = useMemo(() => {
+    return allHistoryDateKeys.reduce((acc, dKey) => {
+      const summary = getDailySummary(dKey, matches, teams, tournamentSessions, gameFilter);
+      return acc + summary.totalMatches;
+    }, 0);
+  }, [allHistoryDateKeys, matches, teams, tournamentSessions, gameFilter]);
+
+  const totalHistorySessions = useMemo(() => {
+    return (tournamentSessions || []).filter((s) => {
+      if (!s || !s.dateKey) return false;
+      if (gameFilter !== 'all' && (s.gameType || 'briscola') !== gameFilter) return false;
+      return true;
+    }).length;
+  }, [tournamentSessions, gameFilter]);
+
+  const formatDayDate = (dKey: string) => {
+    const [y, m, d] = dKey.split('-').map(Number);
+    if (!y || !m || !d) return dKey;
+    const dateObj = new Date(y, m - 1, d);
+    return dateObj.toLocaleDateString('it-IT', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  const handleJumpToCalendarDate = (dKey: string) => {
+    const [y, m, d] = dKey.split('-').map(Number);
+    if (y && m && d) {
+      setCurrentDate(new Date(y, m - 1, 1));
+    }
+    setSelectedDateKey(dKey);
+    setViewMode('calendar');
+  };
+
+  const renderTournamentSessionItem = (session: TournamentSession) => {
+    const isA5 = session.mode === 'a5';
+    const isThree = !isA5 && (session.mode === '1vs1vs1' || !!session.team3Name);
+    const isT1Winner =
+      Number(session.winnerTeam) === 1 ||
+      session.winnerTeam === '1' ||
+      (!session.winnerTeam && session.team1Wins > session.team2Wins && (!isThree || session.team1Wins > (session.team3Wins || 0)));
+    const isT2Winner =
+      Number(session.winnerTeam) === 2 ||
+      session.winnerTeam === '2' ||
+      (!session.winnerTeam && session.team2Wins > session.team1Wins && (!isThree || session.team2Wins > (session.team3Wins || 0)));
+    const isT3Winner =
+      Number(session.winnerTeam) === 3 ||
+      session.winnerTeam === '3' ||
+      (!session.winnerTeam && isThree && (session.team3Wins || 0) > session.team1Wins && (session.team3Wins || 0) > session.team2Wins);
+
+    let winnerLabel = '';
+    if (
+      session.winnerPlayerName &&
+      session.winnerPlayerName !== 'Pareggio' &&
+      session.winnerPlayerName !== 'Nessuno (0 vittorie)'
+    ) {
+      winnerLabel = session.winnerPlayerName;
+    } else if (isA5 && session.players5 && session.players5.length > 0) {
+      const maxWins = Math.max(...session.players5.map((p) => p.wins || 0));
+      if (maxWins > 0) {
+        const winners = session.players5.filter((p) => (p.wins || 0) === maxWins);
+        winnerLabel = winners.map((p) => p.name).join(' & ');
+      }
+    } else if (isThree) {
+      if (isT1Winner) winnerLabel = session.team1Name;
+      else if (isT2Winner) winnerLabel = session.team2Name;
+      else if (isT3Winner) winnerLabel = session.team3Name || 'Giocatore 3';
+    } else {
+      if (isT1Winner) winnerLabel = session.team1Name;
+      else if (isT2Winner) winnerLabel = session.team2Name;
+    }
+
+    const totalGames = isA5 && session.players5
+      ? session.players5.reduce((sum, p) => sum + (p.wins || 0), 0)
+      : session.team1Wins + session.team2Wins + (session.team3Wins || 0);
+
+    return (
+      <div
+        key={session.id}
+        className="p-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] shadow-sm space-y-3 interactive-card"
+      >
+        <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-medium gap-2">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[var(--surface-alt)] text-[var(--text-muted)] border border-[var(--control-border)] font-bold inline-flex items-center gap-1.5">
+              <FontAwesomeIcon
+                icon={session.gameType === 'scopa' ? faBroom : faClone}
+                className="text-[10px] text-[var(--accent)]"
+              />
+              <span>
+                {session.gameType === 'scopa'
+                  ? session.scopaVariant === 'scopone_scientifico'
+                    ? 'Scopone'
+                    : 'Scopa'
+                  : session.mode === 'a5'
+                  ? 'Briscola A 5'
+                  : session.mode === '1vs1vs1'
+                  ? 'Briscola a 3'
+                  : session.mode === '1vs1'
+                  ? 'Briscola 1v1'
+                  : 'Briscola 2v2'}
+                {session.targetPoints ? ` (${session.targetPoints} pt)` : ''}
+              </span>
+            </span>
+            <span className="font-mono tabular-nums text-xs">
+              {isA5
+                ? `${totalGames} ${totalGames === 1 ? 'vittoria' : 'vittorie'}`
+                : `${totalGames} ${totalGames === 1 ? 'partita' : 'partite'}`}
+            </span>
+            {winnerLabel && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--accent-text)] bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full shadow-sm">
+                <Trophy className="w-3 h-3 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                <span className="truncate max-w-[130px] sm:max-w-[180px]">Vinto da {winnerLabel}</span>
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => handleDeleteTournamentSession(session.id)}
+            aria-label="Elimina torneo"
+            className="touch-target p-1 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-alt)] transition-colors cursor-pointer shrink-0"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {isA5 && session.players5 && session.players5.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-0.5">
+            {session.players5.map((p, pIdx) => {
+              const maxWins = Math.max(...session.players5!.map((x) => x.wins || 0));
+              const isWinner = session.winnerPlayerName
+                ? session.winnerPlayerName.split(' & ').includes(p.name)
+                : (Number(session.winnerTeam) === pIdx + 1 || (maxWins > 0 && p.wins === maxWins));
+              return (
+                <div
+                  key={p.name + pIdx}
+                  className={`p-2.5 rounded-xl border flex flex-col justify-between text-center transition-all ${
+                    pIdx === 4 ? 'col-span-2 sm:col-span-1' : ''
+                  } ${
+                    isWinner
+                      ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                      : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-1 min-w-0">
+                    {isWinner && (
+                      <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                    )}
+                    <span
+                      className={`text-xs sm:text-sm font-bold truncate ${
+                        isWinner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                      }`}
+                    >
+                      {p.name}
+                    </span>
+                  </div>
+                  <span
+                    className={`text-lg sm:text-xl font-mono font-black tabular-nums mt-1 block ${
+                      isWinner ? 'text-[var(--accent-text)]' : 'text-[var(--text)]'
+                    }`}
+                  >
+                    {p.wins}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : isThree ? (
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-0.5">
+            <div
+              className={`p-3 rounded-xl border flex flex-col justify-between text-center transition-all ${
+                isT1Winner
+                  ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                  : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-1 min-w-0">
+                {isT1Winner && (
+                  <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                )}
+                <span
+                  className={`text-xs sm:text-sm font-bold truncate ${
+                    isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  {session.team1Name}
+                </span>
+              </div>
+              <span
+                className={`text-xl sm:text-2xl font-mono font-black tabular-nums mt-1 block ${
+                  isT1Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text)]'
+                }`}
+              >
+                {session.team1Wins}
+              </span>
+            </div>
+
+            <div
+              className={`p-3 rounded-xl border flex flex-col justify-between text-center transition-all ${
+                isT2Winner
+                  ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                  : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-1 min-w-0">
+                {isT2Winner && (
+                  <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                )}
+                <span
+                  className={`text-xs sm:text-sm font-bold truncate ${
+                    isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  {session.team2Name}
+                </span>
+              </div>
+              <span
+                className={`text-xl sm:text-2xl font-mono font-black tabular-nums mt-1 block ${
+                  isT2Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text)]'
+                }`}
+              >
+                {session.team2Wins}
+              </span>
+            </div>
+
+            <div
+              className={`p-3 rounded-xl border flex flex-col justify-between text-center transition-all ${
+                isT3Winner
+                  ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                  : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-1 min-w-0">
+                {isT3Winner && (
+                  <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                )}
+                <span
+                  className={`text-xs sm:text-sm font-bold truncate ${
+                    isT3Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  {session.team3Name || 'Giocatore 3'}
+                </span>
+              </div>
+              <span
+                className={`text-xl sm:text-2xl font-mono font-black tabular-nums mt-1 block ${
+                  isT3Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text)]'
+                }`}
+              >
+                {session.team3Wins || 0}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 pt-1">
+            <div
+              className={`p-3 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
+                isT1Winner
+                  ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                  : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+              }`}
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {isT1Winner && (
+                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                  )}
+                  <span
+                    className={`text-xs sm:text-sm font-bold truncate ${
+                      isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                    }`}
+                  >
+                    {session.team1Name}
+                  </span>
+                </div>
+                {session.team1Players && session.team1Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
+                  <span className="text-[11px] text-[var(--text-muted)] truncate block mt-0.5">
+                    {session.team1Players.join(' & ')}
+                  </span>
+                )}
+              </div>
+              <span
+                className={`text-lg sm:text-xl font-mono font-black tabular-nums shrink-0 ${
+                  isT1Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
+                }`}
+              >
+                {session.team1Wins}
+              </span>
+            </div>
+
+            <span className="text-xs font-mono font-bold text-[var(--text-subtle)] px-1 shrink-0">VS</span>
+
+            <div
+              className={`p-3 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
+                isT2Winner
+                  ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                  : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+              }`}
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {isT2Winner && (
+                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                  )}
+                  <span
+                    className={`text-xs sm:text-sm font-bold truncate ${
+                      isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                    }`}
+                  >
+                    {session.team2Name}
+                  </span>
+                </div>
+                {session.team2Players && session.team2Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
+                  <span className="text-[11px] text-[var(--text-muted)] truncate block mt-0.5">
+                    {session.team2Players.join(' & ')}
+                  </span>
+                )}
+              </div>
+              <span
+                className={`text-lg sm:text-xl font-mono font-black tabular-nums shrink-0 ${
+                  isT2Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
+                }`}
+              >
+                {session.team2Wins}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderMatchItem = (m: Match) => {
+    const t1 = teamMap.get(m.team1Id);
+    const t2 = teamMap.get(m.team2Id);
+    const isT1Winner =
+      m.winnerTeamId === m.team1Id ||
+      (m.scoreTeam1 !== undefined && m.scoreTeam2 !== undefined && m.scoreTeam1 > m.scoreTeam2);
+    const isT2Winner =
+      m.winnerTeamId === m.team2Id ||
+      (m.scoreTeam1 !== undefined && m.scoreTeam2 !== undefined && m.scoreTeam2 > m.scoreTeam1);
+    const winnerName = isT1Winner ? (t1?.name || 'Squadra 1') : isT2Winner ? (t2?.name || 'Squadra 2') : '';
+
+    const matchTime = new Date(m.timestamp).toLocaleTimeString('it-IT', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    return (
+      <div
+        key={m.id}
+        className="p-3.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] hover:border-[var(--control-border)] interactive-card space-y-2.5"
+      >
+        <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-mono gap-2">
+          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+            <Clock className="w-3.5 h-3.5 shrink-0" />
+            <span className="tabular-nums">{matchTime}</span>
+            {winnerName && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--accent-text)] bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full shadow-sm font-sans">
+                <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+                <span className="truncate max-w-[130px] sm:max-w-[180px]">Vinto da {winnerName}</span>
+              </span>
+            )}
+            {m.notes && (
+              <span className="text-[11px] text-[var(--text-muted)] truncate max-w-[160px] pl-1 font-sans">
+                • {m.notes}
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => handleDeleteMatch(m.id)}
+            aria-label="Elimina partita"
+            className="touch-target p-1 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-alt)] transition-colors cursor-pointer shrink-0"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <div
+            className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
+              isT1Winner
+                ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 min-w-0">
+              {isT1Winner && (
+                <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+              )}
+              <span
+                className={`text-xs sm:text-sm font-bold truncate ${
+                  isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                }`}
+              >
+                {t1?.name || 'Squadra 1'}
+              </span>
+            </div>
+            <span
+              className={`text-base sm:text-lg font-mono font-black tabular-nums shrink-0 ${
+                isT1Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
+              }`}
+            >
+              {m.scoreTeam1 !== undefined ? m.scoreTeam1 : (isT1Winner ? '1' : '0')}
+            </span>
+          </div>
+
+          <span className="text-xs font-mono font-bold text-[var(--text-subtle)] px-1 shrink-0">VS</span>
+
+          <div
+            className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
+              isT2Winner
+                ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
+                : 'bg-[var(--surface-alt)] border-[var(--divider)]'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 min-w-0">
+              {isT2Winner && (
+                <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
+              )}
+              <span
+                className={`text-xs sm:text-sm font-bold truncate ${
+                  isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                }`}
+              >
+                {t2?.name || 'Squadra 2'}
+              </span>
+            </div>
+            <span
+              className={`text-base sm:text-lg font-mono font-black tabular-nums shrink-0 ${
+                isT2Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
+              }`}
+            >
+              {m.scoreTeam2 !== undefined ? m.scoreTeam2 : (isT2Winner ? '1' : '0')}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // SCHERMATA DEDICATA: CRONOLOGIA STORICA COMPLETA DELLE PARTITE DIVISA PER GIORNI
+  if (viewMode === 'history') {
+    return (
+      <div className="space-y-6" data-reveal="rise">
+        {/* Intestazione Schermata Storico */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <button
+              type="button"
+              onClick={() => setViewMode('calendar')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-xs font-bold text-[var(--accent)] border border-white/10 btn-ios-tactile cursor-pointer mb-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Torna al Calendario</span>
+            </button>
+            <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[var(--text)] tracking-tight flex items-center gap-2.5">
+              <History className="w-6 h-6 text-[var(--accent)]" />
+              <span>Cronologia Storica Partite</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-[var(--text-muted)]">
+              Tutte le partite e i tornei della casa registrati nel tempo, divisi per giornate.
+            </p>
+          </div>
+
+          {/* Filtro Gioco per lo Storico */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex p-1 rounded-full bg-white/5 border border-white/10">
+              <button
+                type="button"
+                onClick={() => setGameFilter('all')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 ${
+                  gameFilter === 'all'
+                    ? 'bg-white/15 text-[var(--text)] font-bold shadow-sm'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                Tutti
+              </button>
+              <button
+                type="button"
+                onClick={() => setGameFilter('briscola')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 inline-flex items-center gap-1.5 ${
+                  gameFilter === 'briscola'
+                    ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                <FontAwesomeIcon icon={faClone} className="text-[11px]" />
+                <span>Briscola</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setGameFilter('scopa')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 inline-flex items-center gap-1.5 ${
+                  gameFilter === 'scopa'
+                    ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                <FontAwesomeIcon icon={faBroom} className="text-[11px]" />
+                <span>Scopa</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* KPI Riepilogo Storico */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="glass-ios-raised rounded-2xl border border-white/10 p-4">
+            <span className="text-[11px] font-semibold text-[var(--text-muted)] block uppercase tracking-wider">
+              Giornate Giocate
+            </span>
+            <span className="font-mono text-2xl font-black text-[var(--text)] tabular-nums mt-0.5 block">
+              {allHistoryDateKeys.length}
+            </span>
+          </div>
+          <div className="glass-ios-raised rounded-2xl border border-white/10 p-4">
+            <span className="text-[11px] font-semibold text-[var(--text-muted)] block uppercase tracking-wider">
+              Partite Totali
+            </span>
+            <span className="font-mono text-2xl font-black text-[var(--accent-text)] tabular-nums mt-0.5 block">
+              {totalHistoryMatches}
+            </span>
+          </div>
+          <div className="glass-ios-raised rounded-2xl border border-white/10 p-4 col-span-2 sm:col-span-1">
+            <span className="text-[11px] font-semibold text-[var(--text-muted)] block uppercase tracking-wider">
+              Tornei Registrati
+            </span>
+            <span className="font-mono text-2xl font-black text-[var(--text)] tabular-nums mt-0.5 block">
+              {totalHistorySessions}
+            </span>
+          </div>
+        </div>
+
+        {/* Elenco Cronologico delle Giornate */}
+        {allHistoryDateKeys.length === 0 ? (
+          <div className="glass-ios-raised rounded-[28px] border border-white/10 p-12 text-center space-y-4 shadow-xl">
+            <div className="w-14 h-14 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center mx-auto text-[var(--text-subtle)]">
+              <History className="w-7 h-7 text-[var(--accent)]" />
+            </div>
+            <div>
+              <h3 className="font-heading font-extrabold text-lg text-[var(--text)]">
+                Nessuna partita trovata nello storico
+              </h3>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1 max-w-md mx-auto">
+                {gameFilter !== 'all'
+                  ? `Non ci sono ancora partite registrate per ${gameFilter === 'briscola' ? 'la Briscola' : 'la Scopa'}.`
+                  : 'Registra le tue prime partite dal calendario o dal tabellone live per vederle qui.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setViewMode('calendar')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--accent)] text-[var(--on-accent)] text-xs font-bold btn-tactile cursor-pointer"
+            >
+              <span>Vai al Calendario</span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {allHistoryDateKeys.map((dateKey) => {
+              const dayMatchesList = matchesByDate[dateKey] || [];
+              const daySessionsList = sessionsByDate[dateKey] || [];
+              const daySummary = getDailySummary(dateKey, matches, teams, tournamentSessions, gameFilter);
+              const formattedDate = formatDayDate(dateKey);
+
+              return (
+                <div
+                  key={dateKey}
+                  className="glass-ios-raised rounded-[28px] border border-white/10 p-5 sm:p-6 shadow-xl space-y-5"
+                >
+                  {/* Header della Giornata */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-[var(--divider)]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center text-[var(--accent)] shrink-0 shadow-sm">
+                        <CalendarIcon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-heading font-bold text-base sm:text-lg text-[var(--text)] capitalize">
+                          {formattedDate}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-0.5 text-xs text-[var(--text-muted)]">
+                          <span className="font-mono tabular-nums">{dateKey}</span>
+                          <span>•</span>
+                          <span>
+                            {daySummary.totalMatches}{' '}
+                            {daySummary.totalMatches === 1 ? 'partita' : 'partite'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {daySummary.championTeam && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-[var(--accent-text)] bg-amber-500/15 border border-amber-500/30 shadow-sm">
+                          <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)]" />
+                          <span>Campione: {daySummary.championTeam.name}</span>
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleJumpToCalendarDate(dateKey)}
+                        className="touch-target px-3 py-1 rounded-full text-xs font-semibold bg-white/5 hover:bg-white/10 text-[var(--text)] border border-white/10 btn-ios-tactile active:scale-96 cursor-pointer inline-flex items-center gap-1.5 min-h-[36px]"
+                        title="Visualizza questa giornata nel calendario"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-[var(--accent)]" />
+                        <span>Vedi nel calendario</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tornei della Giornata */}
+                  {daySessionsList.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-[var(--accent)] flex items-center gap-1.5">
+                        <Swords className="w-3.5 h-3.5" />
+                        <span>Tornei Serata ({daySessionsList.length})</span>
+                      </h4>
+                      <div className="space-y-3">
+                        {daySessionsList.map((session) => renderTournamentSessionItem(session))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Partite Singole della Giornata */}
+                  {dayMatchesList.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold text-[var(--text-muted)]">
+                        Partite Singole ({dayMatchesList.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {dayMatchesList.map((m) => renderMatchItem(m))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6" data-reveal="rise">
       {/* Intestazione Sezione */}
@@ -203,6 +869,15 @@ export function CalendarView({
               className="touch-target px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/5 hover:bg-white/10 text-[var(--text)] border border-white/10 btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px]"
             >
               Ieri
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('history')}
+              className="touch-target px-3.5 py-1.5 rounded-full text-xs font-bold bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] border border-amber-400/40 shadow-sm shadow-amber-500/20 btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] inline-flex items-center gap-1.5"
+              title="Apri la cronologia completa delle partite della casa"
+            >
+              <History className="w-3.5 h-3.5" />
+              <span>Storico</span>
             </button>
           </div>
         </div>
@@ -349,305 +1024,9 @@ export function CalendarView({
                       <span>Tornei della Serata</span>
                     </h4>
 
-                    {selectedDaySessions.map((session) => {
-                      const isA5 = session.mode === 'a5';
-                      const isThree = !isA5 && (session.mode === '1vs1vs1' || !!session.team3Name);
-                      const isT1Winner =
-                        Number(session.winnerTeam) === 1 ||
-                        session.winnerTeam === '1' ||
-                        (!session.winnerTeam && session.team1Wins > session.team2Wins && (!isThree || session.team1Wins > (session.team3Wins || 0)));
-                      const isT2Winner =
-                        Number(session.winnerTeam) === 2 ||
-                        session.winnerTeam === '2' ||
-                        (!session.winnerTeam && session.team2Wins > session.team1Wins && (!isThree || session.team2Wins > (session.team3Wins || 0)));
-                      const isT3Winner =
-                        Number(session.winnerTeam) === 3 ||
-                        session.winnerTeam === '3' ||
-                        (!session.winnerTeam && isThree && (session.team3Wins || 0) > session.team1Wins && (session.team3Wins || 0) > session.team2Wins);
-
-                      let winnerLabel = '';
-                      if (
-                        session.winnerPlayerName &&
-                        session.winnerPlayerName !== 'Pareggio' &&
-                        session.winnerPlayerName !== 'Nessuno (0 vittorie)'
-                      ) {
-                        winnerLabel = session.winnerPlayerName;
-                      } else if (isA5 && session.players5 && session.players5.length > 0) {
-                        const maxWins = Math.max(...session.players5.map((p) => p.wins || 0));
-                        if (maxWins > 0) {
-                          const winners = session.players5.filter((p) => (p.wins || 0) === maxWins);
-                          winnerLabel = winners.map((p) => p.name).join(' & ');
-                        }
-                      } else if (isThree) {
-                        if (isT1Winner) winnerLabel = session.team1Name;
-                        else if (isT2Winner) winnerLabel = session.team2Name;
-                        else if (isT3Winner) winnerLabel = session.team3Name || 'Giocatore 3';
-                      } else {
-                        if (isT1Winner) winnerLabel = session.team1Name;
-                        else if (isT2Winner) winnerLabel = session.team2Name;
-                      }
-
-                      const totalGames = isA5 && session.players5
-                        ? session.players5.reduce((sum, p) => sum + (p.wins || 0), 0)
-                        : session.team1Wins + session.team2Wins + (session.team3Wins || 0);
-
-                      return (
-                        <div
-                          key={session.id}
-                          className="p-4 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] shadow-sm space-y-3 interactive-card"
-                        >
-                          <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-medium gap-2">
-                            <div className="flex items-center gap-2 flex-wrap min-w-0">
-                              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[var(--surface-alt)] text-[var(--text-muted)] border border-[var(--control-border)] font-bold inline-flex items-center gap-1.5">
-                                <FontAwesomeIcon
-                                  icon={session.gameType === 'scopa' ? faBroom : faClone}
-                                  className="text-[10px] text-[var(--accent)]"
-                                />
-                                <span>
-                                  {session.gameType === 'scopa'
-                                    ? session.scopaVariant === 'scopone_scientifico'
-                                      ? 'Scopone'
-                                      : 'Scopa'
-                                    : session.mode === 'a5'
-                                    ? 'Briscola A 5'
-                                    : session.mode === '1vs1vs1'
-                                    ? 'Briscola a 3'
-                                    : session.mode === '1vs1'
-                                    ? 'Briscola 1v1'
-                                    : 'Briscola 2v2'}
-                                  {session.targetPoints ? ` (${session.targetPoints} pt)` : ''}
-                                </span>
-                              </span>
-                              <span className="font-mono tabular-nums text-xs">
-                                {isA5
-                                  ? `${totalGames} ${totalGames === 1 ? 'vittoria' : 'vittorie'}`
-                                  : `${totalGames} ${totalGames === 1 ? 'partita' : 'partite'}`}
-                              </span>
-                              {winnerLabel && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--accent-text)] bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full shadow-sm">
-                                  <Trophy className="w-3 h-3 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
-                                  <span className="truncate max-w-[130px] sm:max-w-[180px]">Vinto da {winnerLabel}</span>
-                                </span>
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteTournamentSession(session.id)}
-                              aria-label="Elimina torneo"
-                              className="touch-target p-1 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-alt)] transition-colors cursor-pointer shrink-0"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-
-                          {isA5 && session.players5 && session.players5.length > 0 ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-0.5">
-                              {session.players5.map((p, pIdx) => {
-                                const maxWins = Math.max(...session.players5!.map((x) => x.wins || 0));
-                                const isWinner = session.winnerPlayerName
-                                  ? session.winnerPlayerName.split(' & ').includes(p.name)
-                                  : (Number(session.winnerTeam) === pIdx + 1 || (maxWins > 0 && p.wins === maxWins));
-                                return (
-                                  <div
-                                    key={p.name + pIdx}
-                                    className={`p-2.5 rounded-xl border flex flex-col justify-between text-center transition-all ${
-                                      pIdx === 4 ? 'col-span-2 sm:col-span-1' : ''
-                                    } ${
-                                      isWinner
-                                        ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
-                                        : 'bg-[var(--surface-alt)] border-[var(--divider)]'
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-center gap-1 min-w-0">
-                                      {isWinner && (
-                                        <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
-                                      )}
-                                      <span
-                                        className={`text-xs sm:text-sm font-bold truncate ${
-                                          isWinner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
-                                        }`}
-                                      >
-                                        {p.name}
-                                      </span>
-                                    </div>
-                                    <span
-                                      className={`text-lg sm:text-xl font-mono font-black tabular-nums mt-1 block ${
-                                        isWinner ? 'text-[var(--accent-text)]' : 'text-[var(--text)]'
-                                      }`}
-                                    >
-                                      {p.wins}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : isThree ? (
-                            <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-0.5">
-                              <div
-                                className={`p-3 rounded-xl border flex flex-col justify-between text-center transition-all ${
-                                  isT1Winner
-                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
-                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
-                                }`}
-                              >
-                                <div className="flex items-center justify-center gap-1 min-w-0">
-                                  {isT1Winner && (
-                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
-                                  )}
-                                  <span
-                                    className={`text-xs sm:text-sm font-bold truncate ${
-                                      isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
-                                    }`}
-                                  >
-                                    {session.team1Name}
-                                  </span>
-                                </div>
-                                <span
-                                  className={`text-xl sm:text-2xl font-mono font-black tabular-nums mt-1 block ${
-                                    isT1Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text)]'
-                                  }`}
-                                >
-                                  {session.team1Wins}
-                                </span>
-                              </div>
-
-                              <div
-                                className={`p-3 rounded-xl border flex flex-col justify-between text-center transition-all ${
-                                  isT2Winner
-                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
-                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
-                                }`}
-                              >
-                                <div className="flex items-center justify-center gap-1 min-w-0">
-                                  {isT2Winner && (
-                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
-                                  )}
-                                  <span
-                                    className={`text-xs sm:text-sm font-bold truncate ${
-                                      isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
-                                    }`}
-                                  >
-                                    {session.team2Name}
-                                  </span>
-                                </div>
-                                <span
-                                  className={`text-xl sm:text-2xl font-mono font-black tabular-nums mt-1 block ${
-                                    isT2Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text)]'
-                                  }`}
-                                >
-                                  {session.team2Wins}
-                                </span>
-                              </div>
-
-                              <div
-                                className={`p-3 rounded-xl border flex flex-col justify-between text-center transition-all ${
-                                  isT3Winner
-                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
-                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
-                                }`}
-                              >
-                                <div className="flex items-center justify-center gap-1 min-w-0">
-                                  {isT3Winner && (
-                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
-                                  )}
-                                  <span
-                                    className={`text-xs sm:text-sm font-bold truncate ${
-                                      isT3Winner ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
-                                    }`}
-                                  >
-                                    {session.team3Name || 'Giocatore 3'}
-                                  </span>
-                                </div>
-                                <span
-                                  className={`text-xl sm:text-2xl font-mono font-black tabular-nums mt-1 block ${
-                                    isT3Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text)]'
-                                  }`}
-                                >
-                                  {session.team3Wins || 0}
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 pt-1">
-                              {/* Team 1 (Left Box) */}
-                              <div
-                                className={`p-3 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
-                                  isT1Winner
-                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
-                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
-                                }`}
-                              >
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    {isT1Winner && (
-                                      <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
-                                    )}
-                                    <span
-                                      className={`text-xs sm:text-sm font-bold truncate ${
-                                        isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
-                                      }`}
-                                    >
-                                      {session.team1Name}
-                                    </span>
-                                  </div>
-                                  {session.team1Players && session.team1Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
-                                    <span className="text-[11px] text-[var(--text-muted)] truncate block mt-0.5">
-                                      {session.team1Players.join(' & ')}
-                                    </span>
-                                  )}
-                                </div>
-                                <span
-                                  className={`text-lg sm:text-xl font-mono font-black tabular-nums shrink-0 ${
-                                    isT1Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
-                                  }`}
-                                >
-                                  {session.team1Wins}
-                                </span>
-                              </div>
-
-                              {/* VS Divider */}
-                              <span className="text-xs font-mono font-bold text-[var(--text-subtle)] px-1 shrink-0">VS</span>
-
-                              {/* Team 2 (Right Box) */}
-                              <div
-                                className={`p-3 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
-                                  isT2Winner
-                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
-                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
-                                }`}
-                              >
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    {isT2Winner && (
-                                      <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
-                                    )}
-                                    <span
-                                      className={`text-xs sm:text-sm font-bold truncate ${
-                                        isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
-                                      }`}
-                                    >
-                                      {session.team2Name}
-                                    </span>
-                                  </div>
-                                  {session.team2Players && session.team2Players.length > 0 && (session.mode ?? '2vs2') === '2vs2' && (
-                                    <span className="text-[11px] text-[var(--text-muted)] truncate block mt-0.5">
-                                      {session.team2Players.join(' & ')}
-                                    </span>
-                                  )}
-                                </div>
-                                <span
-                                  className={`text-lg sm:text-xl font-mono font-black tabular-nums shrink-0 ${
-                                    isT2Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
-                                  }`}
-                                >
-                                  {session.team2Wins}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    <div className="space-y-3">
+                      {selectedDaySessions.map(renderTournamentSessionItem)}
+                    </div>
                   </div>
                 )}
 
@@ -692,119 +1071,7 @@ export function CalendarView({
                     </h4>
 
                     <div className="space-y-2">
-                      {dailySummary.matches.map((m) => {
-                        const t1 = teamMap.get(m.team1Id);
-                        const t2 = teamMap.get(m.team2Id);
-                        const isT1Winner =
-                          m.winnerTeamId === m.team1Id ||
-                          (m.scoreTeam1 !== undefined && m.scoreTeam2 !== undefined && m.scoreTeam1 > m.scoreTeam2);
-                        const isT2Winner =
-                          m.winnerTeamId === m.team2Id ||
-                          (m.scoreTeam1 !== undefined && m.scoreTeam2 !== undefined && m.scoreTeam2 > m.scoreTeam1);
-                        const winnerName = isT1Winner ? (t1?.name || 'Squadra 1') : isT2Winner ? (t2?.name || 'Squadra 2') : '';
-
-                        const matchTime = new Date(m.timestamp).toLocaleTimeString('it-IT', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        });
-
-                        return (
-                          <div
-                            key={m.id}
-                            className="p-3.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--divider)] hover:border-[var(--control-border)] interactive-card space-y-2.5"
-                          >
-                            <div className="flex items-center justify-between text-xs text-[var(--text-subtle)] font-mono gap-2">
-                              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                                <Clock className="w-3.5 h-3.5 shrink-0" />
-                                <span className="tabular-nums">{matchTime}</span>
-                                {winnerName && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--accent-text)] bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full shadow-sm font-sans">
-                                    <Trophy className="w-3 h-3 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
-                                    <span className="truncate max-w-[130px] sm:max-w-[180px]">Vinto da {winnerName}</span>
-                                  </span>
-                                )}
-                                {m.notes && (
-                                  <span className="text-[11px] text-[var(--text-muted)] truncate max-w-[160px] pl-1 font-sans">
-                                    • {m.notes}
-                                  </span>
-                                )}
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteMatch(m.id)}
-                                aria-label="Elimina partita"
-                                className="touch-target p-1 rounded-lg text-[var(--text-subtle)] hover:text-rose-400 hover:bg-[var(--surface-alt)] transition-colors cursor-pointer shrink-0"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-
-                            {/* Scoreboard: Due box squadra strutturati con evidenziazione vincitore */}
-                            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3 pt-0.5">
-                              {/* Team 1 (Left Box) */}
-                              <div
-                                className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
-                                  isT1Winner
-                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
-                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
-                                }`}
-                              >
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  {isT1Winner && (
-                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
-                                  )}
-                                  <span
-                                    className={`text-xs sm:text-sm font-bold truncate ${
-                                      isT1Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
-                                    }`}
-                                  >
-                                    {t1?.name || 'Squadra 1'}
-                                  </span>
-                                </div>
-                                <span
-                                  className={`text-base sm:text-lg font-mono font-black tabular-nums shrink-0 ${
-                                    isT1Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
-                                  }`}
-                                >
-                                  {m.scoreTeam1 !== undefined ? m.scoreTeam1 : (isT1Winner ? '1' : '0')}
-                                </span>
-                              </div>
-
-                              {/* VS divider */}
-                              <span className="text-xs font-mono font-bold text-[var(--text-subtle)] px-1 shrink-0">VS</span>
-
-                              {/* Team 2 (Right Box) */}
-                              <div
-                                className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 min-w-0 transition-all ${
-                                  isT2Winner
-                                    ? 'bg-[var(--accent-muted)]/20 border-[var(--accent)] ring-1 ring-[var(--accent)]/40 shadow-sm'
-                                    : 'bg-[var(--surface-alt)] border-[var(--divider)]'
-                                }`}
-                              >
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  {isT2Winner && (
-                                    <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
-                                  )}
-                                  <span
-                                    className={`text-xs sm:text-sm font-bold truncate ${
-                                      isT2Winner ? 'text-[var(--accent)]' : 'text-[var(--text)]'
-                                    }`}
-                                  >
-                                    {t2?.name || 'Squadra 2'}
-                                  </span>
-                                </div>
-                                <span
-                                  className={`text-base sm:text-lg font-mono font-black tabular-nums shrink-0 ${
-                                    isT2Winner ? 'text-[var(--accent-text)]' : 'text-[var(--text-muted)]'
-                                  }`}
-                                >
-                                  {m.scoreTeam2 !== undefined ? m.scoreTeam2 : (isT2Winner ? '1' : '0')}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {dailySummary.matches.map(renderMatchItem)}
                     </div>
                   </div>
                 )}
