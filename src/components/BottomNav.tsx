@@ -20,9 +20,9 @@ export function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
   return (
     <nav
       aria-label="Navigazione Principale Mobile"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--surface)]/95 backdrop-blur-xl border-t border-[var(--divider)] px-1 pt-1.5 bottom-nav-safe shadow-lg"
+      className="md:hidden fixed bottom-3 left-3 right-3 z-40 max-w-md mx-auto"
     >
-      <div className="grid grid-cols-5 w-full max-w-md mx-auto items-center">
+      <div className="glass-ios-island rounded-[26px] px-1.5 py-1 grid grid-cols-5 items-center">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -31,21 +31,21 @@ export function BottomNav({ activeTab, setActiveTab }: BottomNavProps) {
               key={item.id}
               type="button"
               onClick={() => setActiveTab(item.id)}
-              className={`w-full min-h-[48px] flex flex-col items-center justify-center py-1 px-0.5 rounded-xl transition-colors btn-tactile cursor-pointer select-none relative ${
+              className={`w-full min-h-[48px] flex flex-col items-center justify-center py-1 px-0.5 rounded-2xl transition-all duration-150 btn-ios-tactile cursor-pointer select-none relative ${
                 isActive
                   ? 'text-[var(--accent)] font-semibold'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)] active:text-[var(--accent)]'
               }`}
             >
               {isActive && (
-                <span className="absolute top-0 w-6 h-0.5 rounded-full bg-[var(--accent)] shadow-[0_0_6px_rgba(245,158,11,0.5)]" />
+                <span className="absolute -top-0.5 w-7 h-1 rounded-full bg-[var(--accent)] shadow-[0_0_10px_rgba(245,158,11,0.6)]" />
               )}
               <div
-                className={`w-5 h-5 flex items-center justify-center shrink-0 mb-0.5 transition-transform duration-150 ${
-                  isActive ? 'scale-110 -translate-y-0.5 text-[var(--accent)]' : 'scale-100'
+                className={`w-6 h-6 flex items-center justify-center shrink-0 mb-0.5 transition-all duration-200 ${
+                  isActive ? 'scale-110 -translate-y-0.5 text-[var(--accent)]' : 'scale-100 opacity-70'
                 }`}
               >
-                <Icon size={18} />
+                <Icon size={19} />
               </div>
               <span
                 className={`text-[10px] leading-none tracking-tight text-center truncate max-w-full block whitespace-nowrap transition-colors duration-150 ${

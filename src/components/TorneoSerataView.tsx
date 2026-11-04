@@ -544,10 +544,10 @@ export function TorneoSerataView({
             /* TABELLONE LIVE SPECIFICO PER SCOPA & SCOPONE */
             <div className="space-y-6">
               {/* Header Partita Scopa */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--surface)] border border-[var(--divider)] p-5 sm:p-6 rounded-2xl shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-ios-raised border border-white/10 p-6 sm:p-7 rounded-[26px] shadow-lg">
                 <div>
-                  <div className="mb-1 flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold text-amber-400 tracking-wide flex items-center gap-1">
+                  <div className="mb-1.5 flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-amber-400 tracking-wide flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
                       <span>🎴</span>
                       <span>Partita in corso</span>
                     </span>
@@ -555,11 +555,11 @@ export function TorneoSerataView({
                       {activeSession.scopaVariant === 'scopone_scientifico' ? 'Scopone Scientifico' : 'Scopa Normale'}
                     </span>
                     {activeSession.targetPoints ? (
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-[var(--surface-raised)] text-[var(--text-muted)] border border-[var(--control-border)] font-mono font-semibold">
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/5 text-[var(--text-muted)] border border-white/10 font-mono font-semibold">
                         Traguardo: {activeSession.targetPoints} pt
                       </span>
                     ) : (
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-[var(--surface-raised)] text-[var(--text-muted)] border border-[var(--control-border)] font-semibold">
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/5 text-[var(--text-muted)] border border-white/10 font-semibold">
                         Punteggio Libero
                       </span>
                     )}
@@ -574,7 +574,7 @@ export function TorneoSerataView({
                 <button
                   type="button"
                   onClick={handleEndTournament}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--surface-raised)] hover:bg-rose-950/40 text-rose-300 hover:text-rose-200 border border-rose-500/30 hover:border-rose-500/50 font-bold text-xs btn-tactile cursor-pointer shadow-sm min-h-[44px]"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-white/5 hover:bg-rose-950/40 text-rose-300 hover:text-rose-200 border border-rose-500/30 hover:border-rose-500/50 font-bold text-xs btn-ios-tactile active:scale-96 cursor-pointer shadow-sm min-h-[44px]"
                 >
                   <Trophy className="w-4 h-4 text-[var(--accent)]" />
                   <span>Concludi Partita Scopa</span>
@@ -583,9 +583,9 @@ export function TorneoSerataView({
 
               {/* Banner Obiettivo Raggiunto */}
               {activeSession.targetPoints && (activeSession.team1Wins >= activeSession.targetPoints || activeSession.team2Wins >= activeSession.targetPoints) && (
-                <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
+                <div className="p-5 rounded-[24px] bg-amber-500/15 border border-amber-500/40 text-amber-200 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in backdrop-blur-xl">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-[var(--on-accent)] flex items-center justify-center font-black text-lg shrink-0">
+                    <div className="w-11 h-11 rounded-2xl bg-amber-500 text-[var(--on-accent)] flex items-center justify-center font-black text-xl shrink-0 shadow-lg shadow-amber-500/30">
                       🏆
                     </div>
                     <div>
@@ -608,7 +608,7 @@ export function TorneoSerataView({
                   <button
                     type="button"
                     onClick={handleEndTournament}
-                    className="px-4 py-2 rounded-xl bg-[var(--accent)] text-[var(--on-accent)] font-bold text-xs btn-tactile cursor-pointer shrink-0 min-h-[44px] w-full sm:w-auto"
+                    className="px-5 py-2.5 rounded-2xl bg-[var(--accent)] text-[var(--on-accent)] font-bold text-xs btn-ios-tactile active:scale-96 cursor-pointer shrink-0 min-h-[44px] w-full sm:w-auto shadow-md"
                   >
                     Assegna Vittoria
                   </button>
@@ -618,10 +618,10 @@ export function TorneoSerataView({
               {/* TABELLONE PUNTI A SQUADRE */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* SQUADRA 1 */}
-                <div className={`relative rounded-2xl p-5 sm:p-6 flex flex-col justify-between text-center transition-all ${
+                <div className={`relative rounded-[28px] p-6 sm:p-7 flex flex-col justify-between text-center transition-all ${
                   activeSession.team1Wins > activeSession.team2Wins
-                    ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-xl shadow-amber-500/10 ring-1 ring-[var(--accent)]/40'
-                    : 'bg-[var(--surface)] border border-[var(--divider)]'
+                    ? 'glass-ios-raised border-amber-500/40 shadow-2xl shadow-amber-500/10 ring-1 ring-amber-500/40'
+                    : 'glass-ios border-white/10'
                 }`}>
                   <div>
                     <div className="flex items-center justify-between gap-1 mb-2">
@@ -680,10 +680,10 @@ export function TorneoSerataView({
                 </div>
 
                 {/* SQUADRA 2 */}
-                <div className={`relative rounded-2xl p-5 sm:p-6 flex flex-col justify-between text-center transition-all ${
+                <div className={`relative rounded-[28px] p-6 sm:p-7 flex flex-col justify-between text-center transition-all ${
                   activeSession.team2Wins > activeSession.team1Wins
-                    ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-xl shadow-amber-500/10 ring-1 ring-[var(--accent)]/40'
-                    : 'bg-[var(--surface)] border border-[var(--divider)]'
+                    ? 'glass-ios-raised border-amber-500/40 shadow-2xl shadow-amber-500/10 ring-1 ring-amber-500/40'
+                    : 'glass-ios border-white/10'
                 }`}>
                   <div>
                     <div className="flex items-center justify-between gap-1 mb-2">
@@ -723,7 +723,7 @@ export function TorneoSerataView({
                     <button
                       type="button"
                       onClick={() => handleAddWin(2)}
-                      className="w-full py-3.5 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-amber-500/40 text-[var(--text)] font-extrabold text-sm sm:text-base btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[48px]"
+                      className="w-full py-4 px-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-500/40 text-[var(--text)] font-extrabold text-sm sm:text-base btn-ios-tactile active:scale-96 cursor-pointer flex items-center justify-center gap-2 group min-h-[50px] shadow-sm"
                     >
                       <Plus className="w-4 h-4 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
                       <span>+1 Punto Rapido</span>
@@ -732,7 +732,7 @@ export function TorneoSerataView({
                       <button
                         type="button"
                         onClick={() => handleRemoveWin(2)}
-                        className="touch-target inline-flex items-center gap-1.5 text-xs text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-1.5 px-3 rounded-lg hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
+                        className="touch-target inline-flex items-center gap-1.5 text-xs text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-1.5 px-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                         <span>Correggi (-1 pt)</span>
@@ -771,13 +771,14 @@ export function TorneoSerataView({
             /* TABELLONE LIVE PER BRISCOLA */
             <>
           {/* Header Torneo Attivo */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--surface)] border border-[var(--divider)] p-5 sm:p-6 rounded-2xl shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-ios-raised border border-white/10 p-6 sm:p-7 rounded-[26px] shadow-lg">
             <div>
-              <div className="mb-1 flex items-center gap-2">
-                <span className="text-xs font-semibold text-[var(--accent)] tracking-wide">
-                  Torneo live in corso stasera
+              <div className="mb-1.5 flex items-center gap-2">
+                <span className="text-xs font-semibold text-[var(--accent)] tracking-wide flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+                  <span>🃏</span>
+                  <span>Torneo live in corso</span>
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-bold">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[var(--accent-muted)] text-[var(--accent-text)] border border-[var(--accent-border)] font-bold">
                   {activeSession.mode === 'a5'
                     ? 'A 5 (Chiamata)'
                     : activeSession.mode === '1vs1vs1'
@@ -810,7 +811,7 @@ export function TorneoSerataView({
             <button
               type="button"
               onClick={handleEndTournament}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--surface-raised)] hover:bg-rose-950/40 text-rose-300 hover:text-rose-200 border border-rose-500/30 hover:border-rose-500/50 font-bold text-xs btn-tactile cursor-pointer shadow-sm min-h-[44px]"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-white/5 hover:bg-rose-950/40 text-rose-300 hover:text-rose-200 border border-rose-500/30 hover:border-rose-500/50 font-bold text-xs btn-ios-tactile active:scale-96 cursor-pointer shadow-sm min-h-[44px]"
             >
               <Trophy className="w-4 h-4 text-[var(--accent)]" />
               <span>Concludi Serata Torneo</span>
@@ -948,14 +949,14 @@ export function TorneoSerataView({
               >
             {/* PANNELLO 1 */}
             <div
-              className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-[border-color,box-shadow] duration-200 ${
+              className={`relative rounded-[28px] p-6 sm:p-8 flex flex-col justify-between text-center transition-all ${
                 isT1Leading
-                  ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-xl shadow-amber-500/10 ring-1 ring-[var(--accent)]/40'
-                  : 'bg-[var(--surface)] border border-[var(--divider)]'
+                  ? 'glass-ios-raised border-amber-500/40 shadow-2xl shadow-amber-500/10 ring-1 ring-amber-500/40'
+                  : 'glass-ios border-white/10'
               }`}
             >
               {isT1Leading && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--accent-border)] text-xs font-bold text-[var(--accent-text)] shadow-md">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3.5 py-1 rounded-full glass-ios-island border border-amber-500/40 text-xs font-bold text-amber-300 shadow-xl">
                   <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
                   <span>In testa</span>
                 </div>
@@ -994,7 +995,7 @@ export function TorneoSerataView({
                 <button
                   type="button"
                   onClick={() => handleAddWin(1)}
-                  className="w-full py-4 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-amber-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[52px]"
+                  className="w-full py-4 px-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-ios-tactile active:scale-96 cursor-pointer flex items-center justify-center gap-2 group min-h-[52px] shadow-sm"
                 >
                   <Plus className="w-5 h-5 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
                   <span className="truncate max-w-[240px]">+1 {activeSession.team1Name}</span>
@@ -1004,7 +1005,7 @@ export function TorneoSerataView({
                   <button
                     type="button"
                     onClick={() => handleRemoveWin(1)}
-                    className="touch-target inline-flex items-center gap-1.5 text-xs text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-1.5 px-3 rounded-lg hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
+                    className="touch-target inline-flex items-center gap-1.5 text-xs text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-1.5 px-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Correggi (-1)</span>
@@ -1015,14 +1016,14 @@ export function TorneoSerataView({
 
             {/* PANNELLO 2 */}
             <div
-              className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-[border-color,box-shadow] duration-200 ${
+              className={`relative rounded-[28px] p-6 sm:p-8 flex flex-col justify-between text-center transition-all ${
                 isT2Leading
-                  ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-xl shadow-amber-500/10 ring-1 ring-[var(--accent)]/40'
-                  : 'bg-[var(--surface)] border border-[var(--divider)]'
+                  ? 'glass-ios-raised border-amber-500/40 shadow-2xl shadow-amber-500/10 ring-1 ring-amber-500/40'
+                  : 'glass-ios border-white/10'
               }`}
             >
               {isT2Leading && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--accent-border)] text-xs font-bold text-[var(--accent-text)] shadow-md">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3.5 py-1 rounded-full glass-ios-island border border-amber-500/40 text-xs font-bold text-amber-300 shadow-xl">
                   <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
                   <span>In testa</span>
                 </div>
@@ -1061,7 +1062,7 @@ export function TorneoSerataView({
                 <button
                   type="button"
                   onClick={() => handleAddWin(2)}
-                  className="w-full py-4 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-amber-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[52px]"
+                  className="w-full py-4 px-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-ios-tactile active:scale-96 cursor-pointer flex items-center justify-center gap-2 group min-h-[52px] shadow-sm"
                 >
                   <Plus className="w-5 h-5 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
                   <span className="truncate max-w-[240px]">+1 {activeSession.team2Name}</span>
@@ -1071,7 +1072,7 @@ export function TorneoSerataView({
                   <button
                     type="button"
                     onClick={() => handleRemoveWin(2)}
-                    className="touch-target inline-flex items-center gap-1.5 text-xs text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-1.5 px-3 rounded-lg hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
+                    className="touch-target inline-flex items-center gap-1.5 text-xs text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-1.5 px-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Correggi (-1)</span>
@@ -1083,14 +1084,14 @@ export function TorneoSerataView({
             {/* PANNELLO 3 (SE IN 3 / 1vs1vs1) */}
             {isThreeWay && (
               <div
-                className={`relative rounded-2xl p-6 sm:p-8 flex flex-col justify-between text-center transition-[border-color,box-shadow] duration-200 ${
+                className={`relative rounded-[28px] p-6 sm:p-8 flex flex-col justify-between text-center transition-all ${
                   isT3Leading
-                    ? 'bg-[var(--surface)] border border-[var(--accent)] shadow-xl shadow-amber-500/10 ring-1 ring-[var(--accent)]/40'
-                    : 'bg-[var(--surface)] border border-[var(--divider)]'
+                    ? 'glass-ios-raised border-amber-500/40 shadow-2xl shadow-amber-500/10 ring-1 ring-amber-500/40'
+                    : 'glass-ios border-white/10'
                 }`}
               >
                 {isT3Leading && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[var(--surface-raised)] border border-[var(--accent-border)] text-xs font-bold text-[var(--accent-text)] shadow-md">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3.5 py-1 rounded-full glass-ios-island border border-amber-500/40 text-xs font-bold text-amber-300 shadow-xl">
                     <Trophy className="w-3.5 h-3.5 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
                     <span>In testa</span>
                   </div>
@@ -1124,7 +1125,7 @@ export function TorneoSerataView({
                   <button
                     type="button"
                     onClick={() => handleAddWin(3)}
-                    className="w-full py-4 px-3 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-amber-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-tactile cursor-pointer flex items-center justify-center gap-2 group min-h-[52px]"
+                    className="w-full py-4 px-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-500/40 text-[var(--text)] font-extrabold text-base sm:text-lg btn-ios-tactile active:scale-96 cursor-pointer flex items-center justify-center gap-2 group min-h-[52px] shadow-sm"
                   >
                     <Plus className="w-5 h-5 stroke-[3] text-[var(--accent)] transition-transform duration-200 group-hover:rotate-90 shrink-0" />
                     <span className="truncate max-w-[240px]">+1 {activeSession.team3Name || 'Giocatore 3'}</span>
@@ -1219,7 +1220,7 @@ export function TorneoSerataView({
 ) : (
         /* SEZIONE 2: NESSUN TORNEO ATTIVO -> FORM ELEGANTE PER AVVIARE */
         <div
-          className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-6 sm:p-8 shadow-sm space-y-6"
+          className="glass-ios-raised rounded-[28px] border border-white/10 p-6 sm:p-8 shadow-2xl space-y-6"
           data-reveal="rise"
         >
           {activeCategory === 'scopa' ? (

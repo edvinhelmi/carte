@@ -149,13 +149,13 @@ export function CalendarView({
 
         {/* Filtro Gioco & Tasti rapidi Oggi / Ieri */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="inline-flex p-1 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)]">
+          <div className="inline-flex p-1 rounded-full bg-white/5 border border-white/10">
             <button
               type="button"
               onClick={() => setGameFilter('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer min-h-[44px] sm:min-h-0 ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 ${
                 gameFilter === 'all'
-                  ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
+                  ? 'bg-white/15 text-[var(--text)] font-bold shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
@@ -164,7 +164,7 @@ export function CalendarView({
             <button
               type="button"
               onClick={() => setGameFilter('briscola')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer min-h-[44px] sm:min-h-0 ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 ${
                 gameFilter === 'briscola'
                   ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
@@ -175,7 +175,7 @@ export function CalendarView({
             <button
               type="button"
               onClick={() => setGameFilter('scopa')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer min-h-[44px] sm:min-h-0 ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px] sm:min-h-0 ${
                 gameFilter === 'scopa'
                   ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
@@ -189,14 +189,14 @@ export function CalendarView({
             <button
               type="button"
               onClick={handleSelectToday}
-              className="touch-target px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[var(--surface)] hover:bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--control-border)] btn-tactile cursor-pointer min-h-[44px]"
+              className="touch-target px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/5 hover:bg-white/10 text-[var(--text)] border border-white/10 btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px]"
             >
               Oggi
             </button>
             <button
               type="button"
               onClick={handleSelectYesterday}
-              className="touch-target px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-[var(--surface)] hover:bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--control-border)] btn-tactile cursor-pointer min-h-[44px]"
+              className="touch-target px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white/5 hover:bg-white/10 text-[var(--text)] border border-white/10 btn-ios-tactile active:scale-96 cursor-pointer min-h-[40px]"
             >
               Ieri
             </button>
@@ -206,7 +206,7 @@ export function CalendarView({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* COLONNA SINISTRA: WIDGET CALENDARIO MENSILE */}
-        <div className="lg:col-span-5 bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 shadow-sm">
+        <div className="lg:col-span-5 glass-ios-raised rounded-[28px] border border-white/10 p-5 sm:p-6 shadow-xl">
           {/* Header Mese con Frecce */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-heading font-bold text-base text-[var(--text)] capitalize">
@@ -217,7 +217,7 @@ export function CalendarView({
                 type="button"
                 onClick={handlePrevMonth}
                 aria-label="Mese precedente"
-                className="touch-target p-2 rounded-lg hover:bg-[var(--surface-raised)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
+                className="touch-target p-2 rounded-xl hover:bg-white/10 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -225,7 +225,7 @@ export function CalendarView({
                 type="button"
                 onClick={handleNextMonth}
                 aria-label="Mese successivo"
-                className="touch-target p-2 rounded-lg hover:bg-[var(--surface-raised)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
+                className="touch-target p-2 rounded-xl hover:bg-white/10 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -263,24 +263,24 @@ export function CalendarView({
                   key={dateStr}
                   type="button"
                   onClick={() => setSelectedDateKey(dateStr)}
-                  className={`min-h-[44px] h-11 sm:h-12 rounded-xl flex flex-col items-center justify-center relative text-xs font-mono tabular-nums btn-tactile cursor-pointer ${
+                  className={`min-h-[44px] h-11 sm:h-12 rounded-2xl flex flex-col items-center justify-center relative text-xs font-mono tabular-nums btn-ios-tactile active:scale-96 cursor-pointer ${
                     isSelected
                       ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-md shadow-amber-500/25 z-10 ring-2 ring-amber-300/40'
                       : isToday
-                      ? 'bg-[var(--surface-raised)] text-[var(--accent-text)] border border-[var(--accent-border)] hover:bg-[var(--surface-alt)]'
+                      ? 'bg-white/10 text-amber-300 border border-amber-500/30 hover:bg-white/15'
                       : hasItems
-                      ? 'bg-[var(--surface-raised)] text-[var(--text)] hover:bg-[var(--surface-alt)] border border-[var(--divider)]'
-                      : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)] hover:text-[var(--text)]'
+                      ? 'bg-white/5 text-[var(--text)] hover:bg-white/10 border border-white/10'
+                      : 'text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text)]'
                   }`}
                 >
                   <span className="font-semibold">{dayNum}</span>
 
                   {hasItems && (
                     <span
-                      className={`text-[9px] px-1 rounded-full font-bold mt-0.5 ${
+                      className={`text-[9px] px-1.5 rounded-full font-bold mt-0.5 ${
                         isSelected
                           ? 'bg-[var(--canvas)] text-[var(--accent-text)]'
-                          : 'bg-[var(--accent-muted)] text-[var(--accent-text)]'
+                          : 'bg-amber-500/20 text-amber-300'
                       }`}
                     >
                       {dayTourneys.length > 0 ? (
@@ -299,13 +299,13 @@ export function CalendarView({
           </div>
 
           {/* Legenda rapida */}
-          <div className="mt-5 pt-3 border-t border-[var(--divider)] flex items-center justify-between text-xs text-[var(--text-muted)]">
+          <div className="mt-5 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-[var(--text-muted)]">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
               <span>Attività registrata</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full border border-[var(--accent-border)] bg-[var(--surface-raised)]" />
+              <span className="w-2 h-2 rounded-full border border-amber-500/40 bg-amber-500/20" />
               <span>Oggi</span>
             </div>
           </div>
@@ -313,9 +313,9 @@ export function CalendarView({
 
         {/* COLONNA DESTRA: DETTAGLIO SERATA / GIORNATA */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-5 sm:p-6 shadow-sm">
+          <div className="glass-ios-raised rounded-[28px] border border-white/10 p-6 sm:p-7 shadow-xl">
             {/* Header del giorno */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--divider)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/5">
               <div>
                 <span className="text-xs font-semibold text-[var(--accent-text)] block mb-0.5">
                   Riepilogo serata
@@ -328,7 +328,7 @@ export function CalendarView({
               <button
                 type="button"
                 onClick={() => onOpenQuickMatchWithDate(selectedDateKey)}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-xs font-semibold text-[var(--text)] btn-tactile cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-[var(--text)] btn-ios-tactile active:scale-96 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 text-[var(--accent)]" />
                 <span>+ Aggiungi Partita</span>

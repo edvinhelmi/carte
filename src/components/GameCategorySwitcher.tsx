@@ -36,22 +36,22 @@ export function GameCategorySwitcher({ className = '', size = 'md' }: GameCatego
     <div
       role="radiogroup"
       aria-label="Seleziona gioco attivo"
-      className={`inline-flex items-center p-1 bg-[var(--surface-raised)] border border-[var(--control-border)] rounded-2xl shadow-sm ${className}`}
+      className={`inline-flex items-center p-1 bg-[var(--surface-raised)]/90 backdrop-blur-md border border-[var(--control-border)] rounded-full shadow-inner ${className}`}
     >
       <button
         type="button"
         role="radio"
         aria-checked={activeCategory === 'briscola'}
         onClick={() => handleSelect('briscola')}
-        className={`flex items-center justify-center gap-1.5 font-bold transition-all duration-150 btn-tactile cursor-pointer select-none min-h-[44px] ${
-          isSmall ? 'px-3 py-1.5 text-xs rounded-xl' : 'px-4 py-2 text-xs sm:text-sm rounded-xl'
+        className={`flex items-center justify-center gap-1.5 font-bold transition-all duration-160 btn-ios-tactile cursor-pointer select-none min-h-[44px] ${
+          isSmall ? 'px-3.5 py-1 text-xs rounded-full' : 'px-4 py-2 text-xs sm:text-sm rounded-full'
         } ${
           activeCategory === 'briscola'
-            ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm font-black ring-1 ring-amber-400/40'
-            : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)]'
+            ? 'bg-[var(--accent)] text-[var(--on-accent)] font-black shadow-md shadow-amber-500/20 ring-1 ring-amber-300/40'
+            : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)]/40'
         }`}
       >
-        <span className="text-base leading-none" aria-hidden="true">🃏</span>
+        <span className="text-sm leading-none" aria-hidden="true">🃏</span>
         <span>Briscola</span>
       </button>
 
@@ -60,15 +60,15 @@ export function GameCategorySwitcher({ className = '', size = 'md' }: GameCatego
         role="radio"
         aria-checked={activeCategory === 'scopa'}
         onClick={() => handleSelect('scopa')}
-        className={`flex items-center justify-center gap-1.5 font-bold transition-all duration-150 btn-tactile cursor-pointer select-none min-h-[44px] ${
-          isSmall ? 'px-3 py-1.5 text-xs rounded-xl' : 'px-4 py-2 text-xs sm:text-sm rounded-xl'
+        className={`flex items-center justify-center gap-1.5 font-bold transition-all duration-160 btn-ios-tactile cursor-pointer select-none min-h-[44px] ${
+          isSmall ? 'px-3.5 py-1 text-xs rounded-full' : 'px-4 py-2 text-xs sm:text-sm rounded-full'
         } ${
           activeCategory === 'scopa'
-            ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm font-black ring-1 ring-amber-400/40'
-            : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)]'
+            ? 'bg-[var(--accent)] text-[var(--on-accent)] font-black shadow-md shadow-amber-500/20 ring-1 ring-amber-300/40'
+            : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)]/40'
         }`}
       >
-        <span className="text-base leading-none" aria-hidden="true">🎴</span>
+        <span className="text-sm leading-none" aria-hidden="true">🎴</span>
         <span>Scopa</span>
       </button>
     </div>

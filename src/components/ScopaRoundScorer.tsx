@@ -94,11 +94,11 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
   const currentRoundNum = rounds.length + 1;
 
   return (
-    <div className="bg-[var(--surface-raised)] border border-[var(--control-border)] rounded-2xl p-3.5 sm:p-5 shadow-sm space-y-4">
+    <div className="glass-ios-raised border border-[var(--control-border)] rounded-[26px] p-4 sm:p-6 shadow-xl space-y-4.5">
       {/* Header del Calcolatore Turno */}
       <div className="flex items-center justify-between gap-2 pb-3 border-b border-[var(--divider)]">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-base shadow-sm">
             🎴
           </div>
           <div>
@@ -106,7 +106,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
               Calcola Smazzata #{currentRoundNum}
             </h3>
             <p className="text-[11px] text-[var(--text-muted)]">
-              Assegna i punti per categoria alla fine del giro
+              Assegna i punti per categoria alla fine della mano
             </p>
           </div>
         </div>
@@ -115,10 +115,10 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
           <button
             type="button"
             onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)] btn-tactile cursor-pointer min-h-[44px]"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)] btn-ios-tactile cursor-pointer min-h-[44px]"
             title="Storico turni"
           >
-            <History className="w-3.5 h-3.5" />
+            <History className="w-3.5 h-3.5 text-[var(--accent)]" />
             <span>Storico ({rounds.length})</span>
           </button>
         )}
@@ -131,66 +131,66 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
             <span>🧹</span>
             <span>Scope (1 pt ciascuna)</span>
           </span>
-          <span className="font-mono text-[11px]">
+          <span className="font-mono text-[11px] tabular-nums">
             {scopeT1} - {scopeT2} pt
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
           {/* Scope Team 1 */}
-          <div className="p-2 sm:p-2.5 rounded-xl bg-[var(--surface)] border border-[var(--control-border)] flex items-center justify-between">
+          <div className="p-2.5 sm:p-3 rounded-2xl bg-[var(--surface)]/90 border border-[var(--control-border)] flex items-center justify-between shadow-sm">
             <span className="text-xs font-bold text-[var(--text)] truncate max-w-[80px] sm:max-w-[110px]" title={team1Name}>
               {team1Name}
             </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setScopeT1(Math.max(0, scopeT1 - 1))}
                 aria-label={`Rimuovi scopa a ${team1Name}`}
-                className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center justify-center btn-tactile cursor-pointer disabled:opacity-30"
+                className="w-8 h-8 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center justify-center btn-ios-tactile cursor-pointer disabled:opacity-30"
                 disabled={scopeT1 === 0}
               >
                 <Minus className="w-3.5 h-3.5" />
               </button>
-              <span className="w-7 text-center font-mono font-black text-sm sm:text-base text-[var(--text)]">
+              <span className="w-7 text-center font-mono font-black text-sm sm:text-base text-[var(--text)] tabular-nums">
                 {scopeT1}
               </span>
               <button
                 type="button"
                 onClick={() => setScopeT1(scopeT1 + 1)}
                 aria-label={`Aggiungi scopa a ${team1Name}`}
-                className="w-8 h-8 rounded-lg bg-[var(--accent)] text-[var(--on-accent)] flex items-center justify-center btn-tactile cursor-pointer"
+                className="w-8 h-8 rounded-xl bg-[var(--accent)] text-[var(--on-accent)] flex items-center justify-center btn-ios-tactile cursor-pointer shadow-sm shadow-amber-500/20"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               </button>
             </div>
           </div>
 
           {/* Scope Team 2 */}
-          <div className="p-2 sm:p-2.5 rounded-xl bg-[var(--surface)] border border-[var(--control-border)] flex items-center justify-between">
+          <div className="p-2.5 sm:p-3 rounded-2xl bg-[var(--surface)]/90 border border-[var(--control-border)] flex items-center justify-between shadow-sm">
             <span className="text-xs font-bold text-[var(--text)] truncate max-w-[80px] sm:max-w-[110px]" title={team2Name}>
               {team2Name}
             </span>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setScopeT2(Math.max(0, scopeT2 - 1))}
                 aria-label={`Rimuovi scopa a ${team2Name}`}
-                className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center justify-center btn-tactile cursor-pointer disabled:opacity-30"
+                className="w-8 h-8 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center justify-center btn-ios-tactile cursor-pointer disabled:opacity-30"
                 disabled={scopeT2 === 0}
               >
                 <Minus className="w-3.5 h-3.5" />
               </button>
-              <span className="w-7 text-center font-mono font-black text-sm sm:text-base text-[var(--text)]">
+              <span className="w-7 text-center font-mono font-black text-sm sm:text-base text-[var(--text)] tabular-nums">
                 {scopeT2}
               </span>
               <button
                 type="button"
                 onClick={() => setScopeT2(scopeT2 + 1)}
                 aria-label={`Aggiungi scopa a ${team2Name}`}
-                className="w-8 h-8 rounded-lg bg-[var(--accent)] text-[var(--on-accent)] flex items-center justify-center btn-tactile cursor-pointer"
+                className="w-8 h-8 rounded-xl bg-[var(--accent)] text-[var(--on-accent)] flex items-center justify-center btn-ios-tactile cursor-pointer shadow-sm shadow-amber-500/20"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               </button>
             </div>
           </div>
@@ -198,22 +198,22 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
       </div>
 
       {/* Categorie a Scelta: Carte, Denari, Settebello, Primiera */}
-      <div className="space-y-3 pt-1">
+      <div className="space-y-3.5 pt-1">
         {/* 1. Carte (>20) */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-[var(--text)] flex items-center gap-1">
+            <span className="font-semibold text-[var(--text)] flex items-center gap-1.5">
               <span>🃏</span>
               <span>Carte (&gt;20 carte prese = 1 pt)</span>
             </span>
           </div>
-          <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--surface)] rounded-xl border border-[var(--control-border)]">
+          <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--surface)] rounded-2xl border border-[var(--control-border)] shadow-inner">
             <button
               type="button"
               onClick={() => setCarteWinner(1)}
-              className={`min-h-[44px] py-1.5 px-2 rounded-lg text-xs font-bold truncate btn-tactile cursor-pointer ${
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer ${
                 carteWinner === 1
-                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-md shadow-amber-500/20 font-black'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
@@ -222,7 +222,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
             <button
               type="button"
               onClick={() => setCarteWinner('patta')}
-              className={`min-h-[44px] py-1.5 px-2 rounded-lg text-xs font-bold truncate btn-tactile cursor-pointer ${
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer ${
                 carteWinner === 'patta'
                   ? 'bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--control-border)] shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
@@ -233,9 +233,9 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
             <button
               type="button"
               onClick={() => setCarteWinner(2)}
-              className={`min-h-[44px] py-1.5 px-2 rounded-lg text-xs font-bold truncate btn-tactile cursor-pointer ${
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer ${
                 carteWinner === 2
-                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-md shadow-amber-500/20 font-black'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
@@ -247,18 +247,18 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
         {/* 2. Denari (>5) */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-[var(--text)] flex items-center gap-1">
+            <span className="font-semibold text-[var(--text)] flex items-center gap-1.5">
               <span>🟡</span>
               <span>Denari / Ori (&gt;5 denari = 1 pt)</span>
             </span>
           </div>
-          <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--surface)] rounded-xl border border-[var(--control-border)]">
+          <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--surface)] rounded-2xl border border-[var(--control-border)] shadow-inner">
             <button
               type="button"
               onClick={() => setDenariWinner(1)}
-              className={`min-h-[44px] py-1.5 px-2 rounded-lg text-xs font-bold truncate btn-tactile cursor-pointer ${
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer ${
                 denariWinner === 1
-                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-md shadow-amber-500/20 font-black'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
@@ -267,7 +267,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
             <button
               type="button"
               onClick={() => setDenariWinner('patta')}
-              className={`min-h-[44px] py-1.5 px-2 rounded-lg text-xs font-bold truncate btn-tactile cursor-pointer ${
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer ${
                 denariWinner === 'patta'
                   ? 'bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--control-border)] shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
@@ -278,9 +278,9 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
             <button
               type="button"
               onClick={() => setDenariWinner(2)}
-              className={`min-h-[44px] py-1.5 px-2 rounded-lg text-xs font-bold truncate btn-tactile cursor-pointer ${
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer ${
                 denariWinner === 2
-                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-md shadow-amber-500/20 font-black'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
@@ -289,37 +289,37 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
           </div>
         </div>
 
-        {/* 3. Settebello (7 di denari) */}
+        {/* 3. Settebello */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-[var(--text)] flex items-center gap-1">
+            <span className="font-semibold text-[var(--text)] flex items-center gap-1.5">
               <span>⭐</span>
               <span>Settebello (7 di denari = 1 pt)</span>
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-1.5 p-1 bg-[var(--surface)] rounded-xl border border-[var(--control-border)]">
+          <div className="grid grid-cols-2 gap-1.5 p-1 bg-[var(--surface)] rounded-2xl border border-[var(--control-border)] shadow-inner">
             <button
               type="button"
               onClick={() => setSettebelloWinner(1)}
-              className={`min-h-[44px] py-1.5 px-2 rounded-lg text-xs font-bold truncate btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
                 settebelloWinner === 1
-                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-md shadow-amber-500/20 font-black'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
-              {settebelloWinner === 1 && <Check className="w-3.5 h-3.5 shrink-0" />}
+              {settebelloWinner === 1 && <Check className="w-3.5 h-3.5 shrink-0 stroke-[3]" />}
               <span className="truncate">{team1Name}</span>
             </button>
             <button
               type="button"
               onClick={() => setSettebelloWinner(2)}
-              className={`min-h-[44px] py-1.5 px-2 rounded-lg text-xs font-bold truncate btn-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
                 settebelloWinner === 2
-                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-md shadow-amber-500/20 font-black'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
-              {settebelloWinner === 2 && <Check className="w-3.5 h-3.5 shrink-0" />}
+              {settebelloWinner === 2 && <Check className="w-3.5 h-3.5 shrink-0 stroke-[3]" />}
               <span className="truncate">{team2Name}</span>
             </button>
           </div>
@@ -328,18 +328,18 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
         {/* 4. Primiera */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-[var(--text)] flex items-center gap-1">
+            <span className="font-semibold text-[var(--text)] flex items-center gap-1.5">
               <span>👑</span>
               <span>Primiera / Settanta (1 pt)</span>
             </span>
           </div>
-          <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--surface)] rounded-xl border border-[var(--control-border)]">
+          <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--surface)] rounded-2xl border border-[var(--control-border)] shadow-inner">
             <button
               type="button"
               onClick={() => setPrimieraWinner(1)}
-              className={`min-h-[44px] py-1.5 px-2 rounded-lg text-xs font-bold truncate btn-tactile cursor-pointer ${
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer ${
                 primieraWinner === 1
-                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-md shadow-amber-500/20 font-black'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
@@ -348,7 +348,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
             <button
               type="button"
               onClick={() => setPrimieraWinner('patta')}
-              className={`min-h-[44px] py-1.5 px-2 rounded-lg text-xs font-bold truncate btn-tactile cursor-pointer ${
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer ${
                 primieraWinner === 'patta'
                   ? 'bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--control-border)] shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
@@ -359,9 +359,9 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
             <button
               type="button"
               onClick={() => setPrimieraWinner(2)}
-              className={`min-h-[44px] py-1.5 px-2 rounded-lg text-xs font-bold truncate btn-tactile cursor-pointer ${
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer ${
                 primieraWinner === 2
-                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-md shadow-amber-500/20 font-black'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
@@ -370,12 +370,12 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
           </div>
         </div>
 
-        {/* Napola (Opzionale / Tradizionale) */}
+        {/* Napola */}
         <div>
           <button
             type="button"
             onClick={() => setShowNapola(!showNapola)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)] btn-tactile cursor-pointer py-1 min-h-[44px]"
+            className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text)] btn-ios-tactile cursor-pointer py-1 min-h-[44px]"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Regola Napola / Napoletana (A-2-3 di denari)?</span>
@@ -385,7 +385,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
           </button>
 
           {showNapola && (
-            <div className="mt-2 p-2.5 rounded-xl bg-[var(--surface)] border border-[var(--control-border)] grid grid-cols-2 gap-2 animate-fade-in">
+            <div className="mt-2 p-3 rounded-2xl bg-[var(--surface)] border border-[var(--control-border)] grid grid-cols-2 gap-2.5 animate-fade-in shadow-inner">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-[var(--text-muted)] truncate block">
                   Napola {team1Name}
@@ -394,17 +394,17 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
                   <button
                     type="button"
                     onClick={() => setNapolaT1(Math.max(0, napolaT1 === 3 ? 0 : napolaT1 - 1))}
-                    className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs font-bold flex items-center justify-center btn-tactile cursor-pointer"
+                    className="w-8 h-8 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs font-bold flex items-center justify-center btn-ios-tactile cursor-pointer"
                   >
                     -
                   </button>
-                  <span className="w-7 text-center font-mono font-bold text-sm">
+                  <span className="w-7 text-center font-mono font-bold text-sm tabular-nums">
                     {napolaT1}
                   </span>
                   <button
                     type="button"
                     onClick={() => setNapolaT1(napolaT1 === 0 ? 3 : Math.min(10, napolaT1 + 1))}
-                    className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs font-bold flex items-center justify-center btn-tactile cursor-pointer"
+                    className="w-8 h-8 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs font-bold flex items-center justify-center btn-ios-tactile cursor-pointer"
                   >
                     +
                   </button>
@@ -419,17 +419,17 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
                   <button
                     type="button"
                     onClick={() => setNapolaT2(Math.max(0, napolaT2 === 3 ? 0 : napolaT2 - 1))}
-                    className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs font-bold flex items-center justify-center btn-tactile cursor-pointer"
+                    className="w-8 h-8 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs font-bold flex items-center justify-center btn-ios-tactile cursor-pointer"
                   >
                     -
                   </button>
-                  <span className="w-7 text-center font-mono font-bold text-sm">
+                  <span className="w-7 text-center font-mono font-bold text-sm tabular-nums">
                     {napolaT2}
                   </span>
                   <button
                     type="button"
                     onClick={() => setNapolaT2(napolaT2 === 0 ? 3 : Math.min(10, napolaT2 + 1))}
-                    className="w-8 h-8 rounded-lg bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs font-bold flex items-center justify-center btn-tactile cursor-pointer"
+                    className="w-8 h-8 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs font-bold flex items-center justify-center btn-ios-tactile cursor-pointer"
                   >
                     +
                   </button>
@@ -441,11 +441,11 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
       </div>
 
       {/* Box Anteprima Punti Smazzata e Pulsante di Conferma */}
-      <div className="pt-2 border-t border-[var(--divider)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="pt-2.5 border-t border-[var(--divider)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="text-xs">
             <span className="text-[var(--text-muted)] block text-[11px]">Punti Smazzata:</span>
-            <div className="flex items-center gap-2 font-mono font-black text-base sm:text-lg">
+            <div className="flex items-center gap-2 font-mono font-black text-base sm:text-lg tabular-nums">
               <span className="text-[var(--text)]">+{pts1}</span>
               <span className="text-[var(--text-muted)] text-sm">vs</span>
               <span className="text-[var(--text)]">+{pts2}</span>
@@ -456,7 +456,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
             <button
               type="button"
               onClick={resetForm}
-              className="px-2.5 py-1.5 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-[var(--text-muted)] hover:text-[var(--text)] text-xs font-semibold btn-tactile cursor-pointer flex items-center gap-1 min-h-[44px]"
+              className="px-3 py-1.5 rounded-full bg-[var(--surface)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] text-[var(--text-muted)] hover:text-[var(--text)] text-xs font-semibold btn-ios-tactile cursor-pointer flex items-center gap-1 min-h-[44px]"
               title="Azzera selezione"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -469,9 +469,9 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
           type="button"
           onClick={handleConfirmRound}
           disabled={pts1 === 0 && pts2 === 0}
-          className="px-5 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-bold text-sm shadow-md btn-tactile cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
+          className="px-6 py-3 rounded-2xl bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] font-extrabold text-sm shadow-md shadow-amber-500/25 btn-ios-tactile cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[48px]"
         >
-          <Check className="w-4 h-4" />
+          <Check className="w-4 h-4 stroke-[3]" />
           <span>Assegna Punti Smazzata (+{pts1} / +{pts2})</span>
         </button>
       </div>

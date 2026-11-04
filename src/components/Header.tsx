@@ -43,18 +43,18 @@ export function Header({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-[var(--canvas)]/90 backdrop-blur-xl border-b border-[var(--divider)] px-3.5 sm:px-6 lg:px-8 header-safe pb-2.5 sm:pb-3">
+    <header className="sticky top-0 z-40 glass-ios border-b border-[var(--divider)] px-3.5 sm:px-6 lg:px-8 header-safe pb-2.5 sm:pb-3 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-4">
         {/* Brand / Logo (and desktop HouseSwitcher) */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 md:min-w-0">
           <button
             type="button"
             onClick={() => setActiveTab('torneo')}
-            className="flex items-center gap-2 sm:gap-2.5 text-left group cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-full shrink-0 min-h-[44px]"
-            title="Briscola Club"
+            className="flex items-center gap-2 sm:gap-2.5 text-left group cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] rounded-full shrink-0 min-h-[44px] btn-ios-tactile"
+            title="Carte Club"
             aria-label="Home Torneo"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shadow-sm group-hover:border-[var(--accent)]/60 transition-[border-color,box-shadow] duration-200 shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[var(--surface-raised)] border border-[var(--control-border)] flex items-center justify-center shadow-md shadow-amber-500/10 group-hover:border-[var(--accent)]/60 transition-[border-color,box-shadow] duration-200 shrink-0">
               <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--accent)] icon-hover-tilt" />
             </div>
             <span
@@ -62,7 +62,7 @@ export function Header({
                 hasActiveHouse ? 'hidden md:inline' : 'inline'
               }`}
             >
-              Briscola Club
+              Carte Club
             </span>
           </button>
 
@@ -83,7 +83,7 @@ export function Header({
 
         {/* Desktop Navigation (visibile solo se c'è una casa attiva) */}
         {hasActiveHouse && (
-          <nav className="hidden md:flex items-center gap-1 bg-[var(--surface)] p-1 rounded-xl border border-[var(--divider)]">
+          <nav className="hidden md:flex items-center gap-1 bg-[var(--surface-raised)]/90 backdrop-blur-md p-1 rounded-2xl border border-[var(--control-border)] shadow-inner">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -92,21 +92,18 @@ export function Header({
                   key={item.id}
                   type="button"
                   onClick={() => setActiveTab(item.id)}
-                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold btn-tactile cursor-pointer ${
+                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold btn-ios-tactile cursor-pointer ${
                     isActive
-                      ? 'bg-[var(--surface-alt)] text-[var(--text)] border border-[var(--control-border)] shadow-sm'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] border border-transparent'
+                      ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-md shadow-amber-500/20'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)]/60 border border-transparent'
                   }`}
                 >
                   <Icon
                     className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                      isActive ? 'text-[var(--accent)] scale-110' : 'text-[var(--text-muted)]'
+                      isActive ? 'text-[var(--on-accent)] scale-110' : 'text-[var(--text-muted)]'
                     }`}
                   />
                   <span>{item.label}</span>
-                  {isActive && (
-                    <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-[var(--accent)] rounded-full" />
-                  )}
                 </button>
               );
             })}
@@ -127,7 +124,7 @@ export function Header({
             <button
               type="button"
               onClick={() => setActiveTab('torneo')}
-              className={`hidden md:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold btn-tactile cursor-pointer shadow-sm min-h-[44px] ${
+              className={`hidden md:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold btn-ios-tactile cursor-pointer shadow-sm min-h-[44px] ${
                 activeTab === 'torneo'
                   ? 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] shadow-[0_2px_14px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/40'
                   : 'bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--control-border)] text-[var(--text)]'
@@ -145,7 +142,7 @@ export function Header({
               onClick={onOpenProfile}
               aria-label="Apri profilo utente"
               title={`Profilo: ${currentUser.displayName}`}
-              className="touch-target inline-flex items-center justify-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-[var(--text)] btn-tactile cursor-pointer min-h-[44px] min-w-[44px] group"
+              className="touch-target inline-flex items-center justify-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-full bg-[var(--surface-raised)] hover:bg-[var(--surface-alt)] border border-[var(--control-border)] hover:border-[var(--control-border-hover)] text-[var(--text)] btn-ios-tactile cursor-pointer min-h-[44px] min-w-[44px] group shadow-sm"
             >
               {currentUser.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element

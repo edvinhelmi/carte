@@ -647,12 +647,13 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
           role="dialog"
           aria-modal="true"
         >
-          <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6 modal-safe-container">
+          <div className="flex min-h-full items-end sm:items-center justify-center p-0 sm:p-6 modal-safe-container">
             <div
-              className="relative z-10 w-full max-w-sm my-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
+              className="relative z-10 w-full max-w-sm my-0 sm:my-auto rounded-t-[32px] sm:rounded-[28px] glass-ios-raised border border-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(92vh,calc(100dvh-1rem))] animate-scale-in text-left"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)] bg-[var(--surface-raised)] shrink-0">
+              <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-3 mb-1 sm:hidden shrink-0" />
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)] shrink-0">
                     <UserPlus className="w-4 h-4" />
@@ -754,12 +755,13 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
           role="dialog"
           aria-modal="true"
         >
-          <div className="flex min-h-full items-center justify-center p-3.5 sm:p-6 modal-safe-container">
+          <div className="flex min-h-full items-end sm:items-center justify-center p-0 sm:p-6 modal-safe-container">
             <div
-              className="relative z-10 w-full max-w-md my-auto rounded-2xl bg-[var(--surface-raised)] border border-[var(--control-border-hover)] ring-1 ring-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(90vh,calc(100dvh-2rem))] animate-scale-in text-left"
+              className="relative z-10 w-full max-w-md my-0 sm:my-auto rounded-t-[32px] sm:rounded-[28px] glass-ios-raised border border-white/10 shadow-2xl shadow-black/80 overflow-hidden flex flex-col max-h-[min(92vh,calc(100dvh-1rem))] animate-scale-in text-left"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--divider)] bg-[var(--surface-raised)] shrink-0">
+              <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-3 mb-1 sm:hidden shrink-0" />
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-[var(--accent-muted)] border border-[var(--accent-border)] flex items-center justify-center text-[var(--accent)] shrink-0">
                     <Users className="w-4 h-4" />

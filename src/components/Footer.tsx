@@ -21,38 +21,53 @@ export function Footer({ onOpenLegalModal }: FooterProps) {
           </p>
         </div>
 
-        {/* Link Legali */}
+        {/* Link Legali con tag <a> crawlable per verifica Google OAuth */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-semibold text-[var(--text-muted)]">
-          <button
-            type="button"
-            onClick={() => onOpenLegalModal('privacy')}
+          <a
+            href="/privacy"
+            onClick={(e) => {
+              if (onOpenLegalModal) {
+                e.preventDefault();
+                onOpenLegalModal('privacy');
+              }
+            }}
             className="hover:text-[var(--accent-text)] transition-colors cursor-pointer inline-flex items-center gap-1.5 touch-target"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent)]" />
             <span>Privacy Policy</span>
-          </button>
+          </a>
 
           <span className="text-[var(--divider)]">•</span>
 
-          <button
-            type="button"
-            onClick={() => onOpenLegalModal('cookie')}
+          <a
+            href="/privacy#cookie"
+            onClick={(e) => {
+              if (onOpenLegalModal) {
+                e.preventDefault();
+                onOpenLegalModal('cookie');
+              }
+            }}
             className="hover:text-[var(--accent-text)] transition-colors cursor-pointer inline-flex items-center gap-1.5 touch-target"
           >
             <Cookie className="w-3.5 h-3.5 text-[var(--accent)]" />
             <span>Cookie &amp; Storage</span>
-          </button>
+          </a>
 
           <span className="text-[var(--divider)]">•</span>
 
-          <button
-            type="button"
-            onClick={() => onOpenLegalModal('terms')}
+          <a
+            href="/terms"
+            onClick={(e) => {
+              if (onOpenLegalModal) {
+                e.preventDefault();
+                onOpenLegalModal('terms');
+              }
+            }}
             className="hover:text-[var(--accent-text)] transition-colors cursor-pointer inline-flex items-center gap-1.5 touch-target"
           >
             <FileText className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             <span>Termini di Servizio</span>
-          </button>
+          </a>
         </div>
       </div>
 

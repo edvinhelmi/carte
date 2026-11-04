@@ -31,7 +31,8 @@ export const PRIVACY_POLICY: {
       content: [
         'Briscola Club adotta il principio di minimizzazione dei dati (Privacy by Design e Privacy by Default):',
         '• Dati di Gioco e Profilo Locale: nomi delle squadre, nickname dei partecipanti, membri della casa, punteggi e vittorie registrati durante le partite e i tornei. Questi dati sono memorizzati prioritariamente nella memoria locale (LocalStorage) del dispositivo dell\'utente.',
-        '• Dati di Autenticazione Google OAuth (Opzionali): qualora l\'utente scelga volontariamente di autenticarsi tramite Google, vengono acquisiti esclusivamente l\'identificativo univoco utente (Google User ID), l\'indirizzo email, il nome visualizzato e l\'URL dell\'immagine del profilo pubblico forniti da Google.',
+        '• Dati di Autenticazione Google OAuth (Opzionali): qualora l\'utente scelga volontariamente di autenticarsi tramite Google, vengono acquisiti esclusivamente l\'identificativo univoco utente (Google User ID), l\'indirizzo email, il nome visualizzato e l\'URL dell\'immagine del profilo pubblico forniti da Google. Questi dati vengono utilizzati unicamente per identificare l\'utente e associare i punteggi e la casa di gioco.',
+        '• Rispetto delle Norme sui dati utente delle API di Google (Google API Services User Data Policy): L\'utilizzo e il trasferimento da parte di Briscola Club ad altre applicazioni di qualsiasi informazione ricevuta tramite gli endpoint e le API di Google sono conformi alle Norme sui dati utente dei servizi API di Google (inclusi i requisiti di Uso Limitato / Limited Use Requirements). I dati non vengono ceduti a terzi né utilizzati per scopi di pubblicità o profilazione.',
         '• Dati Tecnici di Navigazione e Sincronizzazione: indirizzo IP (trattato in forma anonimizzata/pseudonimizzata), log tecnici di connessione e token di sessione generati dall\'infrastruttura Supabase per consentire la sincronizzazione multi-dispositivo in tempo reale.',
         '• Nessun Dato Particolare: non vengono in alcun caso trattati dati sensibili o particolari (dati sanitari, biometrici, opinioni politiche o religiose).',
       ],
@@ -68,6 +69,7 @@ export const PRIVACY_POLICY: {
         '• Diritto di Portabilità (Art. 20): esportare tutti i propri dati in formato strutturato e leggibile da dispositivo automatico. Questa funzione è direttamente accessibile dall\'app tramite il tasto "Esporta Backup (Scarica JSON)".',
         '• Diritto di Rettifica e Modifica (Art. 16): correggere nickname, nomi squadra e partite errate.',
         '• Diritto alla Cancellazione / Diritto all\'Oblio (Art. 17): cancellare tutti i dati memorizzati tramite la funzione "Azzera Tutti i Dati" o facendone richiesta al Titolare.',
+        '• Revoca dell\'accesso account Google: l\'utente può revocare in qualunque momento e autonomamente l\'accesso dell\'applicazione al proprio account Google visitando la pagina Impostazioni di Sicurezza Google: https://myaccount.google.com/permissions.',
         '• Diritto di Reclamo (Art. 77): qualora ritenga che il trattamento violi il GDPR, l\'utente ha il diritto di proporre reclamo all\'Autorità Garante per la Protezione dei Dati Personali (Piazza Venezia 11, 00187 Roma - www.garanteprivacy.it).',
       ],
     },
