@@ -1,5 +1,4 @@
 import React from 'react';
-import Link from 'next/link';
 import type { Metadata } from 'next';
 import { ArrowLeft, FileText, AlertCircle } from 'lucide-react';
 import { TERMS_OF_SERVICE, LEGAL_METADATA } from '@/lib/legalContent';
@@ -15,13 +14,13 @@ export default function TermsPage() {
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Torna indietro */}
         <div>
-          <Link
+          <a
             href="/"
             className="inline-flex items-center gap-2 text-xs font-bold text-[var(--accent-text)] hover:underline py-2 px-3 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Torna all&apos;app</span>
-          </Link>
+          </a>
         </div>
 
         {/* Intestazione */}

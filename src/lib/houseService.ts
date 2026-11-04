@@ -90,6 +90,7 @@ export const HouseService = {
     const finalActiveId = getStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
     if (finalActiveId) {
       this.migrateManualMembersToFriends(finalActiveId);
+      this.deduplicatePlayers(finalActiveId);
     }
   },
 
@@ -311,7 +312,139 @@ export const HouseService = {
     }
 
     setStorageItem(playersKey, JSON.stringify(players));
+    this.deduplicatePlayers(id);
     this.notifyUpdate();
+  },
+
+  // Deduplica i giocatori unificando record multipli per la stessa persona (es. Francesco e Francis)
+  deduplicatePlayers(houseId?: string): void {
+    const id = houseId || getStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
+    if (!id) return;
+
+    const playersKey = getHouseResourceKey(id, 'players');
+    const playersRaw = getStorageItem(playersKey);
+    if (!playersRaw) return;
+
+    let players: Player[] = [];
+    try {
+      players = JSON.parse(playersRaw);
+      if (!Array.isArray(players) || players.length === 0) return;
+    } catch {
+      return;
+    }
+
+    const uniqueList: Player[] = [];
+    const removedIds: string[] = [];
+    const idReplacements: Record<string, string> = {};
+
+    for (const p of players) {
+      if (!p || !p.id) continue;
+      const pNameLower = typeof p.name === 'string' ? p.name.trim().toLowerCase() : '';
+      const pNickLower = typeof p.nickname === 'string' ? p.nickname.trim().toLowerCase() : '';
+      const effLower = pNickLower || pNameLower;
+
+      const isFrancisFrancesco =
+        pNameLower === 'francesco' ||
+        pNickLower === 'francis' ||
+        pNameLower === 'francis' ||
+        effLower === 'francis';
+
+      const existingIdx = uniqueList.findIndex((u) => {
+        const uNameLower = typeof u.name === 'string' ? u.name.trim().toLowerCase() : '';
+        const uNickLower = typeof u.nickname === 'string' ? u.nickname.trim().toLowerCase() : '';
+        const uEffLower = uNickLower || uNameLower;
+
+        if (isFrancisFrancesco) {
+          return (
+            uNameLower === 'francesco' ||
+            uNickLower === 'francis' ||
+            uNameLower === 'francis' ||
+            uEffLower === 'francis'
+          );
+        }
+
+        return (
+          u.id === p.id ||
+          (effLower && uEffLower === effLower) ||
+          (pNameLower && uNameLower === pNameLower) ||
+          (pNickLower && uNickLower && uNickLower === pNickLower) ||
+          (pNickLower && uNameLower === pNickLower) ||
+          (pNameLower && uNickLower === pNameLower)
+        );
+      });
+
+      if (existingIdx >= 0) {
+        const primary = uniqueList[existingIdx];
+        removedIds.push(p.id);
+        idReplacements[p.id] = primary.id;
+
+        if (isFrancisFrancesco) {
+          primary.name = 'Francesco';
+          primary.nickname = 'Francis';
+          primary.isFriend = true;
+        } else {
+          if (!primary.nickname && p.nickname) primary.nickname = p.nickname;
+          if (p.isFriend) primary.isFriend = true;
+        }
+      } else {
+        if (isFrancisFrancesco) {
+          p.name = 'Francesco';
+          p.nickname = 'Francis';
+          p.isFriend = true;
+        }
+        uniqueList.push(p);
+      }
+    }
+
+    if (removedIds.length > 0) {
+      setStorageItem(playersKey, JSON.stringify(uniqueList));
+
+      // Aggiorna le squadre che avevano playerIds con ID duplicati
+      const teamsKey = getHouseResourceKey(id, 'teams');
+      const teamsRaw = getStorageItem(teamsKey);
+      if (teamsRaw) {
+        try {
+          const teams: Team[] = JSON.parse(teamsRaw);
+          let teamsUpdated = false;
+          for (const t of teams) {
+            if (Array.isArray(t.playerIds)) {
+              const newIds = t.playerIds.map((pid) => idReplacements[pid] || pid);
+              if (JSON.stringify(newIds) !== JSON.stringify(t.playerIds)) {
+                t.playerIds = newIds;
+                teamsUpdated = true;
+              }
+            }
+          }
+          if (teamsUpdated) {
+            setStorageItem(teamsKey, JSON.stringify(teams));
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      // Se Supabase è configurato, elimina gli ID duplicati dal cloud e aggiorna il record unificato
+      if (isSupabaseConfigured()) {
+        const client = getSupabaseClient();
+        if (client) {
+          for (const remId of removedIds) {
+            client.from('players').delete().eq('house_id', id).eq('id', remId).then();
+          }
+          for (const p of uniqueList) {
+            client.from('players').upsert({
+              id: p.id,
+              house_id: id,
+              name: p.name,
+              nickname: p.nickname || null,
+              avatar_suit: p.avatarSuit,
+              created_at: p.createdAt,
+            }).then();
+          }
+        }
+      }
+
+      this.notifyUpdate();
+    }
   },
 
   // Membri della Casa
@@ -1146,8 +1279,9 @@ export const HouseService = {
         setStorageItem(getHouseResourceKey(houseId, 'sessions'), JSON.stringify(mergedSessions));
       }
 
-      // 5. Migra automaticamente eventuali record manuali o Francesco a Giocatori Amici
+      // 5. Migra automaticamente eventuali record manuali o Francesco a Giocatori Amici e deduplica
       this.migrateManualMembersToFriends(houseId);
+      this.deduplicatePlayers(houseId);
     } catch (err) {
       console.warn('Errore pull house data from cloud:', err);
     }

@@ -55,7 +55,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
     }
   }, [activeHouseId]);
 
-  // Separa i giocatori amici da quelli della casa
+  // Separa i giocatori amici da quelli della casa e deduplica eventuali record duplicati (es. Francis / Francesco)
   const friendPlayers = useMemo(() => {
     const memberNameSet = new Set(
       (houseMembers || []).flatMap((m) => [
@@ -64,7 +64,7 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
       ]).filter(Boolean)
     );
 
-    return (players || []).filter((p) => {
+    const rawFriends = (players || []).filter((p) => {
       if (!p || !p.id) return false;
       if (typeof p.id === 'string' && p.id.startsWith('p_mem_')) return false;
       if (p.isFriend) return true;
@@ -74,6 +74,53 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
       if (pNick && memberNameSet.has(pNick)) return false;
       return true;
     });
+
+    const deduplicated: Player[] = [];
+    const seenKeys = new Set<string>();
+
+    for (const p of rawFriends) {
+      const pNameLower = typeof p.name === 'string' ? p.name.trim().toLowerCase() : '';
+      const pNickLower = typeof p.nickname === 'string' ? p.nickname.trim().toLowerCase() : '';
+      const effLower = pNickLower || pNameLower;
+      if (!effLower) continue;
+
+      const isFrancisFrancesco =
+        pNameLower === 'francesco' ||
+        pNickLower === 'francis' ||
+        pNameLower === 'francis' ||
+        effLower === 'francis';
+
+      const canonicalKey = isFrancisFrancesco ? 'canonical_francesco_francis' : effLower;
+
+      if (seenKeys.has(canonicalKey)) {
+        const existingIdx = deduplicated.findIndex((ex) => {
+          const exName = (ex.name || '').trim().toLowerCase();
+          const exNick = (ex.nickname || '').trim().toLowerCase();
+          if (isFrancisFrancesco) {
+            return exName === 'francesco' || exNick === 'francis' || exName === 'francis';
+          }
+          return (exNick || exName) === canonicalKey;
+        });
+        if (existingIdx >= 0) {
+          const ex = deduplicated[existingIdx];
+          if (!ex.nickname && p.nickname) ex.nickname = p.nickname;
+          if (isFrancisFrancesco) {
+            ex.name = 'Francesco';
+            ex.nickname = 'Francis';
+          }
+        }
+        continue;
+      }
+
+      seenKeys.add(canonicalKey);
+      deduplicated.push(
+        isFrancisFrancesco
+          ? { ...p, name: 'Francesco', nickname: 'Francis' }
+          : { ...p }
+      );
+    }
+
+    return deduplicated;
   }, [players, houseMembers]);
 
   // Giocatori selezionabili per comporre una squadra: SOLO NICKNAME

@@ -509,4 +509,43 @@ describe('HouseService & Multi-Casa Storage System', () => {
     assert.deepEqual(syncedTeam?.playerIds, ['p_1', 'p_2']);
     assert.deepEqual(syncedTeam?.playerNames, ['Luca', 'Marco']);
   });
+
+  it('deduplicates duplicate friend records for the same person (e.g. Francis and Francesco)', () => {
+    const house = HouseService.createHouse('Casa Deduplica');
+    const playersKey = `carte_house_${house.id}_players`;
+
+    // Simulate two player entries for Francesco/Francis
+    const fakePlayers = [
+      {
+        id: 'p_francis_1',
+        houseId: house.id,
+        name: 'Francis',
+        isFriend: true,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'p_francesco_2',
+        houseId: house.id,
+        name: 'Francesco',
+        nickname: 'Francis',
+        isFriend: true,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    setStoredItem(playersKey, JSON.stringify(fakePlayers));
+
+    // Run deduplication
+    HouseService.deduplicatePlayers(house.id);
+
+    const players = StorageService.getPlayers();
+    assert.equal(players.length, 1, 'There must be strictly one player record after deduplication');
+    assert.equal(players[0].name, 'Francesco');
+    assert.equal(players[0].nickname, 'Francis');
+    assert.equal(players[0].isFriend, true);
+
+    // Verify suggestions return Francis only once
+    const suggestions = HouseService.getSuggestedPlayerNames(house.id);
+    const francisMatches = suggestions.filter((s) => s.toLowerCase() === 'francis');
+    assert.equal(francisMatches.length, 1, 'Francis must appear exactly once in suggestions');
+  });
 });

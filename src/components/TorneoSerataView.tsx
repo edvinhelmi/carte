@@ -130,14 +130,72 @@ export function TorneoSerataView({
     return HouseService.getSuggestedPlayerNames(activeHouseId);
   }, [suggestionVersion]);
 
+  // Risolve un ID o nome giocatore al suo nickname esatto presente tra i suggerimenti
+  const resolvePlayerSuggestionName = (pId: string, fallbackName?: string): string => {
+    // 1. Cerca il giocatore nella lista players
+    const pl = (players || []).find(
+      (p) => p.id === pId || p.id === `p_${pId}` || p.id === `p_mem_${pId}` || p.name === pId
+    );
+    // 2. Cerca tra i membri della casa
+    const activeHouseId = HouseService.getActiveHouseId();
+    const members = activeHouseId ? HouseService.getHouseMembers(activeHouseId) : [];
+    const mem = (members || []).find(
+      (m) => m.userId === pId || `p_mem_${m.userId}` === pId || m.displayName === pId || m.nickname === pId
+    );
+
+    const candidateNick = pl?.nickname?.trim() || mem?.nickname?.trim();
+    const candidateName = pl?.name?.trim() || mem?.displayName?.trim() || fallbackName?.trim() || pId;
+
+    // 3. Se il giocatore ha un nickname, cerca corrispondenza esatta (case-insensitive) tra i suggerimenti
+    if (candidateNick) {
+      const matchInAvailable = availablePlayerNames.find(
+        (avail) => avail.toLowerCase() === candidateNick.toLowerCase()
+      );
+      if (matchInAvailable) return matchInAvailable;
+    }
+
+    // 4. Cerca se il nome reale o candidateName corrisponde a qualche elemento di availablePlayerNames
+    if (candidateName) {
+      const matchInAvailable = availablePlayerNames.find(
+        (avail) =>
+          avail.toLowerCase() === candidateName.toLowerCase() ||
+          (candidateNick && avail.toLowerCase() === candidateNick.toLowerCase())
+      );
+      if (matchInAvailable) return matchInAvailable;
+    }
+
+    // 5. Cerca tra i players se un giocatore con nome uguale a candidateName ha un nickname presente nei suggerimenti
+    const linkedPlayer = (players || []).find(
+      (p) => p.name?.trim().toLowerCase() === candidateName.toLowerCase()
+    );
+    if (linkedPlayer?.nickname) {
+      const matchNick = availablePlayerNames.find(
+        (avail) => avail.toLowerCase() === linkedPlayer.nickname!.trim().toLowerCase()
+      );
+      if (matchNick) return matchNick;
+    }
+
+    return candidateNick || candidateName;
+  };
+
   // Seleziona una squadra esistente come preset (solo 2vs2)
   const handleSelectTeam1Preset = (teamId: string) => {
     const t = teams.find((item) => item.id === teamId);
     if (!t) return;
     setTeam1Name(t.name);
-    const pNames = t.playerIds
-      .map((pId) => players.find((p) => p.id === pId)?.name)
-      .filter(Boolean) as string[];
+    const pNames: string[] = [];
+    const pIds = Array.isArray(t.playerIds) ? t.playerIds : [];
+    pIds.forEach((pId, idx) => {
+      const fallback = t.playerNames?.[idx];
+      const resolved = resolvePlayerSuggestionName(pId, fallback);
+      if (resolved) pNames.push(resolved);
+    });
+    if (pNames.length === 0 && Array.isArray(t.playerNames)) {
+      t.playerNames.forEach((n) => {
+        const resolved = resolvePlayerSuggestionName(n, n);
+        if (resolved) pNames.push(resolved);
+      });
+    }
     setTeam1SelectedPlayers(pNames);
   };
 
@@ -145,24 +203,36 @@ export function TorneoSerataView({
     const t = teams.find((item) => item.id === teamId);
     if (!t) return;
     setTeam2Name(t.name);
-    const pNames = t.playerIds
-      .map((pId) => players.find((p) => p.id === pId)?.name)
-      .filter(Boolean) as string[];
+    const pNames: string[] = [];
+    const pIds = Array.isArray(t.playerIds) ? t.playerIds : [];
+    pIds.forEach((pId, idx) => {
+      const fallback = t.playerNames?.[idx];
+      const resolved = resolvePlayerSuggestionName(pId, fallback);
+      if (resolved) pNames.push(resolved);
+    });
+    if (pNames.length === 0 && Array.isArray(t.playerNames)) {
+      t.playerNames.forEach((n) => {
+        const resolved = resolvePlayerSuggestionName(n, n);
+        if (resolved) pNames.push(resolved);
+      });
+    }
     setTeam2SelectedPlayers(pNames);
   };
 
-  // Toggle giocatore 2vs2
+  // Toggle giocatore 2vs2 (confronto case-insensitive)
   const togglePlayer1 = (name: string) => {
-    if (team1SelectedPlayers.includes(name)) {
-      setTeam1SelectedPlayers(team1SelectedPlayers.filter((p) => p !== name));
+    const exists = team1SelectedPlayers.some((p) => p.toLowerCase() === name.toLowerCase());
+    if (exists) {
+      setTeam1SelectedPlayers(team1SelectedPlayers.filter((p) => p.toLowerCase() !== name.toLowerCase()));
     } else {
       setTeam1SelectedPlayers([...team1SelectedPlayers, name]);
     }
   };
 
   const togglePlayer2 = (name: string) => {
-    if (team2SelectedPlayers.includes(name)) {
-      setTeam2SelectedPlayers(team2SelectedPlayers.filter((p) => p !== name));
+    const exists = team2SelectedPlayers.some((p) => p.toLowerCase() === name.toLowerCase());
+    if (exists) {
+      setTeam2SelectedPlayers(team2SelectedPlayers.filter((p) => p.toLowerCase() !== name.toLowerCase()));
     } else {
       setTeam2SelectedPlayers([...team2SelectedPlayers, name]);
     }
@@ -936,7 +1006,7 @@ export function TorneoSerataView({
                     </label>
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       {availablePlayerNames.map((name) => {
-                        const isSelected = team1SelectedPlayers.includes(name);
+                        const isSelected = team1SelectedPlayers.some((p) => p.toLowerCase() === name.toLowerCase());
                         return (
                           <button
                             key={name}
@@ -1061,7 +1131,7 @@ export function TorneoSerataView({
                     </label>
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       {availablePlayerNames.map((name) => {
-                        const isSelected = team2SelectedPlayers.includes(name);
+                        const isSelected = team2SelectedPlayers.some((p) => p.toLowerCase() === name.toLowerCase());
                         return (
                           <button
                             key={name}
