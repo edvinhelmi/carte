@@ -15,6 +15,7 @@ import { SettingsView } from '@/components/SettingsView';
 import { QuickMatchModal } from '@/components/QuickMatchModal';
 import { EmptyHouseState } from '@/components/EmptyHouseState';
 import { ProfileModal } from '@/components/ProfileModal';
+import { GameCategorySwitcher } from '@/components/GameCategorySwitcher';
 import { CookieBanner } from '@/components/CookieBanner';
 import { LegalModal, type LegalTab } from '@/components/LegalModal';
 import { Footer } from '@/components/Footer';
@@ -192,7 +193,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[var(--canvas)] text-[var(--text)] flex flex-col font-sans pb-28 md:pb-12 selection:bg-amber-500/20 selection:text-amber-200 overflow-x-clip">
-      {/* Header di Navigazione */}
+      {/* Header di Navigazione (solo Casa, Profilo e Tabs) */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -200,9 +201,18 @@ export default function Home() {
         hasActiveHouse={hasHouse}
       />
 
+      {/* Floating Island: Switcher Categoria Gioco Fluttuante (Briscola vs Scopa) */}
+      {hasHouse && (
+        <div className="sticky top-[calc(max(env(safe-area-inset-top,0px),0px)+3.75rem)] sm:top-[4.25rem] z-30 flex justify-center pointer-events-none px-4 pt-2.5 pb-1 -mb-1">
+          <div className="pointer-events-auto">
+            <GameCategorySwitcher size="sm" />
+          </div>
+        </div>
+      )}
+
       {/* Toast Notifica Casa */}
       {joinNotification && (
-        <div className="fixed top-[calc(env(safe-area-inset-top,0px)+3.75rem)] left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-[var(--surface-raised)] border border-emerald-500/40 text-emerald-400 font-bold text-xs shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-2">
+        <div className="fixed top-[calc(env(safe-area-inset-top,0px)+5.25rem)] left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-[var(--surface-raised)] border border-emerald-500/40 text-emerald-400 font-bold text-xs shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-2">
           <FontAwesomeIcon icon={faHouse} className="w-3.5 h-3.5 text-emerald-400" />
           <span>{joinNotification}</span>
         </div>

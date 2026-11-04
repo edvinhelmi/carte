@@ -38,7 +38,7 @@ export function GameCategorySwitcher({ className = '', size = 'md' }: GameCatego
     <div
       role="radiogroup"
       aria-label="Seleziona gioco attivo"
-      className={`inline-flex items-center p-1 bg-[var(--surface-raised)]/90 backdrop-blur-md border border-[var(--control-border)] rounded-full shadow-inner ${className}`}
+      className={`inline-flex items-center p-1 glass-ios-island rounded-full shadow-2xl ${className}`}
     >
       <button
         type="button"
@@ -46,11 +46,11 @@ export function GameCategorySwitcher({ className = '', size = 'md' }: GameCatego
         aria-checked={activeCategory === 'briscola'}
         onClick={() => handleSelect('briscola')}
         className={`flex items-center justify-center gap-1.5 font-bold transition-all duration-160 btn-ios-tactile cursor-pointer select-none min-h-[44px] ${
-          isSmall ? 'px-3.5 py-1 text-xs rounded-full' : 'px-4 py-2 text-xs sm:text-sm rounded-full'
+          isSmall ? 'px-4 py-1.5 text-xs rounded-full' : 'px-5 py-2 text-xs sm:text-sm rounded-full'
         } ${
           activeCategory === 'briscola'
-            ? 'bg-[var(--accent)] text-[var(--on-accent)] font-black shadow-md shadow-amber-500/20 ring-1 ring-amber-300/40'
-            : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)]/40'
+            ? 'bg-[var(--accent)] text-[var(--on-accent)] font-black shadow-md shadow-amber-500/25 ring-1 ring-amber-300/40'
+            : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-white/5'
         }`}
       >
         <FontAwesomeIcon icon={faClone} className="text-xs shrink-0" aria-hidden="true" />
@@ -63,11 +63,11 @@ export function GameCategorySwitcher({ className = '', size = 'md' }: GameCatego
         aria-checked={activeCategory === 'scopa'}
         onClick={() => handleSelect('scopa')}
         className={`flex items-center justify-center gap-1.5 font-bold transition-all duration-160 btn-ios-tactile cursor-pointer select-none min-h-[44px] ${
-          isSmall ? 'px-3.5 py-1 text-xs rounded-full' : 'px-4 py-2 text-xs sm:text-sm rounded-full'
+          isSmall ? 'px-4 py-1.5 text-xs rounded-full' : 'px-5 py-2 text-xs sm:text-sm rounded-full'
         } ${
           activeCategory === 'scopa'
-            ? 'bg-[var(--accent)] text-[var(--on-accent)] font-black shadow-md shadow-amber-500/20 ring-1 ring-amber-300/40'
-            : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)]/40'
+            ? 'bg-[var(--accent)] text-[var(--on-accent)] font-black shadow-md shadow-amber-500/25 ring-1 ring-amber-300/40'
+            : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-white/5'
         }`}
       >
         <FontAwesomeIcon icon={faBroom} className="text-xs shrink-0" aria-hidden="true" />

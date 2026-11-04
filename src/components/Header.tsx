@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Calendar as CalendarIcon, Users, Settings, Swords, User } from 'lucide-react';
 import { HouseSwitcher } from './HouseSwitcher';
-import { GameCategorySwitcher } from './GameCategorySwitcher';
 import { AuthService } from '@/lib/authService';
 import type { UserProfile } from '@/types/house';
 
@@ -112,13 +111,6 @@ export function Header({
 
         {/* Quick Actions & Profile */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-          {/* Selettore Categoria Gioco Desktop (Briscola vs Scopa) */}
-          {hasActiveHouse && (
-            <div className="hidden lg:flex items-center">
-              <GameCategorySwitcher size="sm" />
-            </div>
-          )}
-
           {/* Desktop Live Tournament Button */}
           {hasActiveHouse && (
             <button
@@ -163,13 +155,6 @@ export function Header({
           )}
         </div>
       </div>
-
-      {/* Switcher Categoria Mobile & Tablet (sotto la barra principale) */}
-      {hasActiveHouse && (
-        <div className="max-w-7xl mx-auto mt-2 pt-2 border-t border-[var(--divider)]/40 flex items-center justify-center lg:hidden">
-          <GameCategorySwitcher size="sm" className="w-full max-w-xs justify-center" />
-        </div>
-      )}
     </header>
   );
 }
