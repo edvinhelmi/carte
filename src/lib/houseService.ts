@@ -493,13 +493,17 @@ export const HouseService = {
         const existingIdx = list.findIndex((m) => m.userId === currentUser.id);
         const myNick = AuthService.getEffectiveNickname(houseId);
         if (existingIdx === -1) {
+          const hasOwner = list.some((m) => m.role === 'owner' && !m.userId.startsWith('guest_'));
+          const guestOwner = list.find((m) => m.role === 'owner' && m.userId.startsWith('guest_'));
+          const shouldBeOwner = !hasOwner && (list.length === 0 || !!guestOwner);
+
           list.unshift({
             houseId,
             userId: currentUser.id,
             displayName: currentUser.displayName,
             nickname: myNick,
             avatarUrl: currentUser.avatarUrl,
-            role: 'owner',
+            role: shouldBeOwner ? 'owner' : 'member',
             joinedAt: new Date().toISOString(),
           });
           setStorageItem(key, JSON.stringify(list));
@@ -1450,12 +1454,13 @@ export const HouseService = {
           if (houseMeta && (userIsMember || members.length === 0)) {
             if (!userIsMember) {
               const currentProfile = AuthService.getCurrentUser();
+              const isFirstAndOnly = members.length === 0;
               const myMember: HouseMember = {
                 houseId: k.id,
                 userId,
                 displayName: currentProfile.displayName,
                 nickname: AuthService.getHouseNickname(k.id),
-                role: 'owner',
+                role: isFirstAndOnly ? 'owner' : 'member',
                 joinedAt: new Date().toISOString(),
               };
               members.push(myMember);

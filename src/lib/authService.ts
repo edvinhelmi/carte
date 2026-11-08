@@ -118,10 +118,10 @@ export const AuthService = {
         const guestIdx = currentMembers.findIndex((m) => m.userId.startsWith('guest_'));
         const existingAuthIdx = currentMembers.findIndex((m) => m.userId === user.id);
         const role =
-          existingAuthIdx >= 0
+          guestIdx >= 0 && currentMembers[guestIdx].role === 'owner'
+            ? 'owner'
+            : existingAuthIdx >= 0
             ? currentMembers[existingAuthIdx].role
-            : guestIdx >= 0
-            ? currentMembers[guestIdx].role
             : 'member';
 
         // Rimuovi eventuale membro guest locale per non lasciare record fantasma

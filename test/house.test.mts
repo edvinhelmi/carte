@@ -616,4 +616,35 @@ describe('HouseService & Multi-Casa Storage System', () => {
     assert.ok(syncedMembers.some((m) => m.userId === gretaUserId));
     assert.ok(syncedMembers.some((m) => m.userId === hostUser.userId));
   });
+
+  it('ensures joining members receive role member and only the house creator is owner', async () => {
+    // 1. Create a house as creator (owner)
+    const house = HouseService.createHouse('Casa Amici');
+    const membersInitial = HouseService.getHouseMembers(house.id);
+    assert.equal(membersInitial.length, 1);
+    assert.equal(membersInitial[0].role, 'owner');
+    const creatorId = membersInitial[0].userId;
+
+    // 2. Simulate a new user (Greta) joining by invite code
+    await AuthService.handleSupabaseUser({
+      id: 'user_greta_123',
+      email: 'greta@example.com',
+      user_metadata: {
+        full_name: 'Greta De Angelis',
+      },
+    });
+
+    const joinResult = await HouseService.joinHouseByCodeOrId(house.inviteCode);
+    assert.ok(joinResult.success);
+
+    // 3. Verify roles: creator must be owner, joining user must be member
+    const membersAfterJoin = HouseService.getHouseMembers(house.id);
+    const creatorMember = membersAfterJoin.find((m) => m.userId === creatorId);
+    const gretaMember = membersAfterJoin.find((m) => m.userId === 'user_greta_123');
+
+    assert.ok(creatorMember);
+    assert.equal(creatorMember.role, 'owner');
+    assert.ok(gretaMember);
+    assert.equal(gretaMember.role, 'member');
+  });
 });
