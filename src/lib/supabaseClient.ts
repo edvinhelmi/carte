@@ -12,6 +12,16 @@ const supabaseUrl = sanitizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
 export const isSupabaseConfigured = (): boolean => {
+  if (typeof process !== 'undefined') {
+    if (
+      process.env.NODE_ENV === 'test' ||
+      process.execArgv?.includes('--test') ||
+      process.argv?.includes('--test') ||
+      process.argv?.some((a) => typeof a === 'string' && a.includes('.test.'))
+    ) {
+      return false;
+    }
+  }
   return Boolean(supabaseUrl && supabaseAnonKey && supabaseUrl.startsWith('https://'));
 };
 

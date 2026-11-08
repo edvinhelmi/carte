@@ -19,7 +19,7 @@ export function formatDateKey(date?: Date): string {
 
 // Canale Broadcast per sincronizzazione multi-scheda locale
 let broadcastChannel: BroadcastChannel | null = null;
-if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+if (typeof window !== 'undefined' && typeof window.location !== 'undefined' && 'BroadcastChannel' in window) {
   try {
     broadcastChannel = new BroadcastChannel('carte_realtime_sync');
     broadcastChannel.onmessage = () => {
@@ -473,9 +473,13 @@ export const StorageService = {
         team2_wins: newSession.team2Wins,
         team3_wins: newSession.team3Wins ?? null,
         players5: newSession.players5 ?? null,
+        game_type: newSession.gameType || 'briscola',
+        scopa_variant: newSession.scopaVariant ?? null,
+        target_points: newSession.targetPoints ?? null,
+        scopa_rounds: newSession.scopaRounds ?? [],
         updated_at: newSession.updatedAt,
         is_active: true,
-      }).then();
+      }, { onConflict: 'id' }).then();
     }
 
     this.broadcastStateChange();
@@ -704,6 +708,7 @@ export const StorageService = {
         winner_team: String(session.winnerTeam),
         winner_player_name: session.winnerPlayerName ?? null,
         players5: session.players5 ?? null,
+        scopa_rounds: session.scopaRounds ?? [],
       }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
     }
 

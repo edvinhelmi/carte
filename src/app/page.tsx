@@ -94,6 +94,7 @@ export default function Home() {
   useEffect(() => {
     const activeId = HouseService.getActiveHouseId();
     if (activeId) {
+      RealtimeSyncService.setRoom(`carte_house_${activeId}`);
       HouseService.setupCloudSync(activeId);
       HouseService.pullHouseDataFromCloud(activeId).then(() => {
         refresh();
@@ -127,9 +128,9 @@ export default function Home() {
     };
   }, [refresh]);
 
-  // Polling di garanzia anti-desincronizzazione tra coinquilini durante un torneo attivo (ogni 3.5s a schermo visibile)
+  // Heartbeat continuo di sincronizzazione real-time garantita per tutti i coinquilini (2.5s torneo, 4s vista generale)
   useEffect(() => {
-    if (!activeSession || activeSession.status !== 'in_progress') return;
+    const pollInterval = activeSession && activeSession.status === 'in_progress' ? 2500 : 4000;
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         const activeId = HouseService.getActiveHouseId();
@@ -139,7 +140,7 @@ export default function Home() {
           });
         }
       }
-    }, 3500);
+    }, pollInterval);
 
     return () => clearInterval(interval);
   }, [activeSession?.id, activeSession?.status, refresh]);

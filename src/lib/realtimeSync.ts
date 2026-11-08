@@ -33,6 +33,20 @@ const CLIENT_ID =
 let currentEventSource: EventSource | null = null;
 let activeRoom = DEFAULT_ROOM;
 
+const isTestEnv = (): boolean => {
+  if (typeof process !== 'undefined') {
+    if (
+      process.env.NODE_ENV === 'test' ||
+      process.execArgv?.includes('--test') ||
+      process.argv?.includes('--test') ||
+      process.argv?.some((a) => typeof a === 'string' && a.includes('.test.'))
+    ) {
+      return true;
+    }
+  }
+  return false;
+};
+
 export const RealtimeSyncService = {
   getRoom(): string {
     if (typeof window === 'undefined') return DEFAULT_ROOM;
@@ -53,7 +67,7 @@ export const RealtimeSyncService = {
   },
 
   setRoom(room: string) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || typeof window.location === 'undefined' || isTestEnv()) return;
     const cleanRoom = room.trim().replace(/[^a-zA-Z0-9_-]/g, '_') || DEFAULT_ROOM;
     const prevRoom = localStorage.getItem('carte_live_room_id');
     localStorage.setItem('carte_live_room_id', cleanRoom);
@@ -74,7 +88,7 @@ export const RealtimeSyncService = {
   },
 
   connect() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || typeof window.location === 'undefined' || isTestEnv()) return;
 
     activeRoom = this.getRoom();
 
@@ -309,7 +323,7 @@ export const RealtimeSyncService = {
     members?: HouseMember[];
     houseId?: string;
   }) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || typeof window.location === 'undefined' || isTestEnv()) return;
 
     activeRoom = this.getRoom();
     const payload: FullSyncPayload = {

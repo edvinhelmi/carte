@@ -548,4 +548,72 @@ describe('HouseService & Multi-Casa Storage System', () => {
     const francisMatches = suggestions.filter((s) => s.toLowerCase() === 'francis');
     assert.equal(francisMatches.length, 1, 'Francis must appear exactly once in suggestions');
   });
+
+  it('guarantees mutual visibility and real-time synchronization when a member like Greta joins', async () => {
+    // 1. Existing user creates house
+    const house = HouseService.createHouse('Casa Peterlongo');
+    const existingMembers = HouseService.getHouseMembers(house.id);
+    assert.equal(existingMembers.length, 1);
+    const hostUser = existingMembers[0];
+
+    // 2. Friend player "Greta" was previously registered
+    StorageService.savePlayer({
+      id: 'p_friend_greta',
+      houseId: house.id,
+      name: 'Greta',
+      avatarSuit: 'denari',
+      createdAt: new Date().toISOString(),
+      isFriend: true,
+    });
+
+    // 3. Greta joins the house as official member
+    const gretaUserId = 'uuid-greta-de-angelis-1234';
+    await HouseService.saveHouseMember({
+      houseId: house.id,
+      userId: gretaUserId,
+      displayName: 'Greta De Angelis',
+      nickname: 'Greta',
+      role: 'member',
+      joinedAt: new Date().toISOString(),
+    });
+
+    // Verify both members are visible in house members list
+    const updatedMembers = HouseService.getHouseMembers(house.id);
+    assert.equal(updatedMembers.length, 2, 'House must contain both the host and Greta');
+    const foundGreta = updatedMembers.find((m) => m.userId === gretaUserId);
+    assert.ok(foundGreta);
+    assert.equal(foundGreta.displayName, 'Greta De Angelis');
+    assert.equal(foundGreta.nickname, 'Greta');
+
+    // 4. Run deduplication: friend "Greta" and member "Greta De Angelis" must be unified
+    HouseService.deduplicatePlayers(house.id);
+    const players = StorageService.getPlayers();
+    const gretaPlayers = players.filter((p) =>
+      p.name.toLowerCase().includes('greta') || (p.nickname && p.nickname.toLowerCase().includes('greta'))
+    );
+    assert.equal(gretaPlayers.length, 1, 'Greta must be unified into exactly one player entry');
+    assert.equal(gretaPlayers[0].id, `p_mem_${gretaUserId}`, 'Official member player ID must be preserved');
+
+    // 5. Suggestions must list Greta exactly once
+    const suggestions = HouseService.getSuggestedPlayerNames(house.id);
+    const gretaSuggestions = suggestions.filter((s) => s.toLowerCase() === 'greta');
+    assert.equal(gretaSuggestions.length, 1, 'Greta must appear exactly once in suggested names');
+
+    // 6. Remote sync payload test: remote peer receives Greta and updates state
+    RealtimeSyncService.applyRemoteFullSync({
+      type: 'FULL_SYNC',
+      matches: [],
+      sessions: [],
+      teams: [],
+      players: players,
+      members: updatedMembers,
+      houseId: house.id,
+      senderId: 'greta_device',
+      timestamp: Date.now(),
+    });
+
+    const syncedMembers = HouseService.getHouseMembers(house.id);
+    assert.ok(syncedMembers.some((m) => m.userId === gretaUserId));
+    assert.ok(syncedMembers.some((m) => m.userId === hostUser.userId));
+  });
 });

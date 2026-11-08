@@ -67,11 +67,13 @@ export function TeamsAndPlayersView({ players, teams, onDataUpdated }: TeamsAndP
     const rawFriends = (players || []).filter((p) => {
       if (!p || !p.id) return false;
       if (typeof p.id === 'string' && p.id.startsWith('p_mem_')) return false;
-      if (p.isFriend) return true;
       const pName = typeof p.name === 'string' ? p.name.trim().toLowerCase() : '';
-      if (pName && memberNameSet.has(pName)) return false;
       const pNick = typeof p.nickname === 'string' ? p.nickname.trim().toLowerCase() : '';
+      const pFirst = pName.split(' ')[0] || '';
+      if (pName && memberNameSet.has(pName)) return false;
       if (pNick && memberNameSet.has(pNick)) return false;
+      if (pFirst.length >= 3 && Array.from(memberNameSet).some((m) => m === pFirst || m.startsWith(pFirst + ' '))) return false;
+      if (p.isFriend) return true;
       return true;
     });
 

@@ -2,6 +2,7 @@ import type { House, KnownHouse, HouseMember } from '../types/house.ts';
 import type { Player, CardSuit, Match, TournamentSession, Team } from '../types/game.ts';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient.ts';
 import { AuthService } from './authService.ts';
+import { RealtimeSyncService } from './realtimeSync.ts';
 import {
   getStoredItem as getStorageItem,
   setStoredItem as setStorageItem,
@@ -204,8 +205,12 @@ export const HouseService = {
       setStorageItem(HOUSE_STORAGE_KEYS.KNOWN_HOUSES, JSON.stringify(known));
     }
 
+    RealtimeSyncService.setRoom(`carte_house_${cleanId}`);
     this.notifyUpdate();
     this.setupCloudSync(cleanId);
+    this.pullHouseDataFromCloud(cleanId).then(() => {
+      this.notifyUpdate();
+    });
   },
 
   // Migra utenti manuali (es. Francesco o dummy mem_) da house_members a Giocatori Amici
@@ -363,28 +368,46 @@ export const HouseService = {
           );
         }
 
+        const isNamePrefixMatch =
+          Boolean(pNameLower && uNameLower && (
+            (pNameLower.length >= 3 && uNameLower.startsWith(pNameLower + ' ')) ||
+            (uNameLower.length >= 3 && pNameLower.startsWith(uNameLower + ' '))
+          ));
+
         return (
           u.id === p.id ||
           (effLower && uEffLower === effLower) ||
           (pNameLower && uNameLower === pNameLower) ||
           (pNickLower && uNickLower && uNickLower === pNickLower) ||
           (pNickLower && uNameLower === pNickLower) ||
-          (pNameLower && uNickLower === pNameLower)
+          (pNameLower && uNickLower === pNameLower) ||
+          isNamePrefixMatch
         );
       });
 
       if (existingIdx >= 0) {
         const primary = uniqueList[existingIdx];
-        removedIds.push(p.id);
-        idReplacements[p.id] = primary.id;
-
-        if (isFrancisFrancesco) {
-          primary.name = 'Francesco';
-          primary.nickname = 'Francis';
-          primary.isFriend = true;
+        // Se il nuovo record è un membro autenticato (p_mem_...) e il primario era solo un amico, promuovi a membro
+        if (p.id.startsWith('p_mem_') && !primary.id.startsWith('p_mem_')) {
+          removedIds.push(primary.id);
+          idReplacements[primary.id] = p.id;
+          uniqueList[existingIdx] = {
+            ...primary,
+            ...p,
+            nickname: primary.nickname || p.nickname,
+          };
         } else {
-          if (!primary.nickname && p.nickname) primary.nickname = p.nickname;
-          if (p.isFriend) primary.isFriend = true;
+          removedIds.push(p.id);
+          idReplacements[p.id] = primary.id;
+
+          if (isFrancisFrancesco) {
+            primary.name = 'Francesco';
+            primary.nickname = 'Francis';
+            primary.isFriend = true;
+          } else {
+            if (!primary.nickname && p.nickname) primary.nickname = p.nickname;
+            if (p.isFriend) primary.isFriend = true;
+          }
         }
       } else {
         if (isFrancisFrancesco) {
@@ -487,11 +510,11 @@ export const HouseService = {
       }
     }
 
-    // Escludi membri manuali / dummy (mem_, member_, guest_ o francesco) che appartengono invece ai Giocatori Amici
+    // Escludi membri manuali / dummy (mem_ o member_) residui da vecchie versioni demo
     list = list.filter((m) => {
       if (!m) return false;
       if (currentUser?.id && m.userId === currentUser.id) return true;
-      if (m.userId?.startsWith('mem_') || m.userId?.startsWith('member_') || m.userId?.startsWith('guest_')) return false;
+      if (m.userId?.startsWith('mem_') || m.userId?.startsWith('member_')) return false;
       const disp = m.displayName?.trim().toLowerCase();
       const nick = m.nickname?.trim().toLowerCase();
       if (disp === 'francesco' || nick === 'francesco') return false;
@@ -623,6 +646,30 @@ export const HouseService = {
         }
       }
     }
+
+    // Broadcast immediato a tutti i dispositivi connessi via SSE
+    if (typeof window !== 'undefined') {
+      try {
+        const hId = member.houseId;
+        const matchesRaw = getStorageItem(getHouseResourceKey(hId, 'matches'));
+        const sessionsRaw = getStorageItem(getHouseResourceKey(hId, 'sessions'));
+        const teamsRaw = getStorageItem(getHouseResourceKey(hId, 'teams'));
+        const playersRaw = getStorageItem(getHouseResourceKey(hId, 'players'));
+        RealtimeSyncService.setRoom(`carte_house_${hId}`);
+        RealtimeSyncService.broadcastFullSync({
+          matches: matchesRaw ? JSON.parse(matchesRaw) : [],
+          sessions: sessionsRaw ? JSON.parse(sessionsRaw) : [],
+          teams: teamsRaw ? JSON.parse(teamsRaw) : [],
+          players: playersRaw ? JSON.parse(playersRaw) : [],
+          members,
+          houseId: hId,
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    this.notifyUpdate();
   },
 
   // Nomi suggeriti per torneo e partite, derivati dai membri reali e giocatori registrati della casa
@@ -853,6 +900,7 @@ export const HouseService = {
             // Scarica tutti i dati della casa e i membri dal cloud
             await this.pullHouseDataFromCloud(fetchedHouse.id);
 
+            RealtimeSyncService.setRoom(`carte_house_${fetchedHouse.id}`);
             this.notifyUpdate();
             this.setupCloudSync(fetchedHouse.id);
             return { success: true, house: fetchedHouse };
@@ -1028,23 +1076,26 @@ export const HouseService = {
 
     try {
       // 0. Membri della Casa
-      const { data: membersData } = await client
+      const { data: membersData, error: membersErr } = await client
         .from('house_members')
         .select('house_id, user_id, nickname, role, joined_at, profiles(display_name, avatar_url)')
         .eq('house_id', houseId);
 
-      if (Array.isArray(membersData)) {
-        interface CloudMemberRecord {
-          house_id: string;
-          user_id: string;
-          nickname?: string | null;
-          role?: 'owner' | 'member';
-          joined_at: string;
-          profiles?: { display_name?: string; avatar_url?: string } | null;
-        }
-        const mappedMembers: HouseMember[] = (membersData as CloudMemberRecord[])
+      let mappedMembers: HouseMember[] = [];
+
+      interface CloudMemberRecord {
+        house_id: string;
+        user_id: string;
+        nickname?: string | null;
+        role?: 'owner' | 'member';
+        joined_at: string;
+        profiles?: { display_name?: string; avatar_url?: string } | null;
+      }
+
+      if (Array.isArray(membersData) && !membersErr) {
+        mappedMembers = (membersData as CloudMemberRecord[])
           .filter((m) => {
-            if (m.user_id.startsWith('mem_') || m.user_id.startsWith('member_') || m.user_id.startsWith('guest_')) return false;
+            if (m.user_id.startsWith('mem_') || m.user_id.startsWith('member_')) return false;
             const disp = m.profiles?.display_name?.toLowerCase().trim() || '';
             const nick = m.nickname?.toLowerCase().trim() || '';
             if (disp === 'francesco' || nick === 'francesco') return false;
@@ -1055,18 +1106,50 @@ export const HouseService = {
             return {
               houseId: m.house_id,
               userId: m.user_id,
-              displayName: profile?.display_name || 'Membro',
+              displayName: profile?.display_name || m.nickname || 'Membro',
               nickname: m.nickname || undefined,
               avatarUrl: profile?.avatar_url || undefined,
               role: m.role || 'member',
               joinedAt: m.joined_at,
             };
           });
+      } else {
+        // Fallback robusto se l'embedding fallisce: query diretta a house_members e poi profili
+        const { data: rawMembers } = await client
+          .from('house_members')
+          .select('house_id, user_id, nickname, role, joined_at')
+          .eq('house_id', houseId);
 
-        // Preserva eventuali membri locali non ancora sincronizzati sul cloud o guest
+        if (Array.isArray(rawMembers) && rawMembers.length > 0) {
+          const userIds = rawMembers.map((rm) => rm.user_id);
+          const { data: profs } = await client
+            .from('profiles')
+            .select('id, display_name, avatar_url')
+            .in('id', userIds);
+          const profMap = new Map((profs || []).map((p) => [p.id, p]));
+
+          mappedMembers = rawMembers
+            .filter((m) => !m.user_id.startsWith('mem_') && !m.user_id.startsWith('member_'))
+            .map((m) => {
+              const prof = profMap.get(m.user_id);
+              return {
+                houseId: m.house_id,
+                userId: m.user_id,
+                displayName: prof?.display_name || m.nickname || 'Membro',
+                nickname: m.nickname || undefined,
+                avatarUrl: prof?.avatar_url || undefined,
+                role: m.role || 'member',
+                joinedAt: m.joined_at,
+              };
+            });
+        }
+      }
+
+      if (mappedMembers.length > 0 || Array.isArray(membersData)) {
+        // Preserva eventuali membri locali non ancora sincronizzati sul cloud
         const existingLocal = this.getHouseMembers(houseId);
         for (const localM of existingLocal) {
-          if (localM.userId.startsWith('mem_') || localM.userId.startsWith('member_') || localM.userId.startsWith('guest_')) continue;
+          if (localM.userId.startsWith('mem_') || localM.userId.startsWith('member_')) continue;
           const disp = localM.displayName?.toLowerCase().trim() || '';
           const nick = localM.nickname?.toLowerCase().trim() || '';
           if (disp === 'francesco' || nick === 'francesco') continue;
@@ -1460,7 +1543,16 @@ export const HouseService = {
           { event: '*', schema: 'public', table: 'profiles' },
           onCloudChange
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            console.warn(`Supabase Realtime state ${status}, retry reconnect in 2.5s...`);
+            setTimeout(() => {
+              if (this.getActiveHouseId() === houseId) {
+                this.setupCloudSync(houseId);
+              }
+            }, 2500);
+          }
+        });
     } catch (e) {
       console.warn('Errore setup realtime Supabase:', e);
     }
