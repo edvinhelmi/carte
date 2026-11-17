@@ -1,7 +1,25 @@
-import type { Player, Team, Match, TournamentSession, TournamentMode, CardSuit, GameType, ScopaVariant, ScopaRound } from '@/types/game';
+import type {
+  Player,
+  Team,
+  Match,
+  TournamentSession,
+  TournamentMode,
+  CardSuit,
+  GameType,
+  ScopaVariant,
+  ScopaRound,
+  TournamentMatchEntry,
+} from '@/types/game';
 import { RealtimeSyncService } from './realtimeSync.ts';
 import { HouseService, getHouseResourceKey } from './houseService.ts';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient.ts';
+import {
+  getStoredItem,
+  setStoredItem,
+  removeStoredItem,
+  markLocalMutation,
+  markIdDeleted,
+} from './storagePrimitives.ts';
 
 function getActiveResourceKey(resource: 'players' | 'teams' | 'matches' | 'sessions'): string {
   const activeHouseId = HouseService.getActiveHouseId();
@@ -56,6 +74,7 @@ const DEMO_TEAMS: Team[] = [
     id: 't1',
     name: 'Marghe & Irins',
     playerIds: ['p1', 'p2'],
+    playerNames: ['Marghe', 'Irins'],
     color: '#f59e0b',
     createdAt: '2026-10-01T10:20:00Z',
   },
@@ -63,6 +82,7 @@ const DEMO_TEAMS: Team[] = [
     id: 't2',
     name: 'Edd & Simon',
     playerIds: ['p4', 'p3'],
+    playerNames: ['Edd', 'Simon'],
     color: '#10b981',
     createdAt: '2026-10-01T10:25:00Z',
   },
@@ -91,7 +111,105 @@ function generateDemoSessions(): TournamentSession[] {
   return [];
 }
 
-import { getStoredItem, setStoredItem, removeStoredItem } from './storagePrimitives.ts';
+export function computeSessionWinner(session: TournamentSession): void {
+  if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
+    const allZero = session.players5.every((p) => (p.wins || 0) === 0);
+    if (allZero) {
+      session.winnerTeam = 'pareggio';
+      session.winnerPlayerName = 'Nessuno (0 vittorie)';
+    } else {
+      const maxWins = Math.max(...session.players5.map((p) => p.wins || 0));
+      const topPlayers = session.players5.filter((p) => (p.wins || 0) === maxWins);
+      if (topPlayers.length === 1) {
+        const leaderIdx = session.players5.findIndex((p) => p.name === topPlayers[0].name);
+        session.winnerTeam = (leaderIdx + 1) as 1 | 2 | 3 | 4 | 5;
+        session.winnerPlayerName = topPlayers[0].name;
+      } else {
+        session.winnerTeam = 'pareggio';
+        session.winnerPlayerName = topPlayers.map((p) => p.name).join(' & ');
+      }
+    }
+  } else {
+    const isThreeWay = session.mode === '1vs1vs1' || !!session.team3Name;
+    const w1 = session.team1Wins || 0;
+    const w2 = session.team2Wins || 0;
+    const w3 = session.team3Wins || 0;
+
+    if (isThreeWay) {
+      if (w1 > w2 && w1 > w3) {
+        session.winnerTeam = 1;
+        session.winnerPlayerName = session.team1Name;
+      } else if (w2 > w1 && w2 > w3) {
+        session.winnerTeam = 2;
+        session.winnerPlayerName = session.team2Name;
+      } else if (w3 > w1 && w3 > w2) {
+        session.winnerTeam = 3;
+        session.winnerPlayerName = session.team3Name || 'Giocatore 3';
+      } else {
+        session.winnerTeam = 'pareggio';
+        session.winnerPlayerName = 'Pareggio';
+      }
+    } else {
+      if (w1 > w2) {
+        session.winnerTeam = 1;
+        session.winnerPlayerName = session.team1Name;
+      } else if (w2 > w1) {
+        session.winnerTeam = 2;
+        session.winnerPlayerName = session.team2Name;
+      } else {
+        session.winnerTeam = 'pareggio';
+        session.winnerPlayerName = 'Pareggio';
+      }
+    }
+  }
+}
+
+export function serializeSessionForSupabase(session: TournamentSession, fallbackHouseId?: string) {
+  const houseId = session.houseId || fallbackHouseId || HouseService.getActiveHouseId();
+  return {
+    id: session.id,
+    house_id: houseId,
+    date_key: session.dateKey || formatDateKey(session.startedAt ? new Date(session.startedAt) : undefined),
+    mode: session.mode || '2vs2',
+    team1_name: session.team1Name || 'Squadra 1',
+    team2_name: session.team2Name || 'Squadra 2',
+    team3_name: session.team3Name ?? null,
+    team1_players: session.team1Players ?? [],
+    team2_players: session.team2Players ?? [],
+    team3_players: session.team3Players ?? null,
+    team1_wins: session.team1Wins ?? 0,
+    team2_wins: session.team2Wins ?? 0,
+    team3_wins: session.team3Wins ?? 0,
+    players5: session.players5 ?? null,
+    game_type: session.gameType || 'briscola',
+    scopa_variant: session.scopaVariant ?? null,
+    target_points: session.targetPoints ?? null,
+    scopa_rounds: session.scopaRounds ?? [],
+    history: session.history ?? [],
+    is_active: session.status === 'in_progress',
+    winner_team: session.winnerTeam !== undefined ? String(session.winnerTeam) : null,
+    winner_player_name: session.winnerPlayerName ?? null,
+    created_at: session.startedAt || new Date().toISOString(),
+    ended_at: session.endedAt ?? null,
+    updated_at: session.updatedAt || new Date().toISOString(),
+  };
+}
+
+function upsertSessionToCloud(session: TournamentSession): void {
+  if (!isSupabaseConfigured()) return;
+  const client = getSupabaseClient();
+  if (!client) return;
+  const row = serializeSessionForSupabase(session);
+  if (!row.house_id || row.house_id === 'casa_none') return;
+  client
+    .from('tournament_sessions')
+    .upsert(row, { onConflict: 'house_id,id' })
+    .then(({ error }) => {
+      if (error) {
+        console.warn('Errore upsert tournament_session su Supabase:', error);
+      }
+    });
+}
 
 export const StorageService = {
   init() {
@@ -146,6 +264,7 @@ export const StorageService = {
   savePlayer(player: Player): void {
     const activeHouseId = HouseService.getActiveHouseId();
     player.houseId = player.houseId || activeHouseId;
+    markLocalMutation(player.id);
     const players = this.getPlayers();
     const index = players.findIndex((p) => p.id === player.id);
     if (index >= 0) {
@@ -155,16 +274,23 @@ export const StorageService = {
     }
     setStoredItem(getActiveResourceKey('players'), JSON.stringify(players));
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && activeHouseId) {
       const client = getSupabaseClient();
-      client?.from('players').upsert({
-        id: player.id,
-        house_id: activeHouseId,
-        name: player.name,
-        nickname: player.nickname || null,
-        avatar_suit: player.avatarSuit,
-        created_at: player.createdAt,
-      }).then();
+      client
+        ?.from('players')
+        .upsert(
+          {
+            id: player.id,
+            house_id: activeHouseId,
+            name: player.name,
+            nickname: player.nickname || null,
+            avatar_suit: player.avatarSuit,
+            created_at: player.createdAt,
+            is_friend: Boolean(player.isFriend),
+          },
+          { onConflict: 'house_id,id' }
+        )
+        .then();
     }
 
     this.broadcastStateChange();
@@ -172,10 +298,11 @@ export const StorageService = {
 
   deletePlayer(playerId: string): void {
     const activeHouseId = HouseService.getActiveHouseId();
+    if (activeHouseId) markIdDeleted(activeHouseId, playerId);
     const players = this.getPlayers().filter((p) => p.id !== playerId);
     setStoredItem(getActiveResourceKey('players'), JSON.stringify(players));
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && activeHouseId) {
       const client = getSupabaseClient();
       client?.from('players').delete().eq('id', playerId).eq('house_id', activeHouseId).then();
     }
@@ -184,7 +311,7 @@ export const StorageService = {
   },
 
   registerFriendPlayerIfNew(name: string): Player | null {
-    const cleanName = (typeof name === 'string' ? name.trim() : '');
+    const cleanName = typeof name === 'string' ? name.trim() : '';
     if (!cleanName) return null;
 
     const houseId = HouseService.getActiveHouseId();
@@ -237,6 +364,7 @@ export const StorageService = {
   saveTeam(team: Team): void {
     const activeHouseId = HouseService.getActiveHouseId();
     team.houseId = team.houseId || activeHouseId;
+    markLocalMutation(team.id);
     const teams = this.getTeams();
     const index = teams.findIndex((t) => t.id === team.id);
     if (index >= 0) {
@@ -246,17 +374,23 @@ export const StorageService = {
     }
     setStoredItem(getActiveResourceKey('teams'), JSON.stringify(teams));
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && activeHouseId) {
       const client = getSupabaseClient();
-      client?.from('teams').upsert({
-        id: team.id,
-        house_id: activeHouseId,
-        name: team.name,
-        player_ids: team.playerIds,
-        player_names: team.playerNames ?? null,
-        color: team.color,
-        created_at: team.createdAt,
-      }).then();
+      client
+        ?.from('teams')
+        .upsert(
+          {
+            id: team.id,
+            house_id: activeHouseId,
+            name: team.name,
+            player_ids: team.playerIds ?? [],
+            player_names: team.playerNames ?? [],
+            color: team.color,
+            created_at: team.createdAt,
+          },
+          { onConflict: 'house_id,id' }
+        )
+        .then();
     }
 
     this.broadcastStateChange();
@@ -264,10 +398,11 @@ export const StorageService = {
 
   deleteTeam(teamId: string): void {
     const activeHouseId = HouseService.getActiveHouseId();
+    if (activeHouseId) markIdDeleted(activeHouseId, teamId);
     const teams = this.getTeams().filter((t) => t.id !== teamId);
     setStoredItem(getActiveResourceKey('teams'), JSON.stringify(teams));
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && activeHouseId) {
       const client = getSupabaseClient();
       client?.from('teams').delete().eq('id', teamId).eq('house_id', activeHouseId).then();
     }
@@ -289,6 +424,7 @@ export const StorageService = {
   saveMatch(match: Match): void {
     const activeHouseId = HouseService.getActiveHouseId();
     match.houseId = match.houseId || activeHouseId;
+    markLocalMutation(match.id);
     const matches = this.getMatches();
     const index = matches.findIndex((m) => m.id === match.id);
     if (index >= 0) {
@@ -298,21 +434,27 @@ export const StorageService = {
     }
     setStoredItem(getActiveResourceKey('matches'), JSON.stringify(matches));
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && activeHouseId) {
       const client = getSupabaseClient();
-      client?.from('matches').upsert({
-        id: match.id,
-        house_id: activeHouseId,
-        game_type: match.gameType,
-        timestamp: match.timestamp,
-        date_key: match.dateKey,
-        team1_id: match.team1Id,
-        team2_id: match.team2Id,
-        winner_team_id: match.winnerTeamId,
-        score_team1: match.scoreTeam1 ?? null,
-        score_team2: match.scoreTeam2 ?? null,
-        notes: match.notes ?? null,
-      }).then();
+      client
+        ?.from('matches')
+        .upsert(
+          {
+            id: match.id,
+            house_id: activeHouseId,
+            game_type: match.gameType,
+            timestamp: match.timestamp,
+            date_key: match.dateKey,
+            team1_id: match.team1Id,
+            team2_id: match.team2Id,
+            winner_team_id: match.winnerTeamId,
+            score_team1: match.scoreTeam1 ?? null,
+            score_team2: match.scoreTeam2 ?? null,
+            notes: match.notes ?? null,
+          },
+          { onConflict: 'house_id,id' }
+        )
+        .then();
     }
 
     this.broadcastStateChange();
@@ -320,10 +462,11 @@ export const StorageService = {
 
   deleteMatch(matchId: string): void {
     const activeHouseId = HouseService.getActiveHouseId();
+    if (activeHouseId) markIdDeleted(activeHouseId, matchId);
     const matches = this.getMatches().filter((m) => m.id !== matchId);
     setStoredItem(getActiveResourceKey('matches'), JSON.stringify(matches));
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && activeHouseId) {
       const client = getSupabaseClient();
       client?.from('matches').delete().eq('id', matchId).eq('house_id', activeHouseId).then();
     }
@@ -384,17 +527,24 @@ export const StorageService = {
   ): TournamentSession {
     const effectiveGameType: GameType = gameType || this.getActiveGameCategory() || 'briscola';
     const sessions = this.getTournamentSessions();
+    const nowIso = new Date().toISOString();
+
     for (const s of sessions) {
       if (s.status === 'in_progress' && (s.gameType || 'briscola') === effectiveGameType) {
         s.status = 'completed';
-        if (!s.endedAt) s.endedAt = new Date().toISOString();
-        s.updatedAt = new Date().toISOString();
+        if (!s.endedAt) s.endedAt = nowIso;
+        s.updatedAt = nowIso;
+        if (!s.winnerTeam) {
+          computeSessionWinner(s);
+        }
+        markLocalMutation(s.id);
+        upsertSessionToCloud(s);
       }
     }
+
     const cleanT1 = (typeof team1Name === 'string' ? team1Name.trim() : '') || (mode === '2vs2' ? 'Squadra 1' : 'Giocatore 1');
     const cleanT2 = (typeof team2Name === 'string' ? team2Name.trim() : '') || (mode === '2vs2' ? 'Squadra 2' : 'Giocatore 2');
 
-    const nowIso = new Date().toISOString();
     const newSession: TournamentSession = {
       id: `tour_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       houseId: HouseService.getActiveHouseId() || 'casa_none',
@@ -405,6 +555,7 @@ export const StorageService = {
       scopaVariant: effectiveGameType === 'scopa' ? (scopaVariant || 'scopa_normale') : undefined,
       targetPoints: effectiveGameType === 'scopa' ? (targetPoints || 21) : undefined,
       scopaRounds: [],
+      history: [],
       mode,
       team1Name: cleanT1,
       team1Players: Array.isArray(team1Players) ? team1Players : [],
@@ -440,6 +591,7 @@ export const StorageService = {
       newSession.team3Wins = 0;
     }
 
+    markLocalMutation(newSession.id);
     sessions.unshift(newSession);
     setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
 
@@ -456,32 +608,7 @@ export const StorageService = {
       }
     }
 
-    if (isSupabaseConfigured()) {
-      const client = getSupabaseClient();
-      client?.from('tournament_sessions').upsert({
-        id: newSession.id,
-        house_id: newSession.houseId,
-        date_key: newSession.dateKey,
-        mode: newSession.mode,
-        team1_name: newSession.team1Name,
-        team2_name: newSession.team2Name,
-        team3_name: newSession.team3Name ?? null,
-        team1_players: newSession.team1Players,
-        team2_players: newSession.team2Players,
-        team3_players: newSession.team3Players ?? null,
-        team1_wins: newSession.team1Wins,
-        team2_wins: newSession.team2Wins,
-        team3_wins: newSession.team3Wins ?? null,
-        players5: newSession.players5 ?? null,
-        game_type: newSession.gameType || 'briscola',
-        scopa_variant: newSession.scopaVariant ?? null,
-        target_points: newSession.targetPoints ?? null,
-        scopa_rounds: newSession.scopaRounds ?? [],
-        updated_at: newSession.updatedAt,
-        is_active: true,
-      }, { onConflict: 'id' }).then();
-    }
-
+    upsertSessionToCloud(newSession);
     this.broadcastStateChange();
     return newSession;
   },
@@ -509,20 +636,37 @@ export const StorageService = {
       }
     }
 
-    session.updatedAt = new Date().toISOString();
-    setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
-
-    if (isSupabaseConfigured()) {
-      const client = getSupabaseClient();
-      client?.from('tournament_sessions').update({
-        team1_wins: session.team1Wins,
-        team2_wins: session.team2Wins,
-        team3_wins: session.team3Wins ?? null,
-        players5: session.players5 ?? null,
-        updated_at: session.updatedAt,
-      }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
+    const nowIso = new Date().toISOString();
+    if (!Array.isArray(session.history)) {
+      session.history = [];
     }
 
+    const winnerName =
+      session.mode === 'a5' && session.players5
+        ? session.players5[teamIndex - 1]?.name || `Giocatore ${teamIndex}`
+        : teamIndex === 1
+          ? session.team1Name
+          : teamIndex === 2
+            ? session.team2Name
+            : session.team3Name || 'Giocatore 3';
+
+    const matchEntry: TournamentMatchEntry = {
+      id: `tm_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      matchNumber: session.history.length + 1,
+      winnerTeamIndex: (teamIndex as 1 | 2 | 3 | 4 | 5) || 1,
+      winnerName,
+      timestamp: nowIso,
+      scoreTeam1: session.team1Wins || 0,
+      scoreTeam2: session.team2Wins || 0,
+      scoreTeam3: session.team3Wins,
+    };
+    session.history.push(matchEntry);
+
+    session.updatedAt = nowIso;
+    markLocalMutation(session.id);
+    setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
+
+    upsertSessionToCloud(session);
     this.broadcastStateChange();
     return session;
   },
@@ -532,10 +676,12 @@ export const StorageService = {
     const session = sessions.find((s) => s.id === sessionId);
     if (!session || session.status !== 'in_progress') return null;
 
+    let decremented = false;
     if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
       const playerIdx = teamIndex - 1;
-      if (session.players5[playerIdx] && (session.players5[playerIdx].wins || 0) > 0) {
-        session.players5[playerIdx].wins = session.players5[playerIdx].wins - 1;
+      if (session.players5[playerIdx]) {
+        session.players5[playerIdx].wins = (session.players5[playerIdx].wins || 0) - 1;
+        decremented = true;
       }
       if (playerIdx === 0) session.team1Wins = session.players5[0].wins;
       if (playerIdx === 1) session.team2Wins = session.players5[1].wins;
@@ -543,27 +689,33 @@ export const StorageService = {
     } else {
       if (teamIndex === 1 && (session.team1Wins || 0) > 0) {
         session.team1Wins = (session.team1Wins || 0) - 1;
+        decremented = true;
       } else if (teamIndex === 2 && (session.team2Wins || 0) > 0) {
         session.team2Wins = (session.team2Wins || 0) - 1;
+        decremented = true;
       } else if (teamIndex === 3 && (session.team3Wins || 0) > 0) {
         session.team3Wins = (session.team3Wins || 0) - 1;
+        decremented = true;
       }
     }
 
-    session.updatedAt = new Date().toISOString();
-    setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
-
-    if (isSupabaseConfigured()) {
-      const client = getSupabaseClient();
-      client?.from('tournament_sessions').update({
-        team1_wins: session.team1Wins,
-        team2_wins: session.team2Wins,
-        team3_wins: session.team3Wins ?? null,
-        players5: session.players5 ?? null,
-        updated_at: session.updatedAt,
-      }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
+    if (decremented && Array.isArray(session.history) && session.history.length > 0) {
+      for (let i = session.history.length - 1; i >= 0; i--) {
+        if (session.history[i].winnerTeamIndex === teamIndex) {
+          session.history.splice(i, 1);
+          break;
+        }
+      }
+      session.history.forEach((h, idx) => {
+        h.matchNumber = idx + 1;
+      });
     }
 
+    session.updatedAt = new Date().toISOString();
+    markLocalMutation(session.id);
+    setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
+
+    upsertSessionToCloud(session);
     this.broadcastStateChange();
     return session;
   },
@@ -580,31 +732,24 @@ export const StorageService = {
       session.scopaRounds = [];
     }
 
+    const nowIso = new Date().toISOString();
     const roundNumber = session.scopaRounds.length + 1;
     const newRound: ScopaRound = {
       id: `rnd_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       roundNumber,
       ...roundData,
-      timestamp: new Date().toISOString(),
+      timestamp: nowIso,
     };
 
     session.scopaRounds.push(newRound);
     session.team1Wins = (session.team1Wins || 0) + roundData.totalPointsTeam1;
     session.team2Wins = (session.team2Wins || 0) + roundData.totalPointsTeam2;
-    session.updatedAt = new Date().toISOString();
+    session.updatedAt = nowIso;
 
+    markLocalMutation(session.id);
     setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
 
-    if (isSupabaseConfigured()) {
-      const client = getSupabaseClient();
-      client?.from('tournament_sessions').update({
-        team1_wins: session.team1Wins,
-        team2_wins: session.team2Wins,
-        scopa_rounds: session.scopaRounds,
-        updated_at: session.updatedAt,
-      }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
-    }
-
+    upsertSessionToCloud(session);
     this.broadcastStateChange();
     return session;
   },
@@ -620,18 +765,10 @@ export const StorageService = {
       session.team2Wins = Math.max(0, (session.team2Wins || 0) - removedRound.totalPointsTeam2);
       session.updatedAt = new Date().toISOString();
 
+      markLocalMutation(session.id);
       setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
 
-      if (isSupabaseConfigured()) {
-        const client = getSupabaseClient();
-        client?.from('tournament_sessions').update({
-          team1_wins: session.team1Wins,
-          team2_wins: session.team2Wins,
-          scopa_rounds: session.scopaRounds,
-          updated_at: session.updatedAt,
-        }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
-      }
-
+      upsertSessionToCloud(session);
       this.broadcastStateChange();
     }
 
@@ -643,86 +780,29 @@ export const StorageService = {
     const session = sessions.find((s) => s.id === sessionId);
     if (!session) return null;
 
+    const nowIso = new Date().toISOString();
     session.status = 'completed';
-    session.endedAt = new Date().toISOString();
+    session.endedAt = nowIso;
+    computeSessionWinner(session);
+    session.updatedAt = nowIso;
 
-    if (session.mode === 'a5' && session.players5 && session.players5.length > 0) {
-      const maxWins = Math.max(...session.players5.map((p) => p.wins || 0));
-      if (maxWins === 0) {
-        session.winnerTeam = 'pareggio';
-        session.winnerPlayerName = 'Nessuno (0 vittorie)';
-      } else {
-        const topPlayers = session.players5.filter((p) => (p.wins || 0) === maxWins);
-        if (topPlayers.length === 1) {
-          const leaderIdx = session.players5.findIndex((p) => p.name === topPlayers[0].name);
-          session.winnerTeam = ((leaderIdx + 1) as 1 | 2 | 3 | 4 | 5);
-          session.winnerPlayerName = topPlayers[0].name;
-        } else {
-          session.winnerTeam = 'pareggio';
-          session.winnerPlayerName = topPlayers.map((p) => p.name).join(' & ');
-        }
-      }
-    } else {
-      const isThreeWay = session.mode === '1vs1vs1' || !!session.team3Name;
-      const w1 = session.team1Wins || 0;
-      const w2 = session.team2Wins || 0;
-      const w3 = session.team3Wins || 0;
-
-      if (isThreeWay) {
-        if (w1 > w2 && w1 > w3) {
-          session.winnerTeam = 1;
-          session.winnerPlayerName = session.team1Name;
-        } else if (w2 > w1 && w2 > w3) {
-          session.winnerTeam = 2;
-          session.winnerPlayerName = session.team2Name;
-        } else if (w3 > w1 && w3 > w2) {
-          session.winnerTeam = 3;
-          session.winnerPlayerName = session.team3Name || 'Giocatore 3';
-        } else {
-          session.winnerTeam = 'pareggio';
-          session.winnerPlayerName = 'Pareggio';
-        }
-      } else {
-        if (w1 > w2) {
-          session.winnerTeam = 1;
-          session.winnerPlayerName = session.team1Name;
-        } else if (w2 > w1) {
-          session.winnerTeam = 2;
-          session.winnerPlayerName = session.team2Name;
-        } else {
-          session.winnerTeam = 'pareggio';
-          session.winnerPlayerName = 'Pareggio';
-        }
-      }
-    }
-
-    session.updatedAt = new Date().toISOString();
+    markLocalMutation(session.id);
     setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
 
-    if (isSupabaseConfigured()) {
-      const client = getSupabaseClient();
-      client?.from('tournament_sessions').update({
-        is_active: false,
-        ended_at: session.endedAt,
-        updated_at: session.updatedAt,
-        winner_team: String(session.winnerTeam),
-        winner_player_name: session.winnerPlayerName ?? null,
-        players5: session.players5 ?? null,
-        scopa_rounds: session.scopaRounds ?? [],
-      }).eq('id', session.id).eq('house_id', session.houseId || HouseService.getActiveHouseId()).then();
-    }
-
+    upsertSessionToCloud(session);
     this.broadcastStateChange();
     return session;
   },
 
   deleteTournamentSession(sessionId: string): void {
+    const activeHouseId = HouseService.getActiveHouseId();
+    if (activeHouseId) markIdDeleted(activeHouseId, sessionId);
     const sessions = this.getTournamentSessions().filter((s) => s.id !== sessionId);
     setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(sessions));
 
-    if (isSupabaseConfigured()) {
+    if (isSupabaseConfigured() && activeHouseId) {
       const client = getSupabaseClient();
-      client?.from('tournament_sessions').delete().eq('id', sessionId).eq('house_id', HouseService.getActiveHouseId()).then();
+      client?.from('tournament_sessions').delete().eq('id', sessionId).eq('house_id', activeHouseId).then();
     }
 
     this.broadcastStateChange();
@@ -746,17 +826,26 @@ export const StorageService = {
     matches?: Match[];
     tournamentSessions?: TournamentSession[];
   }) {
+    const activeHouseId = HouseService.getActiveHouseId();
     if (Array.isArray(data.players)) {
-      setStoredItem(getActiveResourceKey('players'), JSON.stringify(data.players));
+      const normalized = data.players.map((p) => ({ ...p, houseId: p.houseId || activeHouseId }));
+      setStoredItem(getActiveResourceKey('players'), JSON.stringify(normalized));
+      for (const p of normalized) this.savePlayer(p);
     }
     if (Array.isArray(data.teams)) {
-      setStoredItem(getActiveResourceKey('teams'), JSON.stringify(data.teams));
+      const normalized = data.teams.map((t) => ({ ...t, houseId: t.houseId || activeHouseId }));
+      setStoredItem(getActiveResourceKey('teams'), JSON.stringify(normalized));
+      for (const t of normalized) this.saveTeam(t);
     }
     if (Array.isArray(data.matches)) {
-      setStoredItem(getActiveResourceKey('matches'), JSON.stringify(data.matches));
+      const normalized = data.matches.map((m) => ({ ...m, houseId: m.houseId || activeHouseId }));
+      setStoredItem(getActiveResourceKey('matches'), JSON.stringify(normalized));
+      for (const m of normalized) this.saveMatch(m);
     }
     if (Array.isArray(data.tournamentSessions)) {
-      setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(data.tournamentSessions));
+      const normalized = data.tournamentSessions.map((s) => ({ ...s, houseId: s.houseId || activeHouseId }));
+      setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(normalized));
+      for (const s of normalized) upsertSessionToCloud(s);
     }
     this.broadcastStateChange();
   },
@@ -764,10 +853,16 @@ export const StorageService = {
   resetToDemo() {
     const activeHouseId = HouseService.getActiveHouseId();
     if (!activeHouseId) return;
-    setStoredItem(getActiveResourceKey('players'), JSON.stringify(DEMO_PLAYERS.map(p => ({ ...p, houseId: activeHouseId }))));
-    setStoredItem(getActiveResourceKey('teams'), JSON.stringify(DEMO_TEAMS.map(t => ({ ...t, houseId: activeHouseId }))));
-    setStoredItem(getActiveResourceKey('matches'), JSON.stringify(generateDemoMatches().map(m => ({ ...m, houseId: activeHouseId }))));
+    const demoPlayers = DEMO_PLAYERS.map((p) => ({ ...p, houseId: activeHouseId }));
+    const demoTeams = DEMO_TEAMS.map((t) => ({ ...t, houseId: activeHouseId }));
+    const demoMatches = generateDemoMatches().map((m) => ({ ...m, houseId: activeHouseId }));
+    setStoredItem(getActiveResourceKey('players'), JSON.stringify(demoPlayers));
+    setStoredItem(getActiveResourceKey('teams'), JSON.stringify(demoTeams));
+    setStoredItem(getActiveResourceKey('matches'), JSON.stringify(demoMatches));
     setStoredItem(getActiveResourceKey('sessions'), JSON.stringify(generateDemoSessions()));
+    for (const p of demoPlayers) this.savePlayer(p);
+    for (const t of demoTeams) this.saveTeam(t);
+    for (const m of demoMatches) this.saveMatch(m);
     this.broadcastStateChange();
   },
 

@@ -202,8 +202,8 @@ export default function Home() {
         hasActiveHouse={hasHouse}
       />
 
-      {/* Floating Island: Switcher Categoria Gioco Fluttuante (Briscola vs Scopa) - Visibile solo nel tab Torneo */}
-      {hasHouse && activeTab === 'torneo' && (
+      {/* Floating Island: Switcher Categoria Gioco Fluttuante (Briscola vs Scopa) - Nascosto durante una partita attiva */}
+      {hasHouse && activeTab === 'torneo' && (!activeSession || activeSession.status !== 'in_progress') && (
         <div className="sticky top-[calc(max(env(safe-area-inset-top,0px),0px)+3.75rem)] sm:top-[4.25rem] z-30 flex justify-center pointer-events-none px-4 pt-2.5 pb-1 -mb-1 animate-fade-in">
           <div className="pointer-events-auto">
             <GameCategorySwitcher size="sm" />

@@ -130,7 +130,7 @@ export function calculateTeamStats(
     }
 
     const losses = Math.max(0, matchesPlayed - wins);
-    const winRate = matchesPlayed > 0 ? Math.round((wins / matchesPlayed) * 100) : 0;
+    const winRate = matchesPlayed > 0 ? Math.max(0, Math.min(100, Math.round((wins / matchesPlayed) * 100))) : 0;
 
     // Calcolo della striscia attuale
     const sortedMatches = [...teamMatches].sort((a, b) => {
@@ -287,7 +287,7 @@ export function calculatePlayerStats(
     }
 
     const losses = Math.max(0, matchesPlayed - wins);
-    const winRate = matchesPlayed > 0 ? Math.round((wins / matchesPlayed) * 100) : 0;
+    const winRate = matchesPlayed > 0 ? Math.max(0, Math.min(100, Math.round((wins / matchesPlayed) * 100))) : 0;
 
     const sortedMatches = [...playerMatches].sort((a, b) => {
       const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;

@@ -22,6 +22,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
   const [carteWinner, setCarteWinner] = useState<TieWinner>('patta');
   const [denariWinner, setDenariWinner] = useState<TieWinner>('patta');
   const [settebelloWinner, setSettebelloWinner] = useState<SingleWinner | null>(null);
+  const [reBelloWinner, setReBelloWinner] = useState<SingleWinner | null>(null);
   const [primieraWinner, setPrimieraWinner] = useState<TieWinner>('patta');
   const [napolaT1, setNapolaT1] = useState<number>(0);
   const [napolaT2, setNapolaT2] = useState<number>(0);
@@ -45,6 +46,9 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
     if (settebelloWinner === 1) pts1 += 1;
     else if (settebelloWinner === 2) pts2 += 1;
 
+    if (reBelloWinner === 1) pts1 += 1;
+    else if (reBelloWinner === 2) pts2 += 1;
+
     if (primieraWinner === 1) pts1 += 1;
     else if (primieraWinner === 2) pts2 += 1;
 
@@ -59,6 +63,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
     setCarteWinner('patta');
     setDenariWinner('patta');
     setSettebelloWinner(null);
+    setReBelloWinner(null);
     setPrimieraWinner('patta');
     setNapolaT1(0);
     setNapolaT2(0);
@@ -73,6 +78,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
       carteWinner,
       denariWinner,
       settebelloWinner: settebelloWinner ?? undefined,
+      reBelloWinner: reBelloWinner ?? undefined,
       primieraWinner,
       napolaPointsTeam1: napolaT1 > 0 ? napolaT1 : undefined,
       napolaPointsTeam2: napolaT2 > 0 ? napolaT2 : undefined,
@@ -199,7 +205,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
         </div>
       </div>
 
-      {/* Categorie a Scelta: Carte, Denari, Settebello, Primiera */}
+      {/* Categorie a Scelta: Carte, Denari, Settebello, Re Bello, Primiera */}
       <div className="space-y-3.5 pt-1">
         {/* 1. Carte (>20) */}
         <div className="space-y-1.5">
@@ -322,6 +328,53 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
               }`}
             >
               {settebelloWinner === 2 && <Check className="w-3.5 h-3.5 shrink-0 stroke-[3]" />}
+              <span className="truncate">{team2Name}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 3b. Re Bello (Opzionale) */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold text-[var(--text)] flex items-center gap-1.5">
+              <FontAwesomeIcon icon={faCrown} className="w-3.5 h-3.5 text-amber-400" />
+              <span>Re Bello (Re di denari = 1 pt)</span>
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5 p-1 bg-[var(--surface)] rounded-2xl border border-[var(--control-border)] shadow-inner">
+            <button
+              type="button"
+              onClick={() => setReBelloWinner(reBelloWinner === 1 ? null : 1)}
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                reBelloWinner === 1
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-md shadow-amber-500/20 font-black'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              {reBelloWinner === 1 && <Check className="w-3.5 h-3.5 shrink-0 stroke-[3]" />}
+              <span className="truncate">{team1Name}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setReBelloWinner(null)}
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-semibold btn-ios-tactile cursor-pointer ${
+                reBelloWinner === null
+                  ? 'bg-[var(--surface-raised)] text-[var(--text)] border border-[var(--divider)] shadow-sm'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              Nessuno
+            </button>
+            <button
+              type="button"
+              onClick={() => setReBelloWinner(reBelloWinner === 2 ? null : 2)}
+              className={`min-h-[44px] py-1.5 px-2 rounded-xl text-xs font-bold truncate btn-ios-tactile cursor-pointer flex items-center justify-center gap-1.5 ${
+                reBelloWinner === 2
+                  ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-md shadow-amber-500/20 font-black'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              {reBelloWinner === 2 && <Check className="w-3.5 h-3.5 shrink-0 stroke-[3]" />}
               <span className="truncate">{team2Name}</span>
             </button>
           </div>
@@ -503,6 +556,7 @@ export function ScopaRoundScorer({ session, onRoundAdded }: ScopaRoundScorerProp
                 if (r.carteWinner && r.carteWinner !== 'patta') details.push(`Carte: ${r.carteWinner === 1 ? team1Name : team2Name}`);
                 if (r.denariWinner && r.denariWinner !== 'patta') details.push(`Denari: ${r.denariWinner === 1 ? team1Name : team2Name}`);
                 if (r.settebelloWinner) details.push(`Settebello: ${r.settebelloWinner === 1 ? team1Name : team2Name}`);
+                if (r.reBelloWinner) details.push(`Re Bello: ${r.reBelloWinner === 1 ? team1Name : team2Name}`);
                 if (r.primieraWinner && r.primieraWinner !== 'patta') details.push(`Primiera: ${r.primieraWinner === 1 ? team1Name : team2Name}`);
                 if ((r.napolaPointsTeam1 || 0) > 0 || (r.napolaPointsTeam2 || 0) > 0) {
                   details.push(`Napola: ${r.napolaPointsTeam1 || 0}-${r.napolaPointsTeam2 || 0}`);

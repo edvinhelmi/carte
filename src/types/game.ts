@@ -76,6 +76,7 @@ export interface ScopaRound {
   carteWinner?: 1 | 2 | 'patta';    // Carte (>20 = 1pt, patta = 0pt)
   denariWinner?: 1 | 2 | 'patta';   // Denari (>5 = 1pt, patta = 0pt)
   settebelloWinner?: 1 | 2;         // Sette di denari (1pt, va sempre a una squadra)
+  reBelloWinner?: 1 | 2;            // Re Bello / Re di denari (1pt opzionale)
   primieraWinner?: 1 | 2 | 'patta'; // Primiera / settanta (1pt, patta = 0pt)
   napolaPointsTeam1?: number;       // Napola Squadra 1 (almeno 3 punti per A-2-3 di denari)
   napolaPointsTeam2?: number;       // Napola Squadra 2
@@ -91,6 +92,17 @@ export interface Player5Score {
   wins: number;
 }
 
+export interface TournamentMatchEntry {
+  id: string;
+  matchNumber: number;
+  winnerTeamIndex: 1 | 2 | 3 | 4 | 5;
+  winnerName: string;
+  timestamp: string;
+  scoreTeam1: number;
+  scoreTeam2: number;
+  scoreTeam3?: number;
+}
+
 // Sessione di Torneo / Partita Serata tra partecipanti
 export interface TournamentSession {
   id: string;
@@ -103,6 +115,7 @@ export interface TournamentSession {
   scopaVariant?: ScopaVariant; // 'scopa_normale' | 'scopone_scientifico'
   targetPoints?: number; // es. 11, 21, 31 (tipico per Scopa e Scopone)
   scopaRounds?: ScopaRound[]; // Storico smazzate con punteggi per categoria
+  history?: TournamentMatchEntry[]; // Storico singole partite giocate dentro il torneo
   mode?: TournamentMode;
   team1Name: string;
   team1Players: string[];

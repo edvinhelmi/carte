@@ -246,4 +246,54 @@ describe('Scopa & Scopone Scientifico Game Category Logic', () => {
     assert.equal(h2hScopa?.team1Wins, 14);
     assert.equal(h2hScopa?.team2Wins, 21);
   });
+
+  it('supports Re Bello (Re di Denari = 1 pt) in Scopa rounds and persists it on session', () => {
+    const session = StorageService.startTournamentSession(
+      'spadoni',
+      ['Simone Tamburlin', 'edddd'],
+      'Lesbiche',
+      ['marghi', 'la misandrica'],
+      '2vs2',
+      undefined,
+      undefined,
+      undefined,
+      'scopa',
+      'scopone_scientifico',
+      21
+    );
+
+    // Smazzata con Re Bello assegnato a Squadra 1 + Settebello a Squadra 2
+    const afterRound = StorageService.addScopaRound(session.id, {
+      scopeTeam1: 1,
+      scopeTeam2: 0,
+      carteWinner: 1,
+      denariWinner: 'patta',
+      settebelloWinner: 2,
+      reBelloWinner: 1,
+      primieraWinner: 'patta',
+      totalPointsTeam1: 3, // 1 scopa + 1 carte + 1 Re Bello
+      totalPointsTeam2: 1, // 1 settebello
+    });
+
+    assert.ok(afterRound);
+    assert.equal(afterRound.team1Wins, 3);
+    assert.equal(afterRound.team2Wins, 1);
+    assert.equal(afterRound.scopaRounds?.[0].reBelloWinner, 1);
+
+    // Smazzata successiva senza Re Bello
+    const afterRound2 = StorageService.addScopaRound(session.id, {
+      scopeTeam1: 0,
+      scopeTeam2: 1,
+      carteWinner: 2,
+      denariWinner: 2,
+      settebelloWinner: 2,
+      primieraWinner: 2,
+      totalPointsTeam1: 0,
+      totalPointsTeam2: 5,
+    });
+
+    assert.ok(afterRound2);
+    assert.equal(afterRound2.scopaRounds?.[1].reBelloWinner, undefined);
+    assert.equal(afterRound2.team2Wins, 6);
+  });
 });

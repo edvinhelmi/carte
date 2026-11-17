@@ -647,4 +647,148 @@ describe('HouseService & Multi-Casa Storage System', () => {
     assert.ok(gretaMember);
     assert.equal(gretaMember.role, 'member');
   });
+
+  it('never drops completed tournament sessions when a remote peer broadcasts an empty or partial sessions list', () => {
+    const house = HouseService.createHouse('Casa Integrità');
+    const session = StorageService.startTournamentSession(
+      'IBelli',
+      ['la misandrica', 'Il Duca'],
+      'IBrutti',
+      ['‘o sciupafemmene', 'la capa'],
+      '2vs2'
+    );
+    StorageService.incrementTournamentWin(session.id, 1);
+    StorageService.incrementTournamentWin(session.id, 2);
+    StorageService.incrementTournamentWin(session.id, 1);
+    const ended = StorageService.endTournamentSession(session.id);
+    assert.equal(ended?.status, 'completed');
+    assert.equal(ended?.winnerPlayerName, 'IBelli');
+    assert.equal(ended?.history?.length, 3);
+
+    // Another roommate opens the app with empty sessions and broadcasts FULL_SYNC
+    RealtimeSyncService.applyRemoteFullSync({
+      type: 'FULL_SYNC',
+      matches: [],
+      sessions: [],
+      teams: [],
+      players: [],
+      houseId: house.id,
+      senderId: 'roommate_fresh_phone',
+      timestamp: Date.now() + 5000,
+    });
+
+    const survivingSessions = StorageService.getTournamentSessions();
+    assert.equal(survivingSessions.length, 1, 'Completed tournament session must never be lost');
+    assert.equal(survivingSessions[0].id, session.id);
+    assert.equal(survivingSessions[0].status, 'completed');
+    assert.equal(survivingSessions[0].team1Wins, 2);
+    assert.equal(survivingSessions[0].team2Wins, 1);
+    assert.equal(survivingSessions[0].history?.length, 3);
+  });
+
+  it('tracks individual match history entries on +1 win and removes the right entry on -1 correction', () => {
+    HouseService.createHouse('Casa Cronologia');
+    const session = StorageService.startTournamentSession('Squadra Alfa', ['A'], 'Squadra Beta', ['B'], '1vs1');
+
+    StorageService.incrementTournamentWin(session.id, 1);
+    StorageService.incrementTournamentWin(session.id, 2);
+    const afterTwo = StorageService.incrementTournamentWin(session.id, 1);
+
+    assert.equal(afterTwo?.history?.length, 3);
+    assert.equal(afterTwo?.history?.[0].winnerName, 'Squadra Alfa');
+    assert.equal(afterTwo?.history?.[1].winnerName, 'Squadra Beta');
+    assert.equal(afterTwo?.history?.[2].winnerName, 'Squadra Alfa');
+    assert.equal(afterTwo?.history?.[2].matchNumber, 3);
+
+    const afterDecrement = StorageService.decrementTournamentWin(session.id, 1);
+    assert.equal(afterDecrement?.team1Wins, 1);
+    assert.equal(afterDecrement?.team2Wins, 1);
+    assert.equal(afterDecrement?.history?.length, 2);
+    assert.equal(afterDecrement?.history?.[0].matchNumber, 1);
+    assert.equal(afterDecrement?.history?.[1].matchNumber, 2);
+    assert.equal(afterDecrement?.history?.[1].winnerName, 'Squadra Beta');
+  });
+
+  it('respects tombstones (deletedIds) so explicitly deleted matches or tournaments are never resurrected by peers', () => {
+    const house = HouseService.createHouse('Casa Tombstones');
+    const session = StorageService.startTournamentSession('T1', ['A'], 'T2', ['B'], '1vs1');
+    StorageService.endTournamentSession(session.id);
+
+    // User deletes the tournament session intentionally
+    StorageService.deleteTournamentSession(session.id);
+    assert.equal(StorageService.getTournamentSessions().length, 0);
+
+    // Peer with stale cache broadcasts the deleted session back
+    RealtimeSyncService.applyRemoteFullSync({
+      type: 'FULL_SYNC',
+      matches: [],
+      sessions: [session],
+      teams: [],
+      players: [],
+      houseId: house.id,
+      senderId: 'stale_peer',
+      timestamp: Date.now() + 1000,
+    });
+
+    assert.equal(
+      StorageService.getTournamentSessions().length,
+      0,
+      'Deleted tournament session must not be resurrected by stale peer sync'
+    );
+  });
+
+  it('migrates legacy v4 localStorage matches and sessions into the active house while ignoring dummy seed IDs', () => {
+    const house = HouseService.createHouse('Casa Storico');
+    HouseService.setActiveHouse(house.id);
+
+    const legacySession = {
+      id: 'tour_legacy_recovered_1',
+      dateKey: '2026-11-10',
+      startedAt: '2026-11-10T20:00:00.000Z',
+      endedAt: '2026-11-10T21:00:00.000Z',
+      mode: '2vs2',
+      gameType: 'scopa',
+      team1Name: 'A & B',
+      team1Players: ['A', 'B'],
+      team2Name: 'C & D',
+      team2Players: ['C', 'D'],
+      team1Wins: 21,
+      team2Wins: 18,
+      status: 'completed',
+      winnerTeam: '1',
+      scopaRounds: [],
+    };
+    const dummySession = {
+      id: 'test_sync_check',
+      dateKey: '2026-11-08',
+      startedAt: '2026-11-08T21:19:07.000Z',
+      mode: '2vs2',
+      team1Name: 'Dummy 1',
+      team2Name: 'Dummy 2',
+      team1Wins: 1,
+      team2Wins: 0,
+      status: 'completed',
+    };
+
+    setStoredItem(HOUSE_STORAGE_KEYS.LEGACY_SESSIONS, JSON.stringify([legacySession, dummySession]));
+    setStoredItem(
+      HOUSE_STORAGE_KEYS.LEGACY_PLAYERS,
+      JSON.stringify([
+        { id: 'p_legacy_1', name: 'Luca', avatarSuit: 'coppe', createdAt: '2026-11-01T10:00:00.000Z', isFriend: true },
+        { id: 'p1', name: 'Demo Seed', avatarSuit: 'denari', createdAt: '2026-10-01T10:00:00.000Z' },
+      ])
+    );
+
+    const migrated = HouseService.migrateLegacyLocalDataToHouse(house.id);
+    assert.equal(migrated, true);
+
+    const sessions = StorageService.getTournamentSessions();
+    assert.equal(sessions.length, 1);
+    assert.equal(sessions[0].id, 'tour_legacy_recovered_1');
+    assert.equal(sessions[0].houseId, house.id);
+
+    const players = StorageService.getPlayers();
+    assert.equal(players.some((p) => p.id === 'p_legacy_1'), true);
+    assert.equal(players.some((p) => p.id === 'p1'), false);
+  });
 });

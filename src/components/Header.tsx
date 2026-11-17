@@ -42,7 +42,7 @@ export function Header({
   ];
 
   return (
-    <header className="sticky top-0 z-40 glass-ios border-b border-[var(--divider)] px-3.5 sm:px-6 lg:px-8 header-safe pb-2.5 sm:pb-3 shadow-sm">
+    <header className="sticky top-0 z-40 glass-ios border-x-0 border-t-0 rounded-none px-3.5 sm:px-6 lg:px-8 header-safe pb-2.5 sm:pb-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-4">
         {/* Brand / Logo (and desktop HouseSwitcher) */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 md:min-w-0">
@@ -82,7 +82,7 @@ export function Header({
 
         {/* Desktop Navigation (visibile solo se c'è una casa attiva) */}
         {hasActiveHouse && (
-          <nav className="hidden md:flex items-center gap-1 bg-[var(--surface-raised)]/90 backdrop-blur-md p-1 rounded-2xl border border-[var(--control-border)] shadow-inner">
+          <nav className="hidden md:flex items-center gap-0.5 bg-black/30 p-1 rounded-full border border-white/10">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -91,15 +91,15 @@ export function Header({
                   key={item.id}
                   type="button"
                   onClick={() => setActiveTab(item.id)}
-                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold btn-ios-tactile cursor-pointer ${
+                  className={`relative flex items-center gap-2 px-4 min-h-[36px] rounded-full text-xs font-semibold btn-ios-tactile cursor-pointer ${
                     isActive
-                      ? 'bg-[var(--accent)] text-[var(--on-accent)] font-bold shadow-md shadow-amber-500/20'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-alt)]/60 border border-transparent'
+                      ? 'glass-thumb text-[var(--text)] font-bold'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text)]'
                   }`}
                 >
                   <Icon
                     className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                      isActive ? 'text-[var(--on-accent)] scale-110' : 'text-[var(--text-muted)]'
+                      isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'
                     }`}
                   />
                   <span>{item.label}</span>
@@ -116,10 +116,10 @@ export function Header({
             <button
               type="button"
               onClick={() => setActiveTab('torneo')}
-              className={`hidden md:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold btn-ios-tactile cursor-pointer shadow-sm min-h-[44px] ${
+              className={`hidden md:inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-bold btn-ios-tactile cursor-pointer min-h-[44px] ${
                 activeTab === 'torneo'
-                  ? 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--on-accent)] shadow-[0_2px_14px_rgba(245,158,11,0.3)] ring-1 ring-amber-400/40'
-                  : 'bg-[var(--surface-alt)] hover:bg-[var(--surface-hover)] border border-[var(--control-border)] text-[var(--text)]'
+                  ? 'glass-thumb-accent text-[var(--on-accent)]'
+                  : 'bg-white/5 hover:bg-white/10 border border-white/10 text-[var(--text)]'
               }`}
             >
               <Swords className="w-3.5 h-3.5 transition-transform duration-200 hover:rotate-12" />

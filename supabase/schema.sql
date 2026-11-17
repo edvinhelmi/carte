@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS public.tournament_sessions (
   winner_player_name TEXT,
   team1_wins INT NOT NULL DEFAULT 0,
   team2_wins INT NOT NULL DEFAULT 0,
-  team3_wins INT NOT NULL DEFAULT 0,
+  team3_wins INT DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
   history JSONB NOT NULL DEFAULT '[]'::jsonb,
   winner_team TEXT,
@@ -122,6 +122,13 @@ ALTER TABLE public.tournament_sessions ADD COLUMN IF NOT EXISTS target_points IN
 ALTER TABLE public.tournament_sessions ADD COLUMN IF NOT EXISTS scopa_rounds JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS player_names JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE public.players ADD COLUMN IF NOT EXISTS is_friend BOOLEAN DEFAULT false;
+
+ALTER TABLE public.houses REPLICA IDENTITY FULL;
+ALTER TABLE public.house_members REPLICA IDENTITY FULL;
+ALTER TABLE public.players REPLICA IDENTITY FULL;
+ALTER TABLE public.teams REPLICA IDENTITY FULL;
+ALTER TABLE public.matches REPLICA IDENTITY FULL;
+ALTER TABLE public.tournament_sessions REPLICA IDENTITY FULL;
 
 -- 8. Trigger per sincronizzare automaticamente auth.users -> public.profiles al login Google
 CREATE OR REPLACE FUNCTION public.handle_new_user()

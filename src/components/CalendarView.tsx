@@ -200,8 +200,9 @@ export function CalendarView({
     ) {
       winnerLabel = session.winnerPlayerName;
     } else if (isA5 && session.players5 && session.players5.length > 0) {
-      const maxWins = Math.max(...session.players5.map((p) => p.wins || 0));
-      if (maxWins > 0) {
+      const allZero = session.players5.every((p) => (p.wins || 0) === 0);
+      if (!allZero) {
+        const maxWins = Math.max(...session.players5.map((p) => p.wins || 0));
         const winners = session.players5.filter((p) => (p.wins || 0) === maxWins);
         winnerLabel = winners.map((p) => p.name).join(' & ');
       }
@@ -247,9 +248,15 @@ export function CalendarView({
             </span>
             <span className="font-mono tabular-nums text-xs">
               {isA5
-                ? `${totalGames} ${totalGames === 1 ? 'vittoria' : 'vittorie'}`
+                ? `${totalGames} ${Math.abs(totalGames) === 1 ? 'punto' : 'punti'}`
                 : `${totalGames} ${totalGames === 1 ? 'partita' : 'partite'}`}
             </span>
+            {session.status === 'in_progress' && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>In corso</span>
+              </span>
+            )}
             {winnerLabel && (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--accent-text)] bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full shadow-sm">
                 <Trophy className="w-3 h-3 text-[var(--accent)] fill-[var(--accent)] shrink-0" />
@@ -270,10 +277,11 @@ export function CalendarView({
         {isA5 && session.players5 && session.players5.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-0.5">
             {session.players5.map((p, pIdx) => {
+              const allZero = session.players5!.every((x) => (x.wins || 0) === 0);
               const maxWins = Math.max(...session.players5!.map((x) => x.wins || 0));
               const isWinner = session.winnerPlayerName
                 ? session.winnerPlayerName.split(' & ').includes(p.name)
-                : (Number(session.winnerTeam) === pIdx + 1 || (maxWins > 0 && p.wins === maxWins));
+                : (Number(session.winnerTeam) === pIdx + 1 || (!allZero && p.wins === maxWins));
               return (
                 <div
                   key={p.name + pIdx}
@@ -469,6 +477,64 @@ export function CalendarView({
             </div>
           </div>
         )}
+
+        {/* Cronologia singole partite giocate dentro questo torneo */}
+        {session.history && session.history.length > 0 && (
+          <div className="pt-2.5 mt-1 border-t border-[var(--divider)] space-y-1.5">
+            <span className="text-[11px] font-semibold text-[var(--text-muted)] flex items-center gap-1.5">
+              <Clock className="w-3 h-3 text-[var(--accent)]" />
+              <span>Cronologia partite del torneo ({session.history.length})</span>
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {session.history.map((entry) => {
+                const entryTime = entry.timestamp
+                  ? new Date(entry.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+                  : '';
+                return (
+                  <span
+                    key={entry.id}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--surface-alt)] border border-[var(--divider)] text-[11px] text-[var(--text)]"
+                  >
+                    <span className="font-mono font-bold text-[var(--accent)] tabular-nums">#{entry.matchNumber}</span>
+                    <span className="font-semibold truncate max-w-[120px]">{entry.winnerName}</span>
+                    <span className="font-mono text-[10px] text-[var(--text-muted)] tabular-nums">
+                      ({entry.scoreTeam1}-{entry.scoreTeam2}{entry.scoreTeam3 !== undefined && isThree ? `-${entry.scoreTeam3}` : ''})
+                    </span>
+                    {entryTime && (
+                      <span className="font-mono text-[10px] text-[var(--text-subtle)] tabular-nums">{entryTime}</span>
+                    )}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Cronologia smazzate Scopa se presenti */}
+        {session.scopaRounds && session.scopaRounds.length > 0 && (
+          <div className="pt-2.5 mt-1 border-t border-[var(--divider)] space-y-1.5">
+            <span className="text-[11px] font-semibold text-[var(--text-muted)] flex items-center gap-1.5">
+              <Clock className="w-3 h-3 text-[var(--accent)]" />
+              <span>Smazzate registrate ({session.scopaRounds.length})</span>
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {session.scopaRounds.map((rnd) => (
+                <span
+                  key={rnd.id}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--surface-alt)] border border-[var(--divider)] text-[11px] text-[var(--text)] font-mono tabular-nums"
+                >
+                  <span className="font-bold text-[var(--accent)]">#{rnd.roundNumber}</span>
+                  <span>
+                    +{rnd.totalPointsTeam1} / +{rnd.totalPointsTeam2} pt
+                  </span>
+                  {rnd.reBelloWinner && (
+                    <span className="text-[10px] font-semibold text-amber-400">• Re Bello</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -652,7 +718,7 @@ export function CalendarView({
         {/* KPI Riepilogo Storico */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="glass-ios-raised rounded-2xl border border-white/10 p-4">
-            <span className="text-[11px] font-semibold text-[var(--text-muted)] block uppercase tracking-wider">
+            <span className="text-xs font-semibold text-[var(--text-muted)] block">
               Giornate Giocate
             </span>
             <span className="font-mono text-2xl font-black text-[var(--text)] tabular-nums mt-0.5 block">
@@ -660,7 +726,7 @@ export function CalendarView({
             </span>
           </div>
           <div className="glass-ios-raised rounded-2xl border border-white/10 p-4">
-            <span className="text-[11px] font-semibold text-[var(--text-muted)] block uppercase tracking-wider">
+            <span className="text-xs font-semibold text-[var(--text-muted)] block">
               Partite Totali
             </span>
             <span className="font-mono text-2xl font-black text-[var(--accent-text)] tabular-nums mt-0.5 block">
@@ -668,7 +734,7 @@ export function CalendarView({
             </span>
           </div>
           <div className="glass-ios-raised rounded-2xl border border-white/10 p-4 col-span-2 sm:col-span-1">
-            <span className="text-[11px] font-semibold text-[var(--text-muted)] block uppercase tracking-wider">
+            <span className="text-xs font-semibold text-[var(--text-muted)] block">
               Tornei Registrati
             </span>
             <span className="font-mono text-2xl font-black text-[var(--text)] tabular-nums mt-0.5 block">

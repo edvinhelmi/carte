@@ -3,6 +3,7 @@ import {
   Trophy,
   Swords,
   Plus,
+  Minus,
   Trash2,
   Clock,
   RotateCcw,
@@ -511,11 +512,9 @@ export function TorneoSerataView({
   const pastSessions = useMemo(
     () =>
       sessions.filter(
-        (s) =>
-          s.status === 'completed' &&
-          ((s.gameType || 'briscola') === activeCategory)
+        (s) => s.status === 'completed' || (activeSession && s.id !== activeSession.id)
       ),
-    [sessions, activeCategory]
+    [sessions, activeSession]
   );
 
   const isA5Mode = Boolean(activeSession && activeSession.mode === 'a5');
@@ -766,7 +765,7 @@ export function TorneoSerataView({
                 </div>
               )}
 
-              {/* CALCOLATORE TURNI / SMAZZATE GUIDATO (Scope, Carte, Denari, Settebello, Primiera, Napola) */}
+              {/* CALCOLATORE TURNI / SMAZZATE GUIDATO (Scope, Carte, Denari, Settebello, Re Bello, Primiera, Napola) */}
               <ScopaRoundScorer session={activeSession} onRoundAdded={onDataUpdated} />
             </div>
           ) : (
@@ -826,8 +825,9 @@ export function TorneoSerataView({
               {/* GRIGLIA A 5 GIOCATORI: 2 col su mobile, 3 su tablet, 5 su desktop */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                 {activeSession.players5.map((player, idx) => {
+                  const allZero = activeSession.players5!.every((p) => (p.wins || 0) === 0);
                   const maxWins = Math.max(...activeSession.players5!.map((p) => p.wins || 0));
-                  const isLeader = maxWins > 0 && player.wins === maxWins;
+                  const isLeader = !allZero && (player.wins || 0) === maxWins;
                   const bumpState = [bumpTeam1, bumpTeam2, bumpTeam3, bumpTeam4, bumpTeam5][idx];
                   const setBump = [setBumpTeam1, setBumpTeam2, setBumpTeam3, setBumpTeam4, setBumpTeam5][idx];
 
@@ -859,22 +859,26 @@ export function TorneoSerataView({
                         </h2>
                       </div>
 
-                      {/* Numero Vittorie Gigante */}
+                      {/* Punteggio Gigante (supporta anche punteggi negativi) */}
                       <div className="my-3 sm:my-5">
                         <span
                           className={`text-5xl sm:text-6xl lg:text-7xl font-black font-mono tabular-nums tracking-tight select-none block ${
-                            isLeader ? 'text-[var(--accent)]' : 'text-[var(--text)]'
+                            isLeader
+                              ? 'text-[var(--accent)]'
+                              : player.wins < 0
+                              ? 'text-rose-400'
+                              : 'text-[var(--text)]'
                           } ${bumpState ? 'animate-score-bump' : ''}`}
                           onAnimationEnd={() => setBump(false)}
                         >
                           {player.wins}
                         </span>
                         <span className="text-[11px] sm:text-xs text-[var(--text-muted)] font-medium mt-0.5 sm:mt-1 block">
-                          {player.wins === 1 ? 'partita vinta' : 'partite vinte'}
+                          {Math.abs(player.wins) === 1 ? 'punto' : 'punti'}
                         </span>
                       </div>
 
-                      {/* Tasto Touch +1 Vittoria & Correggi */}
+                      {/* Tasti Touch +1 / -1 Punto (disponibili anche a 0 e in negativo) */}
                       <div className="space-y-2">
                         <button
                           type="button"
@@ -885,16 +889,15 @@ export function TorneoSerataView({
                           <span className="truncate max-w-[140px] sm:max-w-[180px]">+1 {player.name}</span>
                         </button>
 
-                        {player.wins > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveWin(idx + 1)}
-                            className="touch-target inline-flex items-center gap-1.5 text-xs text-[var(--text-subtle)] hover:text-[var(--text-muted)] py-1.5 px-3 rounded-lg hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            <span>Correggi (-1)</span>
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveWin(idx + 1)}
+                          aria-label={`Togli 1 punto a ${player.name}`}
+                          className="w-full min-h-[44px] inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-[var(--text-muted)] hover:text-rose-300 py-2 px-3 rounded-xl bg-[var(--surface-raised)]/60 hover:bg-rose-950/30 border border-[var(--control-border)]/70 hover:border-rose-500/30 btn-tactile cursor-pointer"
+                        >
+                          <Minus className="w-3.5 h-3.5 shrink-0" />
+                          <span>-1 Punto</span>
+                        </button>
                       </div>
                     </div>
                   );
@@ -907,13 +910,13 @@ export function TorneoSerataView({
                   {activeSession.players5.map((p) => (
                     <span key={p.name}>
                       {p.name}:{' '}
-                      <strong className="text-[var(--text)] font-mono tabular-nums">
+                      <strong className={`font-mono tabular-nums ${p.wins < 0 ? 'text-rose-400' : 'text-[var(--text)]'}`}>
                         {p.wins}
                       </strong>
                     </span>
                   ))}
                   <span>
-                    Totale vittorie:{' '}
+                    Totale punti:{' '}
                     <strong className="text-[var(--text)] font-mono tabular-nums">
                       {totalMatchesTonight}
                     </strong>
@@ -1215,6 +1218,49 @@ export function TorneoSerataView({
             </div>
           </div>
         </>
+      )}
+
+      {/* Cronologia Live delle singole partite giocate stasera */}
+      {activeSession.history && activeSession.history.length > 0 && (
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--divider)] p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-[var(--text)] flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-[var(--accent)]" />
+              <span>Cronologia Partite della Serata ({activeSession.history.length})</span>
+            </h3>
+            <span className="text-[11px] text-[var(--text-muted)] font-mono tabular-nums">
+              Sincronizzato in tempo reale
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[...activeSession.history].reverse().map((entry) => {
+              const entryTime = entry.timestamp
+                ? new Date(entry.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+                : '';
+              return (
+                <div
+                  key={entry.id}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--surface-raised)] border border-[var(--control-border)] text-xs text-[var(--text)]"
+                >
+                  <span className="font-mono font-bold text-[var(--accent)] tabular-nums">
+                    Partita #{entry.matchNumber}
+                  </span>
+                  <span className="font-bold text-[var(--text)] truncate max-w-[140px]">
+                    {entry.winnerName}
+                  </span>
+                  <span className="font-mono text-[11px] text-[var(--text-muted)] tabular-nums">
+                    ({entry.scoreTeam1}-{entry.scoreTeam2}{entry.scoreTeam3 !== undefined && isThreeWay ? `-${entry.scoreTeam3}` : ''})
+                  </span>
+                  {entryTime && (
+                    <span className="font-mono text-[10px] text-[var(--text-subtle)] tabular-nums">
+                      {entryTime}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
     </>
   )}
@@ -2135,8 +2181,9 @@ export function TorneoSerataView({
               ) {
                 winnerLabel = session.winnerPlayerName;
               } else if (isA5 && session.players5 && session.players5.length > 0) {
-                const maxWins = Math.max(...session.players5.map((p) => p.wins || 0));
-                if (maxWins > 0) {
+                const allZero = session.players5.every((p) => (p.wins || 0) === 0);
+                if (!allZero) {
+                  const maxWins = Math.max(...session.players5.map((p) => p.wins || 0));
                   const winners = session.players5.filter((p) => (p.wins || 0) === maxWins);
                   winnerLabel = winners.map((p) => p.name).join(' & ');
                 }
@@ -2201,10 +2248,11 @@ export function TorneoSerataView({
                   {isA5 && session.players5 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-0.5">
                       {session.players5.map((p, idx) => {
+                        const allZero = session.players5!.every((x) => (x.wins || 0) === 0);
                         const maxWins = Math.max(...session.players5!.map((x) => x.wins || 0));
                         const isWinner = session.winnerPlayerName
                           ? session.winnerPlayerName.split(' & ').includes(p.name)
-                          : (Number(session.winnerTeam) === idx + 1 || (maxWins > 0 && p.wins === maxWins));
+                          : (Number(session.winnerTeam) === idx + 1 || (!allZero && p.wins === maxWins));
                         return (
                           <div
                             key={p.name + idx}
@@ -2400,6 +2448,62 @@ export function TorneoSerataView({
                         >
                           {session.team2Wins}
                         </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {session.history && session.history.length > 0 && (
+                    <div className="pt-2.5 mt-1 border-t border-[var(--divider)] space-y-1.5">
+                      <span className="text-[11px] font-semibold text-[var(--text-muted)] flex items-center gap-1.5">
+                        <Clock className="w-3 h-3 text-[var(--accent)]" />
+                        <span>Partite del torneo ({session.history.length})</span>
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {session.history.map((entry) => {
+                          const entryTime = entry.timestamp
+                            ? new Date(entry.timestamp).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+                            : '';
+                          return (
+                            <span
+                              key={entry.id}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--surface-raised)] border border-[var(--divider)] text-[11px] text-[var(--text)]"
+                            >
+                              <span className="font-mono font-bold text-[var(--accent)] tabular-nums">#{entry.matchNumber}</span>
+                              <span className="font-semibold truncate max-w-[110px]">{entry.winnerName}</span>
+                              <span className="font-mono text-[10px] text-[var(--text-muted)] tabular-nums">
+                                ({entry.scoreTeam1}-{entry.scoreTeam2}{entry.scoreTeam3 !== undefined && isThree ? `-${entry.scoreTeam3}` : ''})
+                              </span>
+                              {entryTime && (
+                                <span className="font-mono text-[10px] text-[var(--text-subtle)] tabular-nums">{entryTime}</span>
+                              )}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {session.scopaRounds && session.scopaRounds.length > 0 && (
+                    <div className="pt-2.5 mt-1 border-t border-[var(--divider)] space-y-1.5">
+                      <span className="text-[11px] font-semibold text-[var(--text-muted)] flex items-center gap-1.5">
+                        <Clock className="w-3 h-3 text-[var(--accent)]" />
+                        <span>Smazzate ({session.scopaRounds.length})</span>
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {session.scopaRounds.map((rnd) => (
+                          <span
+                            key={rnd.id}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--surface-raised)] border border-[var(--divider)] text-[11px] text-[var(--text)] font-mono tabular-nums"
+                          >
+                            <span className="font-bold text-[var(--accent)]">#{rnd.roundNumber}</span>
+                            <span>
+                              +{rnd.totalPointsTeam1} / +{rnd.totalPointsTeam2} pt
+                            </span>
+                            {rnd.reBelloWinner && (
+                              <span className="text-[10px] font-semibold text-amber-400">• Re Bello</span>
+                            )}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   )}

@@ -4,6 +4,7 @@ import {
   getStoredItem as getStorageItem,
   setStoredItem as setStorageItem,
   removeStoredItem as removeStorageItem,
+  markIdDeleted,
 } from './storagePrimitives.ts';
 import { HouseService, getHouseResourceKey } from './houseService.ts';
 
@@ -110,6 +111,13 @@ export const AuthService = {
 
     setStorageItem(AUTH_STORAGE_KEYS.CACHED_PROFILE, JSON.stringify(cachedUser));
 
+    // Prima sincronizza le case dell'utente dal cloud così non sovrascriviamo mai lo stato con un broadcast vuoto
+    try {
+      await HouseService.syncUserHousesFromCloud(user.id);
+    } catch {
+      // ignore
+    }
+
     // Se ci sono case note o attive, migra o registra l'utente collegandolo al nuovo account Google
     try {
       const known = HouseService.getKnownHouses();
@@ -127,10 +135,12 @@ export const AuthService = {
         // Rimuovi eventuale membro guest locale per non lasciare record fantasma
         if (guestIdx >= 0 && guestIdx !== existingAuthIdx) {
           const oldGuestId = currentMembers[guestIdx].userId;
+          markIdDeleted(house.id, oldGuestId);
+          markIdDeleted(house.id, `p_mem_${oldGuestId}`);
           currentMembers.splice(guestIdx, 1);
           setStorageItem(getHouseResourceKey(house.id, 'members'), JSON.stringify(currentMembers));
 
-          // Rimuovi vecchio player guest corrispondente
+          // Rimuovi vecchio player guest corrispondente in locale e sul cloud
           const playersKey = getHouseResourceKey(house.id, 'players');
           const rawPlayers = getStorageItem(playersKey);
           if (rawPlayers) {
@@ -143,6 +153,10 @@ export const AuthService = {
             } catch {
               // ignore
             }
+          }
+          if (isSupabaseConfigured()) {
+            const client = getSupabaseClient();
+            client?.from('players').delete().eq('house_id', house.id).eq('id', `p_mem_${oldGuestId}`).then();
           }
         }
 
@@ -157,13 +171,6 @@ export const AuthService = {
           joinedAt: new Date().toISOString(),
         });
       }
-    } catch {
-      // ignore
-    }
-
-    // Sincronizza le case dell'utente dal cloud (permette accesso e persistenza multi-device)
-    try {
-      await HouseService.syncUserHousesFromCloud(user.id);
     } catch {
       // ignore
     }

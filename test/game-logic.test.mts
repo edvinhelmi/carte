@@ -636,14 +636,15 @@ describe('Tournament 1vs1vs1, 1vs1, and 2vs2 logic', () => {
       assert.strictEqual(current.players5[3].wins, 0); // Edd
       assert.strictEqual(current.players5[4].wins, 3); // Luca
 
-      // Decrement Luca by 1, test boundary of 0 for Edd
+      // Decrement Luca by 1, and verify Edd at 0 can decrement into negative scores
       StorageService.decrementTournamentWin(session.id, 5);
-      StorageService.decrementTournamentWin(session.id, 4); // already 0, should not go negative
+      StorageService.decrementTournamentWin(session.id, 4); // 0 -> -1
+      StorageService.decrementTournamentWin(session.id, 4); // -1 -> -2
 
       current = StorageService.getActiveTournamentSession();
       assert.ok(current?.players5);
       assert.strictEqual(current.players5[4].wins, 2); // Luca now 2
-      assert.strictEqual(current.players5[3].wins, 0); // Edd still 0
+      assert.strictEqual(current.players5[3].wins, -2); // Edd now -2
 
       // Conclude tournament: Simon has 4 wins -> Winner
       const ended = StorageService.endTournamentSession(session.id);
@@ -868,6 +869,36 @@ describe('Tournament 1vs1vs1, 1vs1, and 2vs2 logic', () => {
       assert.strictEqual(ended.status, 'completed');
       assert.strictEqual(ended.winnerTeam, 'pareggio');
       assert.strictEqual(ended.winnerPlayerName, 'Nessuno (0 vittorie)');
+    });
+
+    it('supports negative scores and resolves winner properly at 0 or negative in A 5 mode', () => {
+      StorageService.clearAll();
+
+      const playerNames = ['Marghe', 'Irins', 'Simon', 'Edd', 'Luca'];
+      const session = StorageService.startTournamentSession(
+        playerNames[0],
+        [playerNames[0]],
+        playerNames[1],
+        [playerNames[1]],
+        'a5',
+        playerNames[2],
+        [playerNames[2]],
+        playerNames
+      );
+
+      // Leave Marghe at 0, push everyone else negative (Irins -1, Simon -2, Edd -1, Luca -3)
+      StorageService.decrementTournamentWin(session.id, 2);
+      StorageService.decrementTournamentWin(session.id, 3);
+      StorageService.decrementTournamentWin(session.id, 3);
+      StorageService.decrementTournamentWin(session.id, 4);
+      StorageService.decrementTournamentWin(session.id, 5);
+      StorageService.decrementTournamentWin(session.id, 5);
+      StorageService.decrementTournamentWin(session.id, 5);
+
+      const ended = StorageService.endTournamentSession(session.id);
+      assert.ok(ended);
+      assert.strictEqual(ended.winnerTeam, 1);
+      assert.strictEqual(ended.winnerPlayerName, 'Marghe');
     });
 
     it('includes guest players from A 5 tournament sessions into player leaderboard stats', () => {

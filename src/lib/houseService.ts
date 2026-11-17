@@ -2,11 +2,14 @@ import type { House, KnownHouse, HouseMember } from '../types/house.ts';
 import type { Player, CardSuit, Match, TournamentSession, Team } from '../types/game.ts';
 import { getSupabaseClient, isSupabaseConfigured } from './supabaseClient.ts';
 import { AuthService } from './authService.ts';
-import { RealtimeSyncService } from './realtimeSync.ts';
+import { RealtimeSyncService, mergeTwoSessions } from './realtimeSync.ts';
 import {
   getStoredItem as getStorageItem,
   setStoredItem as setStorageItem,
   removeStoredItem as removeStorageItem,
+  getDeletedIds,
+  markIdDeleted,
+  isRecentlyMutatedLocally,
 } from './storagePrimitives.ts';
 
 export const HOUSE_STORAGE_KEYS = {
@@ -90,6 +93,7 @@ export const HouseService = {
 
     const finalActiveId = getStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
     if (finalActiveId) {
+      this.migrateLegacyLocalDataToHouse(finalActiveId);
       this.migrateManualMembersToFriends(finalActiveId);
       this.deduplicatePlayers(finalActiveId);
     }
@@ -205,12 +209,107 @@ export const HouseService = {
       setStorageItem(HOUSE_STORAGE_KEYS.KNOWN_HOUSES, JSON.stringify(known));
     }
 
+    this.migrateLegacyLocalDataToHouse(cleanId);
     RealtimeSyncService.setRoom(`carte_house_${cleanId}`);
     this.notifyUpdate();
     this.setupCloudSync(cleanId);
     this.pullHouseDataFromCloud(cleanId).then(() => {
       this.notifyUpdate();
     });
+  },
+
+  // Migra eventuali dati salvati nelle vecchie chiavi legacy v4 o casa_principale dentro la casa attiva
+  migrateLegacyLocalDataToHouse(houseId?: string): boolean {
+    const id = houseId || getStorageItem(HOUSE_STORAGE_KEYS.ACTIVE_ID);
+    if (!id || id === 'casa_principale') return false;
+
+    const deletedSet = new Set(getDeletedIds(id));
+    const dummySeedIds = new Set(['p1', 'p2', 'p3', 'p4', 't1', 't2', 'test_sync_check', 'p_mem_guest_vjiaxx1']);
+    let migratedAny = false;
+
+    const legacySources: Array<{
+      resource: 'players' | 'teams' | 'matches' | 'sessions';
+      keys: string[];
+    }> = [
+      {
+        resource: 'players',
+        keys: [HOUSE_STORAGE_KEYS.LEGACY_PLAYERS, getHouseResourceKey('casa_principale', 'players')],
+      },
+      {
+        resource: 'teams',
+        keys: [HOUSE_STORAGE_KEYS.LEGACY_TEAMS, getHouseResourceKey('casa_principale', 'teams')],
+      },
+      {
+        resource: 'matches',
+        keys: [HOUSE_STORAGE_KEYS.LEGACY_MATCHES, getHouseResourceKey('casa_principale', 'matches')],
+      },
+      {
+        resource: 'sessions',
+        keys: [HOUSE_STORAGE_KEYS.LEGACY_SESSIONS, getHouseResourceKey('casa_principale', 'sessions')],
+      },
+    ];
+
+    for (const { resource, keys } of legacySources) {
+      const targetKey = getHouseResourceKey(id, resource);
+      let currentItems: Array<{ id?: string; houseId?: string; status?: string }> = [];
+      try {
+        const raw = getStorageItem(targetKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) currentItems = parsed;
+        }
+      } catch {
+        currentItems = [];
+      }
+
+      let resourceChanged = false;
+      for (const legacyKey of keys) {
+        const legacyRaw = getStorageItem(legacyKey);
+        if (!legacyRaw) continue;
+        try {
+          const legacyItems = JSON.parse(legacyRaw);
+          if (Array.isArray(legacyItems)) {
+            for (const item of legacyItems) {
+              if (!item || typeof item !== 'object' || !item.id) continue;
+              if (deletedSet.has(item.id) || dummySeedIds.has(item.id) || item.id.startsWith('p_mem_guest_')) {
+                continue;
+              }
+              const existingIdx = currentItems.findIndex((c) => c && c.id === item.id);
+              if (existingIdx >= 0) {
+                if (resource === 'sessions') {
+                  currentItems[existingIdx] = mergeTwoSessions(
+                    currentItems[existingIdx] as TournamentSession,
+                    { ...(item as TournamentSession), houseId: id }
+                  );
+                  resourceChanged = true;
+                }
+              } else {
+                const normalized = { ...item, houseId: id };
+                if (resource === 'matches' || resource === 'sessions') {
+                  currentItems.unshift(normalized);
+                } else {
+                  currentItems.push(normalized);
+                }
+                resourceChanged = true;
+              }
+            }
+          }
+        } catch {
+          // ignora dati legacy corrotti
+        }
+        removeStorageItem(legacyKey);
+      }
+
+      if (resourceChanged) {
+        setStorageItem(targetKey, JSON.stringify(currentItems));
+        migratedAny = true;
+      }
+    }
+
+    if (migratedAny) {
+      this.notifyUpdate();
+    }
+    return migratedAny;
   },
 
   // Migra utenti manuali (es. Francesco o dummy mem_) da house_members a Giocatori Amici
@@ -530,6 +629,8 @@ export const HouseService = {
 
   deleteHouseMember(houseId: string, userId: string): void {
     if (!houseId || !userId) return;
+    markIdDeleted(houseId, userId);
+    markIdDeleted(houseId, `p_mem_${userId}`);
     const key = getHouseResourceKey(houseId, 'members');
     const members = this.getHouseMembers(houseId).filter((m) => m.userId !== userId);
     setStorageItem(key, JSON.stringify(members));
@@ -1057,16 +1158,125 @@ export const HouseService = {
         }
       }
 
+      const deletedSet = new Set(getDeletedIds(house.id));
+
       if (initialPlayers.length > 0) {
-        const payload = initialPlayers.map((p) => ({
-          id: p.id,
-          house_id: house.id,
-          name: p.name,
-          nickname: p.nickname || null,
-          avatar_suit: p.avatarSuit,
-          created_at: p.createdAt,
-        }));
-        await client.from('players').upsert(payload);
+        const validPlayers = initialPlayers.filter(
+          (p) => p && p.id && !deletedSet.has(p.id) && !p.id.startsWith('p_mem_guest_')
+        );
+        if (validPlayers.length > 0) {
+          const payload = validPlayers.map((p) => ({
+            id: p.id,
+            house_id: house.id,
+            name: p.name,
+            nickname: p.nickname || null,
+            avatar_suit: p.avatarSuit,
+            created_at: p.createdAt,
+            is_friend: Boolean(p.isFriend),
+          }));
+          await client.from('players').upsert(payload, { onConflict: 'house_id,id' });
+        }
+      }
+
+      // Push anche squadre, partite e tornei locali non ancora sul cloud
+      const teamsRaw = getStorageItem(getHouseResourceKey(house.id, 'teams'));
+      if (teamsRaw) {
+        try {
+          const localTeams: Team[] = JSON.parse(teamsRaw);
+          const validTeams = (Array.isArray(localTeams) ? localTeams : []).filter(
+            (t) => t && t.id && !deletedSet.has(t.id)
+          );
+          if (validTeams.length > 0) {
+            await client.from('teams').upsert(
+              validTeams.map((t) => ({
+                id: t.id,
+                house_id: house.id,
+                name: t.name,
+                player_ids: t.playerIds ?? [],
+                player_names: t.playerNames ?? [],
+                color: t.color || '#10b981',
+                created_at: t.createdAt || new Date().toISOString(),
+              })),
+              { onConflict: 'house_id,id' }
+            );
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      const matchesRaw = getStorageItem(getHouseResourceKey(house.id, 'matches'));
+      if (matchesRaw) {
+        try {
+          const localMatches: Match[] = JSON.parse(matchesRaw);
+          const validMatches = (Array.isArray(localMatches) ? localMatches : []).filter(
+            (m) => m && m.id && !deletedSet.has(m.id)
+          );
+          if (validMatches.length > 0) {
+            await client.from('matches').upsert(
+              validMatches.map((m) => ({
+                id: m.id,
+                house_id: house.id,
+                game_type: m.gameType || 'briscola',
+                timestamp: m.timestamp,
+                date_key: m.dateKey,
+                team1_id: m.team1Id,
+                team2_id: m.team2Id,
+                winner_team_id: m.winnerTeamId,
+                score_team1: m.scoreTeam1 ?? null,
+                score_team2: m.scoreTeam2 ?? null,
+                notes: m.notes ?? null,
+              })),
+              { onConflict: 'house_id,id' }
+            );
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      const sessionsRaw = getStorageItem(getHouseResourceKey(house.id, 'sessions'));
+      if (sessionsRaw) {
+        try {
+          const localSessions: TournamentSession[] = JSON.parse(sessionsRaw);
+          const validSessions = (Array.isArray(localSessions) ? localSessions : []).filter(
+            (s) => s && s.id && !deletedSet.has(s.id)
+          );
+          if (validSessions.length > 0) {
+            await client.from('tournament_sessions').upsert(
+              validSessions.map((s) => ({
+                id: s.id,
+                house_id: house.id,
+                date_key: s.dateKey,
+                mode: s.mode || '2vs2',
+                team1_name: s.team1Name,
+                team2_name: s.team2Name,
+                team3_name: s.team3Name ?? null,
+                team1_players: s.team1Players ?? [],
+                team2_players: s.team2Players ?? [],
+                team3_players: s.team3Players ?? null,
+                team1_wins: s.team1Wins ?? 0,
+                team2_wins: s.team2Wins ?? 0,
+                team3_wins: s.team3Wins ?? 0,
+                players5: s.players5 ?? null,
+                game_type: s.gameType || 'briscola',
+                scopa_variant: s.scopaVariant ?? null,
+                target_points: s.targetPoints ?? null,
+                scopa_rounds: s.scopaRounds ?? [],
+                history: s.history ?? [],
+                is_active: s.status === 'in_progress',
+                winner_team: s.winnerTeam !== undefined ? String(s.winnerTeam) : null,
+                winner_player_name: s.winnerPlayerName ?? null,
+                created_at: s.startedAt || new Date().toISOString(),
+                ended_at: s.endedAt ?? null,
+                updated_at: s.updatedAt || s.startedAt || new Date().toISOString(),
+              })),
+              { onConflict: 'house_id,id' }
+            );
+          }
+        } catch {
+          // ignore
+        }
       }
     } catch (err) {
       console.warn('Errore push house to cloud:', err);
@@ -1074,9 +1284,12 @@ export const HouseService = {
   },
 
   async pullHouseDataFromCloud(houseId: string): Promise<void> {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured() || !houseId) return;
     const client = getSupabaseClient();
     if (!client) return;
+
+    const deletedSet = new Set(getDeletedIds(houseId));
+    this.migrateLegacyLocalDataToHouse(houseId);
 
     try {
       // 0. Membri della Casa
@@ -1099,7 +1312,7 @@ export const HouseService = {
       if (Array.isArray(membersData) && !membersErr) {
         mappedMembers = (membersData as CloudMemberRecord[])
           .filter((m) => {
-            if (m.user_id.startsWith('mem_') || m.user_id.startsWith('member_')) return false;
+            if (m.user_id.startsWith('mem_') || m.user_id.startsWith('member_') || deletedSet.has(m.user_id)) return false;
             const disp = m.profiles?.display_name?.toLowerCase().trim() || '';
             const nick = m.nickname?.toLowerCase().trim() || '';
             if (disp === 'francesco' || nick === 'francesco') return false;
@@ -1133,7 +1346,7 @@ export const HouseService = {
           const profMap = new Map((profs || []).map((p) => [p.id, p]));
 
           mappedMembers = rawMembers
-            .filter((m) => !m.user_id.startsWith('mem_') && !m.user_id.startsWith('member_'))
+            .filter((m) => !m.user_id.startsWith('mem_') && !m.user_id.startsWith('member_') && !deletedSet.has(m.user_id))
             .map((m) => {
               const prof = profMap.get(m.user_id);
               return {
@@ -1153,14 +1366,13 @@ export const HouseService = {
         // Preserva eventuali membri locali non ancora sincronizzati sul cloud
         const existingLocal = this.getHouseMembers(houseId);
         for (const localM of existingLocal) {
-          if (localM.userId.startsWith('mem_') || localM.userId.startsWith('member_')) continue;
+          if (localM.userId.startsWith('mem_') || localM.userId.startsWith('member_') || deletedSet.has(localM.userId)) continue;
           const disp = localM.displayName?.toLowerCase().trim() || '';
           const nick = localM.nickname?.toLowerCase().trim() || '';
           if (disp === 'francesco' || nick === 'francesco') continue;
 
           const cloudIndex = mappedMembers.findIndex((m) => m.userId === localM.userId);
           if (cloudIndex >= 0) {
-            // Se in locale c'è un soprannome più recente impostato dall'utente, mantienilo
             if (localM.nickname && !mappedMembers[cloudIndex].nickname) {
               mappedMembers[cloudIndex].nickname = localM.nickname;
             }
@@ -1171,7 +1383,6 @@ export const HouseService = {
 
         setStorageItem(getHouseResourceKey(houseId, 'members'), JSON.stringify(mappedMembers));
 
-        // Sincronizza anche ciascun membro nei players della casa
         for (const m of mappedMembers) {
           this.syncMemberToPlayer(m);
         }
@@ -1179,16 +1390,25 @@ export const HouseService = {
 
       // 1. Players
       const { data: players } = await client.from('players').select('*').eq('house_id', houseId);
-      if (Array.isArray(players) && players.length > 0) {
-        const mappedPlayers: Player[] = players.map((p) => ({
-          id: p.id,
-          houseId: p.house_id,
-          name: p.name,
-          nickname: p.nickname ?? undefined,
-          avatarSuit: p.avatar_suit as CardSuit,
-          createdAt: p.created_at,
-          isFriend: Boolean(p.is_friend || (p.id && p.id.includes('friend'))),
-        }));
+      if (Array.isArray(players)) {
+        for (const p of players) {
+          if (p && p.id && (deletedSet.has(p.id) || p.id.startsWith('p_mem_guest_'))) {
+            client.from('players').delete().eq('id', p.id).eq('house_id', houseId).then();
+          }
+        }
+
+        const mappedPlayers: Player[] = players
+          .filter((p) => p && p.id && !deletedSet.has(p.id) && !p.id.startsWith('p_mem_guest_'))
+          .map((p) => ({
+            id: p.id,
+            houseId: p.house_id,
+            name: p.name,
+            nickname: p.nickname ?? undefined,
+            avatarSuit: p.avatar_suit as CardSuit,
+            createdAt: p.created_at,
+            isFriend: Boolean(p.is_friend || (p.id && p.id.includes('friend'))),
+          }));
+
         const localPlayersRaw = getStorageItem(getHouseResourceKey(houseId, 'players'));
         let localPlayers: Player[] = [];
         if (localPlayersRaw) {
@@ -1199,21 +1419,54 @@ export const HouseService = {
             localPlayers = [];
           }
         }
+
         const mergedPlayers = [...mappedPlayers];
+        const playersToPushToCloud: Player[] = [];
+
         for (const locP of localPlayers) {
+          if (!locP || !locP.id || deletedSet.has(locP.id) || locP.id.startsWith('p_mem_guest_')) continue;
           const mIdx = mergedPlayers.findIndex((p) => p.id === locP.id);
           if (mIdx >= 0) {
-            if (locP.isFriend) mergedPlayers[mIdx].isFriend = true;
+            if (locP.isFriend && !mergedPlayers[mIdx].isFriend) {
+              mergedPlayers[mIdx].isFriend = true;
+              playersToPushToCloud.push(mergedPlayers[mIdx]);
+            }
           } else {
             mergedPlayers.push(locP);
+            playersToPushToCloud.push(locP);
           }
         }
+
         setStorageItem(getHouseResourceKey(houseId, 'players'), JSON.stringify(mergedPlayers));
+
+        if (playersToPushToCloud.length > 0) {
+          client
+            .from('players')
+            .upsert(
+              playersToPushToCloud.map((p) => ({
+                id: p.id,
+                house_id: houseId,
+                name: p.name,
+                nickname: p.nickname || null,
+                avatar_suit: p.avatarSuit || 'coppe',
+                created_at: p.createdAt || new Date().toISOString(),
+                is_friend: Boolean(p.isFriend),
+              })),
+              { onConflict: 'house_id,id' }
+            )
+            .then();
+        }
       }
 
       // 2. Teams
       const { data: teams } = await client.from('teams').select('*').eq('house_id', houseId);
       if (Array.isArray(teams)) {
+        for (const t of teams) {
+          if (t && t.id && deletedSet.has(t.id)) {
+            client.from('teams').delete().eq('id', t.id).eq('house_id', houseId).then();
+          }
+        }
+
         const localTeamsRaw = getStorageItem(getHouseResourceKey(houseId, 'teams'));
         let localTeams: Team[] = [];
         if (localTeamsRaw) {
@@ -1224,55 +1477,98 @@ export const HouseService = {
             localTeams = [];
           }
         }
-        const mappedTeams: Team[] = teams.map((t: any) => {
-          const locMatch = localTeams.find((lt) => lt.id === t.id);
-          const pIds = (Array.isArray(t.player_ids) && t.player_ids.length > 0)
-            ? t.player_ids
-            : (Array.isArray(t.playerIds) && t.playerIds.length > 0)
-              ? t.playerIds
-              : (locMatch?.playerIds || []);
-          const pNames = (Array.isArray(t.player_names) && t.player_names.length > 0)
-            ? t.player_names
-            : (Array.isArray(t.playerNames) && t.playerNames.length > 0)
-              ? t.playerNames
-              : (locMatch?.playerNames || []);
 
-          return {
-            id: t.id,
-            houseId: t.house_id || t.houseId || houseId,
-            name: t.name,
-            playerIds: pIds,
-            playerNames: pNames,
-            color: t.color || '#10b981',
-            createdAt: t.created_at || t.createdAt || new Date().toISOString(),
-          };
-        });
+        const mappedTeams: Team[] = teams
+          .filter((t: any) => t && t.id && !deletedSet.has(t.id))
+          .map((t: any) => {
+            const locMatch = localTeams.find((lt) => lt.id === t.id);
+            const pIds =
+              Array.isArray(t.player_ids) && t.player_ids.length > 0
+                ? t.player_ids
+                : Array.isArray(t.playerIds) && t.playerIds.length > 0
+                  ? t.playerIds
+                  : locMatch?.playerIds || [];
+            const pNames =
+              Array.isArray(t.player_names) && t.player_names.length > 0
+                ? t.player_names
+                : Array.isArray(t.playerNames) && t.playerNames.length > 0
+                  ? t.playerNames
+                  : locMatch?.playerNames || [];
+
+            return {
+              id: t.id,
+              houseId: t.house_id || t.houseId || houseId,
+              name: t.name,
+              playerIds: pIds,
+              playerNames: pNames,
+              color: t.color || '#10b981',
+              createdAt: t.created_at || t.createdAt || new Date().toISOString(),
+            };
+          });
 
         const mergedTeams = [...mappedTeams];
+        const teamsToPushToCloud: Team[] = [];
+
         for (const locT of localTeams) {
-          if (!mergedTeams.some((t) => t.id === locT.id)) {
+          if (!locT || !locT.id || deletedSet.has(locT.id)) continue;
+          const existingIdx = mergedTeams.findIndex((t) => t.id === locT.id);
+          if (existingIdx >= 0) {
+            if (isRecentlyMutatedLocally(locT.id)) {
+              mergedTeams[existingIdx] = locT;
+              teamsToPushToCloud.push(locT);
+            }
+          } else {
             mergedTeams.push(locT);
+            teamsToPushToCloud.push(locT);
           }
         }
+
         setStorageItem(getHouseResourceKey(houseId, 'teams'), JSON.stringify(mergedTeams));
+
+        if (teamsToPushToCloud.length > 0) {
+          client
+            .from('teams')
+            .upsert(
+              teamsToPushToCloud.map((t) => ({
+                id: t.id,
+                house_id: houseId,
+                name: t.name,
+                player_ids: t.playerIds ?? [],
+                player_names: t.playerNames ?? [],
+                color: t.color || '#10b981',
+                created_at: t.createdAt || new Date().toISOString(),
+              })),
+              { onConflict: 'house_id,id' }
+            )
+            .then();
+        }
       }
 
       // 3. Matches
       const { data: matches } = await client.from('matches').select('*').eq('house_id', houseId);
       if (Array.isArray(matches)) {
-        const mappedMatches: Match[] = matches.map((m) => ({
-          id: m.id,
-          houseId: m.house_id,
-          gameType: m.game_type || m.gameType || 'briscola',
-          timestamp: m.timestamp,
-          dateKey: m.date_key || m.dateKey,
-          team1Id: m.team1_id || m.team1Id,
-          team2Id: m.team2_id || m.team2Id,
-          winnerTeamId: m.winner_team_id || m.winnerTeamId,
-          scoreTeam1: m.score_team1 ?? m.scoreTeam1,
-          scoreTeam2: m.score_team2 ?? m.scoreTeam2,
-          notes: m.notes ?? undefined,
-        }));
+        for (const m of matches) {
+          if (m && m.id && deletedSet.has(m.id)) {
+            client.from('matches').delete().eq('id', m.id).eq('house_id', houseId).then();
+          }
+        }
+
+        const mappedMatches: Match[] = matches
+          .filter((m) => m && m.id && !deletedSet.has(m.id))
+          .map((m) => ({
+            id: m.id,
+            houseId: m.house_id,
+            gameType: m.game_type || m.gameType || 'briscola',
+            timestamp: m.timestamp,
+            dateKey: m.date_key || m.dateKey,
+            team1Id: m.team1_id || m.team1Id,
+            team2Id: m.team2_id || m.team2Id,
+            winnerTeamId: m.winner_team_id || m.winnerTeamId,
+            scoreTeam1: m.score_team1 ?? m.scoreTeam1,
+            scoreTeam2: m.score_team2 ?? m.scoreTeam2,
+            notes: m.notes ?? undefined,
+          }));
+
         const localMatchesRaw = getStorageItem(getHouseResourceKey(houseId, 'matches'));
         let localMatches: Match[] = [];
         if (localMatchesRaw) {
@@ -1283,46 +1579,93 @@ export const HouseService = {
             localMatches = [];
           }
         }
+
         const mergedMatches = [...mappedMatches];
+        const matchesToPushToCloud: Match[] = [];
+
         for (const locM of localMatches) {
-          if (!mergedMatches.some((m) => m.id === locM.id)) {
+          if (!locM || !locM.id || deletedSet.has(locM.id)) continue;
+          const existingIdx = mergedMatches.findIndex((m) => m.id === locM.id);
+          if (existingIdx >= 0) {
+            if (isRecentlyMutatedLocally(locM.id)) {
+              mergedMatches[existingIdx] = locM;
+              matchesToPushToCloud.push(locM);
+            }
+          } else {
             mergedMatches.unshift(locM);
+            matchesToPushToCloud.push(locM);
           }
         }
+
+        mergedMatches.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         setStorageItem(getHouseResourceKey(houseId, 'matches'), JSON.stringify(mergedMatches));
+
+        if (matchesToPushToCloud.length > 0) {
+          client
+            .from('matches')
+            .upsert(
+              matchesToPushToCloud.map((m) => ({
+                id: m.id,
+                house_id: houseId,
+                game_type: m.gameType || 'briscola',
+                timestamp: m.timestamp,
+                date_key: m.dateKey,
+                team1_id: m.team1Id,
+                team2_id: m.team2Id,
+                winner_team_id: m.winnerTeamId,
+                score_team1: m.scoreTeam1 ?? null,
+                score_team2: m.scoreTeam2 ?? null,
+                notes: m.notes ?? null,
+              })),
+              { onConflict: 'house_id,id' }
+            )
+            .then();
+        }
       }
 
       // 4. Tournament Sessions
       const { data: sessions } = await client.from('tournament_sessions').select('*').eq('house_id', houseId);
       if (Array.isArray(sessions)) {
-        const mappedSessions: TournamentSession[] = sessions.map((s) => ({
-          id: s.id,
-          houseId: s.house_id,
-          dateKey: s.date_key,
-          startedAt: s.created_at || s.started_at || new Date().toISOString(),
-          endedAt: s.ended_at || undefined,
-          mode: s.mode || '2vs2',
-          team1Name: s.team1_name || s.team1Name || '',
-          team1Players: s.team1_players || s.team1Players || [],
-          team2Name: s.team2_name || s.team2Name || '',
-          team2Players: s.team2_players || s.team2Players || [],
-          team3Name: s.team3_name || s.team3Name || undefined,
-          team3Players: s.team3_players || s.team3Players || undefined,
-          players5: s.players5 || undefined,
-          team1Wins: s.team1_wins ?? s.team1Wins ?? 0,
-          team2Wins: s.team2_wins ?? s.team2Wins ?? 0,
-          team3Wins: s.team3_wins ?? s.team3Wins ?? 0,
-          status: s.is_active ? 'in_progress' : 'completed',
-          winnerTeam: s.winner_team || s.winnerTeam,
-          winnerPlayerName: s.winner_player_name || s.winnerPlayerName,
-          updatedAt: s.updated_at || s.created_at || s.started_at || new Date().toISOString(),
-          gameType: s.game_type || s.gameType || 'briscola',
-          scopaVariant: s.scopa_variant || s.scopaVariant || undefined,
-          targetPoints: s.target_points ?? s.targetPoints ?? undefined,
-          scopaRounds: Array.isArray(s.scopa_rounds) ? s.scopa_rounds : Array.isArray(s.scopaRounds) ? s.scopaRounds : [],
-        }));
+        for (const s of sessions) {
+          if (s && s.id && deletedSet.has(s.id)) {
+            client.from('tournament_sessions').delete().eq('id', s.id).eq('house_id', houseId).then();
+          }
+        }
 
-        // Preserva le sessioni con confronto basato su timestamp per sincronizzazione infallibile
+        const mappedSessions: TournamentSession[] = sessions
+          .filter((s) => s && s.id && !deletedSet.has(s.id))
+          .map((s) => ({
+            id: s.id,
+            houseId: s.house_id,
+            dateKey: s.date_key,
+            startedAt: s.created_at || s.started_at || new Date().toISOString(),
+            endedAt: s.ended_at || undefined,
+            mode: s.mode || '2vs2',
+            team1Name: s.team1_name || s.team1Name || '',
+            team1Players: s.team1_players || s.team1Players || [],
+            team2Name: s.team2_name || s.team2Name || '',
+            team2Players: s.team2_players || s.team2Players || [],
+            team3Name: s.team3_name || s.team3Name || undefined,
+            team3Players: s.team3_players || s.team3Players || undefined,
+            players5: s.players5 || undefined,
+            team1Wins: s.team1_wins ?? s.team1Wins ?? 0,
+            team2Wins: s.team2_wins ?? s.team2Wins ?? 0,
+            team3Wins: s.team3_wins ?? s.team3Wins ?? 0,
+            status: s.is_active ? 'in_progress' : 'completed',
+            winnerTeam: s.winner_team || s.winnerTeam,
+            winnerPlayerName: s.winner_player_name || s.winnerPlayerName,
+            updatedAt: s.updated_at || s.created_at || s.started_at || new Date().toISOString(),
+            gameType: s.game_type || s.gameType || 'briscola',
+            scopaVariant: s.scopa_variant || s.scopaVariant || undefined,
+            targetPoints: s.target_points ?? s.targetPoints ?? undefined,
+            scopaRounds: Array.isArray(s.scopa_rounds)
+              ? s.scopa_rounds
+              : Array.isArray(s.scopaRounds)
+                ? s.scopaRounds
+                : [],
+            history: Array.isArray(s.history) ? s.history : [],
+          }));
+
         const localSessionsRaw = getStorageItem(getHouseResourceKey(houseId, 'sessions'));
         let localSessions: TournamentSession[] = [];
         if (localSessionsRaw) {
@@ -1335,39 +1678,72 @@ export const HouseService = {
         }
 
         const mergedSessions: TournamentSession[] = [...mappedSessions];
+        const sessionsToPushToCloud: TournamentSession[] = [];
+
         for (const locS of localSessions) {
+          if (!locS || !locS.id || deletedSet.has(locS.id)) continue;
           const cloudIndex = mergedSessions.findIndex((s) => s.id === locS.id);
           if (cloudIndex >= 0) {
             const cloudS = mergedSessions[cloudIndex];
-            if (cloudS.status === 'completed' && locS.status !== 'completed') {
-              // Il cloud ha terminato il torneo, adotta la chiusura
-              continue;
-            }
-            if (locS.status === 'completed' && cloudS.status !== 'completed') {
-              // L'utente locale ha appena concluso il torneo
-              mergedSessions[cloudIndex] = { ...cloudS, ...locS, status: 'completed' };
-              continue;
-            }
+            const merged = mergeTwoSessions(locS, cloudS);
+            mergedSessions[cloudIndex] = merged;
 
             const locTime = locS.updatedAt ? new Date(locS.updatedAt).getTime() : 0;
             const cloudTime = cloudS.updatedAt ? new Date(cloudS.updatedAt).getTime() : 0;
-
-            if (locTime > cloudTime) {
-              mergedSessions[cloudIndex] = { ...cloudS, ...locS };
-            } else {
-              mergedSessions[cloudIndex] = {
-                ...locS,
-                ...cloudS,
-                team1Players: (cloudS.team1Players && cloudS.team1Players.length > 0) ? cloudS.team1Players : locS.team1Players,
-                team2Players: (cloudS.team2Players && cloudS.team2Players.length > 0) ? cloudS.team2Players : locS.team2Players,
-              };
+            if (
+              locTime > cloudTime ||
+              (locS.status === 'completed' && cloudS.status !== 'completed') ||
+              (locS.history?.length || 0) > (cloudS.history?.length || 0) ||
+              (locS.scopaRounds?.length || 0) > (cloudS.scopaRounds?.length || 0)
+            ) {
+              sessionsToPushToCloud.push(merged);
             }
           } else {
             mergedSessions.unshift(locS);
+            sessionsToPushToCloud.push(locS);
           }
         }
 
+        mergedSessions.sort(
+          (a, b) => new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime()
+        );
         setStorageItem(getHouseResourceKey(houseId, 'sessions'), JSON.stringify(mergedSessions));
+
+        if (sessionsToPushToCloud.length > 0) {
+          client
+            .from('tournament_sessions')
+            .upsert(
+              sessionsToPushToCloud.map((s) => ({
+                id: s.id,
+                house_id: houseId,
+                date_key: s.dateKey,
+                mode: s.mode || '2vs2',
+                team1_name: s.team1Name,
+                team2_name: s.team2Name,
+                team3_name: s.team3Name ?? null,
+                team1_players: s.team1Players ?? [],
+                team2_players: s.team2Players ?? [],
+                team3_players: s.team3Players ?? null,
+                team1_wins: s.team1Wins ?? 0,
+                team2_wins: s.team2Wins ?? 0,
+                team3_wins: s.team3Wins ?? 0,
+                players5: s.players5 ?? null,
+                game_type: s.gameType || 'briscola',
+                scopa_variant: s.scopaVariant ?? null,
+                target_points: s.targetPoints ?? null,
+                scopa_rounds: s.scopaRounds ?? [],
+                history: s.history ?? [],
+                is_active: s.status === 'in_progress',
+                winner_team: s.winnerTeam !== undefined ? String(s.winnerTeam) : null,
+                winner_player_name: s.winnerPlayerName ?? null,
+                created_at: s.startedAt || new Date().toISOString(),
+                ended_at: s.endedAt ?? null,
+                updated_at: s.updatedAt || s.startedAt || new Date().toISOString(),
+              })),
+              { onConflict: 'house_id,id' }
+            )
+            .then();
+        }
       }
 
       // 5. Migra automaticamente eventuali record manuali o Francesco a Giocatori Amici e deduplica
